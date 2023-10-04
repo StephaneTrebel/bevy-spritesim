@@ -1,8 +1,9 @@
-use std::u64::MAX;
+use std::u32::MAX as MAX_u32;
+use std::u64::MAX as MAX_u64;
 
 use bevy::{math::vec2, prelude::*, render::camera::ScalingMode, utils::HashMap, window::*};
 use bevy_pancam::{PanCam, PanCamPlugin};
-use noisy_bevy::simplex_noise_2d;
+use noisy_bevy::simplex_noise_2d_seeded;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
 const WINDOW_PHYSICAL_WIDTH: f32 = 1280.; // In pixels
@@ -13,8 +14,8 @@ const MAP_WIDTH: usize = 100;
 const MAP_HEIGHT: usize = 100;
 
 // Setup constants for noisy_bevy
-const FREQUENCY_SCALE: f32 = 0.2;
-const AMPLITUDE_SCALE: f32 = 8.0;
+const BASE_FREQUENCY_SCALE: f32 = 0.05;
+const BASE_AMPLITUDE_SCALE: f32 = 4.0;
 
 #[derive(Clone, Debug)]
 enum Kind {
@@ -32,6 +33,9 @@ struct Tile {
 type Map = HashMap<(i32, i32), Tile>;
 
 fn generate_patch(map: &mut Map, kind: Kind, coordinates: (i32, i32), radius: f32) {
+    let seed = StdRng::from_entropy().gen_range(0..MAX_u32);
+    let mut rng = StdRng::seed_from_u64(seed as u64);
+
     let grid_half_size = radius as i32 + 1;
     for w in -grid_half_size..=grid_half_size {
         for h in -grid_half_size..=grid_half_size {
@@ -39,7 +43,12 @@ fn generate_patch(map: &mut Map, kind: Kind, coordinates: (i32, i32), radius: f3
 
             // Compute noise offset (That will contribute to the "blob" shape
             // the patch will have)
-            let offset = simplex_noise_2d(p * FREQUENCY_SCALE) * AMPLITUDE_SCALE;
+            let frequency_scale =
+                rng.gen_range(BASE_FREQUENCY_SCALE - 0.01..BASE_FREQUENCY_SCALE + 0.01);
+            let amplitude_scale =
+                rng.gen_range(BASE_AMPLITUDE_SCALE - 0.4..BASE_AMPLITUDE_SCALE + 0.4);
+            let offset =
+                simplex_noise_2d_seeded(p * frequency_scale, seed as f32) * amplitude_scale;
 
             // Height will serve, with a threshold cutoff, as sizing the resulting patch
             let height = radius + offset - ((w * w + h * h) as f32).sqrt();
@@ -62,7 +71,9 @@ fn generate_patch(map: &mut Map, kind: Kind, coordinates: (i32, i32), radius: f3
     }
 }
 
-fn build_map(width: i32, height: i32, rng: &mut StdRng) -> Map {
+fn build_map(width: i32, height: i32, seed: u64) -> Map {
+    let mut rng = StdRng::seed_from_u64(seed);
+    dbg!(seed as f32);
     let mut map: Map = HashMap::new();
 
     // Init with Ocean tiles
@@ -84,7 +95,7 @@ fn build_map(width: i32, height: i32, rng: &mut StdRng) -> Map {
 
     // Generate patches of Plain to serve as a main continent
     // (but with an irregular shape)
-    let max_offset = 3; // Maximum offset from the original starting spot
+    let max_offset = 5; // Maximum offset from the original starting spot
     for coordinates in [
         (
             rng.gen_range(-max_offset..=max_offset) + width as i32 / 3,
@@ -107,7 +118,7 @@ fn build_map(width: i32, height: i32, rng: &mut StdRng) -> Map {
             &mut map,
             Kind::Plain,
             coordinates,
-            rng.gen_range(15..20) as f32,
+            rng.gen_range(20 - max_offset..20 + max_offset) as f32,
         );
     }
 
@@ -117,12 +128,11 @@ fn build_map(width: i32, height: i32, rng: &mut StdRng) -> Map {
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // PRGN initialization
-    let seed = StdRng::from_entropy().gen_range(0..MAX);
-    let mut rng = StdRng::seed_from_u64(seed);
+    // PRNG initialization
+    let seed = StdRng::from_entropy().gen_range(0..MAX_u64);
 
     // Map generation
-    let map = build_map(MAP_WIDTH as i32, MAP_HEIGHT as i32, &mut rng);
+    let map = build_map(MAP_WIDTH as i32, MAP_HEIGHT as i32, seed);
 
     // Configure Camera that can be panned and zoomed with the mouse
     let mut cam = Camera2dBundle::default();
@@ -165,7 +175,6 @@ fn main() {
                 primary_window: Some(Window {
                     title: "SpriteSim".into(),
                     position: WindowPosition::Centered(MonitorSelection::Index(1)),
-                    focused: false,
                     resolution: WindowResolution::new(
                         WINDOW_PHYSICAL_WIDTH,
                         WINDOW_PHYSICAL_HEIGHT,
