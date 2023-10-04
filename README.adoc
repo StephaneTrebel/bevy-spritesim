@@ -1,3 +1,7 @@
 = About
 
 This is a small tentative game written in https://www.rust-lang.org/[Rust] by using https://bevyengine.org/[Bevy] framework
+
+= Thanks
+
+- Thanks to https://lospec.com/palette-list/31[31 palette] for these sublime colors
