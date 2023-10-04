@@ -1,10 +1,14 @@
 use bevy::{prelude::*, window::*};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
+const WINDOW_PHYSICAL_WIDTH: f32 = 640.;
+const WINDOW_PHYSICAL_HEIGHT: f32 = 512.;
+const WINDOW_SCALE_FACTOR: f64 = 2.0;
+
 enum Color {
-    Red,
-    Green,
-    Blue,
+    Plain,
+    Ocean,
+    Forest,
 }
 
 struct Tile {
@@ -14,15 +18,21 @@ struct Tile {
 
 fn build_map(width: i32, height: i32, rng: &mut StdRng) -> Vec<Tile> {
     let mut map = Vec::new();
+    let offset_width = WINDOW_PHYSICAL_WIDTH / (2. * WINDOW_SCALE_FACTOR as f32);
+    let offset_height = WINDOW_PHYSICAL_HEIGHT / (2. * WINDOW_SCALE_FACTOR as f32);
     for w in 0..width {
         for h in 0..height {
             let test = rng.gen_range(0..3);
             map.push(Tile {
-                coordinates: Vec3::from(((w as f32) * 32., (h as f32) * 32., 0.)),
+                coordinates: Vec3::from((
+                    (w as f32) * 32. - offset_width,
+                    (h as f32) * 32. - offset_height,
+                    0.,
+                )),
                 color: match test {
-                    1 => Color::Red,
-                    2 => Color::Blue,
-                    _ => Color::Green,
+                    1 => Color::Plain,
+                    2 => Color::Ocean,
+                    _ => Color::Forest,
                 },
             });
         }
@@ -38,9 +48,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     for item in map {
         commands.spawn(SpriteBundle {
             texture: match item.color {
-                Color::Red => asset_server.load("sprites/terrain/red.png"),
-                Color::Blue => asset_server.load("sprites/terrain/blue.png"),
-                Color::Green => asset_server.load("sprites/terrain/green.png"),
+                Color::Plain => asset_server.load("sprites/terrain/plain.png"),
+                Color::Ocean => asset_server.load("sprites/terrain/ocean.png"),
+                Color::Forest => asset_server.load("sprites/terrain/forest.png"),
             },
             transform: Transform::from_xyz(
                 item.coordinates.x as f32,
@@ -68,7 +78,11 @@ fn main() {
                     title: "SpriteSim".into(),
                     position: WindowPosition::Centered(MonitorSelection::Index(1)),
                     focused: false,
-                    resolution: (640., 480.).into(),
+                    resolution: WindowResolution::new(
+                        WINDOW_PHYSICAL_WIDTH,
+                        WINDOW_PHYSICAL_HEIGHT,
+                    )
+                    .with_scale_factor_override(WINDOW_SCALE_FACTOR),
                     present_mode: PresentMode::AutoVsync,
                     window_theme: Some(WindowTheme::Dark),
                     window_level: WindowLevel::AlwaysOnTop,
