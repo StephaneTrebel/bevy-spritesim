@@ -28,6 +28,25 @@ struct Tile {
 
 type Map = HashMap<(i32, i32), Tile>;
 
+/// Determines if a tile can be replaced by another
+///
+/// This is handy when replacing a base Plain tile with a more complex one
+/// (like a Forest, Desert, etc.)
+///
+/// The only tile that is allowed to override this rule is of course the Plain type,
+/// since it is placed on Ocean tiles
+fn can_replace_continent_tile(kind: &Kind, map: &Map, coordinates: (i32, i32)) -> bool {
+    return *kind != Kind::Forest || map.get(&coordinates).unwrap().kind == Kind::Plain;
+}
+
+/// Generates a patch of tile at given coordinates.
+///
+/// This function requires several parameters:
+/// - The map and its seed (@TODO Join them in the future ?)
+/// - The tile Kind (Forest, Plain, etc.)
+/// - The patch radius (its size, since we're making roughly round patches)
+/// - Frequency and Amplitude scales are used for roughness (I don't full understand
+/// them for the moment...)
 fn generate_patch(
     seed: f32,
     map: &mut Map,
@@ -56,7 +75,7 @@ fn generate_patch(
             let key = (coordinates.0 + w, coordinates.1 + h);
             if key.0 > 0 && key.1 > 0 && key.0 < MAP_WIDTH && key.1 < MAP_HEIGHT {
                 // Only replace tile when necessary (for instance, Forest tiles can only be placed on Plains)
-                let replace = *kind != Kind::Forest || map.get(&key).unwrap().kind == Kind::Plain;
+                let replace = can_replace_continent_tile(&kind, map, coordinates);
                 if replace && height > min_height {
                     map.insert(
                         key,
@@ -75,6 +94,11 @@ fn generate_patch(
     }
 }
 
+/// Generates several patches in one go.
+///
+/// Use this function to avoid having to place patches one by one.
+/// Patches are put in a kinda equidistant positions (based on their count), and
+/// every parameter is randomly adjusted to simulate realism and RNG
 fn generate_multiple_patches(
     pseudo_rng_instance: &mut StdRng,
     mut map: &mut Map,
@@ -113,6 +137,10 @@ fn generate_multiple_patches(
     }
 }
 
+/// Main map building function.
+///
+/// Size are hard-coded so the only need parameter is the PRNG instance to generate
+/// seeds for the different layers (patch groups) that are applied on the map.
 fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
     let map_seed = pseudo_rng_instance.gen_range(0..MAX_u64);
     dbg!(map_seed);
@@ -163,6 +191,7 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
     return map;
 }
 
+/// Setup the whole game.
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // PRNG initialization
     let mut pseudo_rng_instance: StdRng = StdRng::from_entropy();
@@ -203,6 +232,7 @@ impl Plugin for GamePlugin {
     }
 }
 
+/// There we go !
 fn main() {
     App::new()
         .add_plugins((
