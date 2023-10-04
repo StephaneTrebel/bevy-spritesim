@@ -36,10 +36,11 @@ fn generate_patch(map: &mut Map, kind: Kind, coordinates: (i32, i32)) {
         for h in -grid_half_size..=grid_half_size {
             let p = vec2(w as f32, h as f32);
 
-            // Compute noise offset (so the "blob" shape the patch will have)
+            // Compute noise offset (That will contribute to the "blob" shape
+            // the patch will have)
             let offset = simplex_noise_2d(p * FREQUENCY_SCALE) * AMPLITUDE_SCALE;
 
-            // Height will serve, with a cutoff, as sizing the resulting patch
+            // Height will serve, with a threshold cutoff, as sizing the resulting patch
             let height = RADIUS + offset - ((w * w + h * h) as f32).sqrt();
             let min_height = -1.;
 
@@ -51,7 +52,7 @@ fn generate_patch(map: &mut Map, kind: Kind, coordinates: (i32, i32)) {
                         transform: Transform::from_translation(Vec3::new(
                             (coordinates.0 + w) as f32 * SPRITE_SIZE,
                             (coordinates.1 + h) as f32 * SPRITE_SIZE,
-                            1.,
+                            1., // z-index
                         )),
                     },
                 );
@@ -60,7 +61,7 @@ fn generate_patch(map: &mut Map, kind: Kind, coordinates: (i32, i32)) {
     }
 }
 
-fn build_map_v2(width: i32, height: i32) -> Map {
+fn build_map(width: i32, height: i32) -> Map {
     let mut map: Map = HashMap::new();
 
     // Init with Ocean tiles
@@ -95,7 +96,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // let mut rng = StdRng::seed_from_u64(seed);
 
     // Map generation
-    let map = build_map_v2(MAP_WIDTH as i32, MAP_HEIGHT as i32);
+    let map = build_map(MAP_WIDTH as i32, MAP_HEIGHT as i32);
 
     // Configure Camera that can be panned and zoomed with the mouse
     let mut cam = Camera2dBundle::default();
