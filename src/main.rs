@@ -90,7 +90,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     // Configure Camera that can be panned and zoomed with the mouse
     let mut cam = Camera2dBundle::default();
-    cam.projection.scaling_mode = ScalingMode::FixedVertical(500.);
+    cam.transform =
+        Transform::from_xyz(WINDOW_PHYSICAL_WIDTH / 2., WINDOW_PHYSICAL_HEIGHT / 2., 0.);
+    cam.projection.scaling_mode = ScalingMode::FixedVertical(5000.);
     commands.spawn((cam, PanCam::default()));
 
     // Load the sprites
