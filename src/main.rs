@@ -1,11 +1,5 @@
 use bevy::{prelude::*, window::*};
 
-#[derive(Component)]
-struct Person;
-
-#[derive(Component)]
-struct Name(String);
-
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
@@ -26,16 +20,11 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 }
 
-#[derive(Resource)]
-struct GreetTimer(Timer);
+pub struct GamePlugin;
 
-pub struct HelloPlugin;
-
-impl Plugin for HelloPlugin {
+impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(GreetTimer(Timer::from_seconds(2.0, TimerMode::Repeating)))
-            .add_systems(Startup, setup);
-        // .add_systems(Update, greet_people);
+        app.add_systems(Startup, setup);
     }
 }
 
@@ -44,7 +33,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
-                    title: "I am a window!".into(),
+                    title: "SpriteSim".into(),
                     position: WindowPosition::Centered(MonitorSelection::Index(1)),
                     focused: false,
                     resolution: (640., 480.).into(),
@@ -55,7 +44,7 @@ fn main() {
                 }),
                 ..default()
             }),
-            HelloPlugin,
+            GamePlugin,
         ))
         .run();
 }
