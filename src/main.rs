@@ -77,49 +77,53 @@ fn build_map(width: i32, height: i32, seed: u64) -> Map {
     let mut map: Map = HashMap::new();
 
     // Init with Ocean tiles
-    for w in 0..width {
-        for h in 0..height {
-            map.insert(
-                (w, h),
-                Tile {
-                    kind: Kind::Ocean,
-                    transform: Transform::from_translation(Vec3::new(
-                        (w as f32) * SPRITE_SIZE,
-                        (h as f32) * SPRITE_SIZE,
-                        0.,
-                    )),
-                },
-            );
+    {
+        for w in 0..width {
+            for h in 0..height {
+                map.insert(
+                    (w, h),
+                    Tile {
+                        kind: Kind::Ocean,
+                        transform: Transform::from_translation(Vec3::new(
+                            (w as f32) * SPRITE_SIZE,
+                            (h as f32) * SPRITE_SIZE,
+                            0.,
+                        )),
+                    },
+                );
+            }
         }
     }
 
     // Generate patches of Plain to serve as a main continent
     // (but with an irregular shape)
-    let max_offset = 5; // Maximum offset from the original starting spot
-    for coordinates in [
-        (
-            rng.gen_range(-max_offset..=max_offset) + width as i32 / 3,
-            rng.gen_range(-max_offset..=max_offset) + height as i32 / 3,
-        ),
-        (
-            rng.gen_range(-max_offset..=max_offset) + width as i32 / 3,
-            rng.gen_range(-max_offset..=max_offset) + height as i32 * 2 / 3,
-        ),
-        (
-            rng.gen_range(-max_offset..=max_offset) + width as i32 * 2 / 3,
-            rng.gen_range(-max_offset..=max_offset) + height as i32 / 3,
-        ),
-        (
-            rng.gen_range(-max_offset..=max_offset) + width as i32 * 2 / 3,
-            rng.gen_range(-max_offset..=max_offset) + height as i32 * 2 / 3,
-        ),
-    ] {
-        generate_patch(
-            &mut map,
-            Kind::Plain,
-            coordinates,
-            rng.gen_range(20 - max_offset..20 + max_offset) as f32,
-        );
+    {
+        let max_offset = 5; // Maximum offset from the original starting spot
+        for coordinates in [
+            (
+                rng.gen_range(-max_offset..=max_offset) + width as i32 / 3,
+                rng.gen_range(-max_offset..=max_offset) + height as i32 / 3,
+            ),
+            (
+                rng.gen_range(-max_offset..=max_offset) + width as i32 / 3,
+                rng.gen_range(-max_offset..=max_offset) + height as i32 * 2 / 3,
+            ),
+            (
+                rng.gen_range(-max_offset..=max_offset) + width as i32 * 2 / 3,
+                rng.gen_range(-max_offset..=max_offset) + height as i32 / 3,
+            ),
+            (
+                rng.gen_range(-max_offset..=max_offset) + width as i32 * 2 / 3,
+                rng.gen_range(-max_offset..=max_offset) + height as i32 * 2 / 3,
+            ),
+        ] {
+            generate_patch(
+                &mut map,
+                Kind::Plain,
+                coordinates,
+                rng.gen_range(20 - max_offset..20 + max_offset) as f32,
+            );
+        }
     }
 
     // Generate a patch of Forest
