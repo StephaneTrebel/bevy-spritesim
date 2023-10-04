@@ -1,6 +1,6 @@
 use bevy::{math::vec2, prelude::*, render::camera::ScalingMode, window::*};
 use bevy_pancam::{PanCam, PanCamPlugin};
-use noisy_bevy::{fbm_simplex_2d, simplex_noise_2d};
+use noisy_bevy::simplex_noise_2d;
 // use rand::{rngs::StdRng, Rng, SeedableRng};
 
 const WINDOW_PHYSICAL_WIDTH: f32 = 1280.; // In pixels
@@ -10,6 +10,12 @@ const SPRITE_SIZE: f32 = 32.;
 const MAP_WIDTH: usize = 100;
 const MAP_HEIGHT: usize = 100;
 
+// Setup constants for noisy_bevy
+const FREQUENCY_SCALE: f32 = 0.2;
+const AMPLITUDE_SCALE: f32 = 8.0;
+const RADIUS: f32 = 30.;
+
+#[derive(Clone)]
 enum Kind {
     Plain,
     Ocean,
@@ -19,6 +25,34 @@ enum Kind {
 struct Tile {
     kind: Kind,
     transform: Transform,
+}
+
+fn generate_patch(map: &mut Vec<Tile>, kind: Kind) {
+    let grid_half_size = RADIUS as i32 + 1;
+    for w in -grid_half_size..=grid_half_size {
+        for h in -grid_half_size..=grid_half_size {
+            let p = vec2(w as f32, h as f32);
+
+            // Compute noise offset (so the "blob" shape the patch will have)
+            let offset = simplex_noise_2d(p * FREQUENCY_SCALE) * AMPLITUDE_SCALE;
+
+            // Height will serve, with a cutoff, as sizing the resulting patch
+            let height = RADIUS + offset - ((w * w + h * h) as f32).sqrt();
+            let min_height = -1.;
+            dbg!(w, h, height, offset);
+
+            if height > min_height {
+                map.push(Tile {
+                    kind: kind.clone(),
+                    transform: Transform::from_translation(Vec3::new(
+                        (w as f32) * SPRITE_SIZE + WINDOW_PHYSICAL_WIDTH,
+                        (h as f32) * SPRITE_SIZE + WINDOW_PHYSICAL_HEIGHT,
+                        1.,
+                    )),
+                });
+            }
+        }
+    }
 }
 
 fn build_map_v2(width: i32, height: i32) -> Vec<Tile> {
@@ -42,37 +76,8 @@ fn build_map_v2(width: i32, height: i32) -> Vec<Tile> {
         }
     }
 
-    // Setup constants for noisy_bevy
-    const FREQUENCY_SCALE: f32 = 0.2;
-    const AMPLITUDE_SCALE: f32 = 8.0;
-    const RADIUS: f32 = 30.;
-
     // Generate a patch of Plain in the middle
-    let grid_half_size = RADIUS as i32 + 1;
-    for w in -grid_half_size..=grid_half_size {
-        for h in -grid_half_size..=grid_half_size {
-            let p = vec2(w as f32, h as f32);
-
-            // Compute noise offset (so the "blob" shape the patch will have)
-            let offset = simplex_noise_2d(p * FREQUENCY_SCALE) * AMPLITUDE_SCALE;
-
-            // Height will serve, with a cutoff, as sizing the resulting patch
-            let height = RADIUS + offset - ((w * w + h * h) as f32).sqrt();
-            let min_height = -1.;
-            dbg!(w, h, height, offset);
-
-            if height > min_height {
-                map.push(Tile {
-                    kind: Kind::Plain,
-                    transform: Transform::from_translation(Vec3::new(
-                        (w as f32) * SPRITE_SIZE + WINDOW_PHYSICAL_WIDTH,
-                        (h as f32) * SPRITE_SIZE + WINDOW_PHYSICAL_HEIGHT,
-                        1.,
-                    )),
-                });
-            }
-        }
-    }
+    generate_patch(&mut map, Kind::Plain);
 
     // Generate a patch of Forest
 
