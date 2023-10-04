@@ -1,7 +1,9 @@
+use std::u64::MAX;
+
 use bevy::{math::vec2, prelude::*, render::camera::ScalingMode, utils::HashMap, window::*};
 use bevy_pancam::{PanCam, PanCamPlugin};
 use noisy_bevy::simplex_noise_2d;
-// use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::{rngs::StdRng, Rng, SeedableRng};
 
 const WINDOW_PHYSICAL_WIDTH: f32 = 1280.; // In pixels
 const WINDOW_PHYSICAL_HEIGHT: f32 = 1280.; // In pixels
@@ -13,7 +15,6 @@ const MAP_HEIGHT: usize = 100;
 // Setup constants for noisy_bevy
 const FREQUENCY_SCALE: f32 = 0.2;
 const AMPLITUDE_SCALE: f32 = 8.0;
-const RADIUS: f32 = 30.;
 
 #[derive(Clone, Debug)]
 enum Kind {
@@ -30,8 +31,8 @@ struct Tile {
 
 type Map = HashMap<(i32, i32), Tile>;
 
-fn generate_patch(map: &mut Map, kind: Kind, coordinates: (i32, i32)) {
-    let grid_half_size = RADIUS as i32 + 1;
+fn generate_patch(map: &mut Map, kind: Kind, coordinates: (i32, i32), radius: f32) {
+    let grid_half_size = radius as i32 + 1;
     for w in -grid_half_size..=grid_half_size {
         for h in -grid_half_size..=grid_half_size {
             let p = vec2(w as f32, h as f32);
@@ -41,7 +42,7 @@ fn generate_patch(map: &mut Map, kind: Kind, coordinates: (i32, i32)) {
             let offset = simplex_noise_2d(p * FREQUENCY_SCALE) * AMPLITUDE_SCALE;
 
             // Height will serve, with a threshold cutoff, as sizing the resulting patch
-            let height = RADIUS + offset - ((w * w + h * h) as f32).sqrt();
+            let height = radius + offset - ((w * w + h * h) as f32).sqrt();
             let min_height = -1.;
 
             if height > min_height {
@@ -61,7 +62,7 @@ fn generate_patch(map: &mut Map, kind: Kind, coordinates: (i32, i32)) {
     }
 }
 
-fn build_map(width: i32, height: i32) -> Map {
+fn build_map(width: i32, height: i32, rng: &mut StdRng) -> Map {
     let mut map: Map = HashMap::new();
 
     // Init with Ocean tiles
@@ -81,8 +82,34 @@ fn build_map(width: i32, height: i32) -> Map {
         }
     }
 
-    // Generate a patch of Plain in the middle
-    generate_patch(&mut map, Kind::Plain, (width as i32 / 2, height as i32 / 2));
+    // Generate patches of Plain to serve as a main continent
+    // (but with an irregular shape)
+    let max_offset = 3; // Maximum offset from the original starting spot
+    for coordinates in [
+        (
+            rng.gen_range(-max_offset..=max_offset) + width as i32 / 3,
+            rng.gen_range(-max_offset..=max_offset) + height as i32 / 3,
+        ),
+        (
+            rng.gen_range(-max_offset..=max_offset) + width as i32 / 3,
+            rng.gen_range(-max_offset..=max_offset) + height as i32 * 2 / 3,
+        ),
+        (
+            rng.gen_range(-max_offset..=max_offset) + width as i32 * 2 / 3,
+            rng.gen_range(-max_offset..=max_offset) + height as i32 / 3,
+        ),
+        (
+            rng.gen_range(-max_offset..=max_offset) + width as i32 * 2 / 3,
+            rng.gen_range(-max_offset..=max_offset) + height as i32 * 2 / 3,
+        ),
+    ] {
+        generate_patch(
+            &mut map,
+            Kind::Plain,
+            coordinates,
+            rng.gen_range(15..20) as f32,
+        );
+    }
 
     // Generate a patch of Forest
 
@@ -91,12 +118,11 @@ fn build_map(width: i32, height: i32) -> Map {
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // PRGN initialization
-    // let seed = StdRng::from_entropy().gen_range(0..MAX);
-    // println!("seed={:?}", dbg!(&seed));
-    // let mut rng = StdRng::seed_from_u64(seed);
+    let seed = StdRng::from_entropy().gen_range(0..MAX);
+    let mut rng = StdRng::seed_from_u64(seed);
 
     // Map generation
-    let map = build_map(MAP_WIDTH as i32, MAP_HEIGHT as i32);
+    let map = build_map(MAP_WIDTH as i32, MAP_HEIGHT as i32, &mut rng);
 
     // Configure Camera that can be panned and zoomed with the mouse
     let mut cam = Camera2dBundle::default();
