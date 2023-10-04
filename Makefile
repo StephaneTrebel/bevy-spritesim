@@ -21,14 +21,14 @@ check: ## Check code
 $(TARGET_APP): $(SOURCES) ## Release version of the app
 	@cargo build --release
 
-.PHONY: build
-build: ## Build application (in release mode)
+.PHONY: build-release
+build-release: ## Build application
 	@$(MAKE) -s $(TARGET_APP)
 
-.PHONY: build-watch
-build-watch: ## Automatic execution upon updates (in release mode)
-	@find . -type f -name '*.rs' | entr -c -s "$(MAKE) -s build"
+.PHONY: build-dev-watch
+build-dev-watch: ## Automatic execution upon updates
+	@find src -type f | entr -r -s "cargo run"
 
 .PHONY: run
-run: ## Run a release version
+run: ## Run the built app
 	@$(TARGET_APP)
