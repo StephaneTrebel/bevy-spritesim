@@ -21,7 +21,7 @@ const BASE_AMPLITUDE_SCALE: f32 = 4.0;
 enum Kind {
     Plain,
     Ocean,
-    // Forest,
+    Forest,
 }
 
 #[derive(Debug)]
@@ -32,9 +32,15 @@ struct Tile {
 
 type Map = HashMap<(i32, i32), Tile>;
 
-fn generate_patch(map: &mut Map, kind: Kind, coordinates: (i32, i32), radius: f32) {
+fn generate_patch(
+    map: &mut Map,
+    kind: Kind,
+    coordinates: (i32, i32),
+    radius: f32,
+    frequency_scale: f32,
+    amplitude_scale: f32,
+) {
     let seed = StdRng::from_entropy().gen_range(0..MAX_u32);
-    let mut rng = StdRng::seed_from_u64(seed as u64);
 
     let grid_half_size = radius as i32 + 1;
     for w in -grid_half_size..=grid_half_size {
@@ -43,10 +49,6 @@ fn generate_patch(map: &mut Map, kind: Kind, coordinates: (i32, i32), radius: f3
 
             // Compute noise offset (That will contribute to the "blob" shape
             // the patch will have)
-            let frequency_scale =
-                rng.gen_range(BASE_FREQUENCY_SCALE - 0.01..BASE_FREQUENCY_SCALE + 0.01);
-            let amplitude_scale =
-                rng.gen_range(BASE_AMPLITUDE_SCALE - 0.4..BASE_AMPLITUDE_SCALE + 0.4);
             let offset =
                 simplex_noise_2d_seeded(p * frequency_scale, seed as f32) * amplitude_scale;
 
@@ -122,12 +124,43 @@ fn build_map(width: i32, height: i32, seed: u64) -> Map {
                 Kind::Plain,
                 coordinates,
                 rng.gen_range(20 - max_offset..20 + max_offset) as f32,
+                rng.gen_range(BASE_FREQUENCY_SCALE - 0.01..BASE_FREQUENCY_SCALE + 0.01),
+                rng.gen_range(BASE_AMPLITUDE_SCALE - 0.4..BASE_AMPLITUDE_SCALE + 0.4),
             );
         }
     }
 
-    // Generate a patch of Forest
-
+    // Generate randow patches of Forests
+    {
+        let max_offset = 5; // Maximum offset from the original starting spot
+        for coordinates in [
+            (
+                rng.gen_range(-max_offset..=max_offset) + width as i32 / 3,
+                rng.gen_range(-max_offset..=max_offset) + height as i32 / 3,
+            ),
+            (
+                rng.gen_range(-max_offset..=max_offset) + width as i32 / 3,
+                rng.gen_range(-max_offset..=max_offset) + height as i32 * 2 / 3,
+            ),
+            (
+                rng.gen_range(-max_offset..=max_offset) + width as i32 * 2 / 3,
+                rng.gen_range(-max_offset..=max_offset) + height as i32 / 3,
+            ),
+            (
+                rng.gen_range(-max_offset..=max_offset) + width as i32 * 2 / 3,
+                rng.gen_range(-max_offset..=max_offset) + height as i32 * 2 / 3,
+            ),
+        ] {
+            generate_patch(
+                &mut map,
+                Kind::Forest,
+                coordinates,
+                rng.gen_range(5 - max_offset..5 + max_offset) as f32,
+                rng.gen_range(BASE_FREQUENCY_SCALE - 0.05..BASE_FREQUENCY_SCALE + 0.05),
+                rng.gen_range(BASE_AMPLITUDE_SCALE - 0.8..BASE_AMPLITUDE_SCALE + 0.8),
+            );
+        }
+    }
     return map;
 }
 
@@ -146,7 +179,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((cam, PanCam::default()));
 
     // Load the sprites
-    // let forest_sprite_handle = asset_server.load("sprites/terrain/forest.png");
+    let forest_sprite_handle = asset_server.load("sprites/terrain/forest.png");
     let ocean_sprite_handle = asset_server.load("sprites/terrain/ocean.png");
     let plain_sprite_handle = asset_server.load("sprites/terrain/plain.png");
 
@@ -154,7 +187,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     for item in map {
         commands.spawn(SpriteBundle {
             texture: match item.1.kind {
-                // Kind::Forest => forest_sprite_handle.clone(),
+                Kind::Forest => forest_sprite_handle.clone(),
                 Kind::Ocean => ocean_sprite_handle.clone(),
                 Kind::Plain => plain_sprite_handle.clone(),
             },
