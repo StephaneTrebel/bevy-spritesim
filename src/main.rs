@@ -1,4 +1,4 @@
-use bevy::{math::vec2, prelude::*, render::camera::ScalingMode, window::*};
+use bevy::{math::vec2, prelude::*, render::camera::ScalingMode, utils::HashMap, window::*};
 use bevy_pancam::{PanCam, PanCamPlugin};
 use noisy_bevy::simplex_noise_2d;
 // use rand::{rngs::StdRng, Rng, SeedableRng};
@@ -15,19 +15,22 @@ const FREQUENCY_SCALE: f32 = 0.2;
 const AMPLITUDE_SCALE: f32 = 8.0;
 const RADIUS: f32 = 30.;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Kind {
     Plain,
     Ocean,
     // Forest,
 }
 
+#[derive(Debug)]
 struct Tile {
     kind: Kind,
     transform: Transform,
 }
 
-fn generate_patch(map: &mut Vec<Tile>, kind: Kind) {
+type Map = HashMap<(i32, i32), Tile>;
+
+fn generate_patch(map: &mut Map, kind: Kind, coordinates: (i32, i32)) {
     let grid_half_size = RADIUS as i32 + 1;
     for w in -grid_half_size..=grid_half_size {
         for h in -grid_half_size..=grid_half_size {
@@ -39,45 +42,46 @@ fn generate_patch(map: &mut Vec<Tile>, kind: Kind) {
             // Height will serve, with a cutoff, as sizing the resulting patch
             let height = RADIUS + offset - ((w * w + h * h) as f32).sqrt();
             let min_height = -1.;
-            dbg!(w, h, height, offset);
 
             if height > min_height {
-                map.push(Tile {
-                    kind: kind.clone(),
-                    transform: Transform::from_translation(Vec3::new(
-                        (w as f32) * SPRITE_SIZE + WINDOW_PHYSICAL_WIDTH,
-                        (h as f32) * SPRITE_SIZE + WINDOW_PHYSICAL_HEIGHT,
-                        1.,
-                    )),
-                });
+                map.insert(
+                    (coordinates.0 + w, coordinates.1 + h),
+                    Tile {
+                        kind: kind.clone(),
+                        transform: Transform::from_translation(Vec3::new(
+                            (coordinates.0 + w) as f32 * SPRITE_SIZE,
+                            (coordinates.1 + h) as f32 * SPRITE_SIZE,
+                            1.,
+                        )),
+                    },
+                );
             }
         }
     }
 }
 
-fn build_map_v2(width: i32, height: i32) -> Vec<Tile> {
-    let mut map = Vec::new();
+fn build_map_v2(width: i32, height: i32) -> Map {
+    let mut map: Map = HashMap::new();
 
     // Init with Ocean tiles
     for w in 0..width {
         for h in 0..height {
-            map.push(Tile {
-                kind: Kind::Ocean,
-                transform: Transform::from_xyz(
-                    (w as f32) * SPRITE_SIZE
-                        - (WINDOW_PHYSICAL_WIDTH / (2. * WINDOW_SCALE_FACTOR as f32)
-                            - SPRITE_SIZE / 2.),
-                    (h as f32) * SPRITE_SIZE
-                        - (WINDOW_PHYSICAL_HEIGHT / (2. * WINDOW_SCALE_FACTOR as f32)
-                            - SPRITE_SIZE / 2.),
-                    0.,
-                ),
-            });
+            map.insert(
+                (w, h),
+                Tile {
+                    kind: Kind::Ocean,
+                    transform: Transform::from_translation(Vec3::new(
+                        (w as f32) * SPRITE_SIZE,
+                        (h as f32) * SPRITE_SIZE,
+                        0.,
+                    )),
+                },
+            );
         }
     }
 
     // Generate a patch of Plain in the middle
-    generate_patch(&mut map, Kind::Plain);
+    generate_patch(&mut map, Kind::Plain, (width as i32 / 2, height as i32 / 2));
 
     // Generate a patch of Forest
 
@@ -106,14 +110,14 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let plain_sprite_handle = asset_server.load("sprites/terrain/plain.png");
 
     // Display the sprites
-    for (_, item) in map.into_iter().enumerate() {
+    for item in map {
         commands.spawn(SpriteBundle {
-            texture: match item.kind {
+            texture: match item.1.kind {
                 // Kind::Forest => forest_sprite_handle.clone(),
                 Kind::Ocean => ocean_sprite_handle.clone(),
                 Kind::Plain => plain_sprite_handle.clone(),
             },
-            transform: item.transform,
+            transform: item.1.transform,
             ..default()
         });
     }
