@@ -10,14 +10,14 @@ const WINDOW_PHYSICAL_WIDTH: f32 = 1280.; // In pixels
 const WINDOW_PHYSICAL_HEIGHT: f32 = 1280.; // In pixels
 const WINDOW_SCALE_FACTOR: f64 = 2.0; // How much tiles are streched out in the beginning
 const SPRITE_SIZE: f32 = 32.;
-const MAP_WIDTH: usize = 100;
-const MAP_HEIGHT: usize = 100;
+const MAP_WIDTH: i32 = 100;
+const MAP_HEIGHT: i32 = 100;
 
 // Setup constants for noisy_bevy
 const BASE_FREQUENCY_SCALE: f32 = 0.05;
 const BASE_AMPLITUDE_SCALE: f32 = 4.0;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 enum Kind {
     Plain,
     Ocean,
@@ -33,15 +33,14 @@ struct Tile {
 type Map = HashMap<(i32, i32), Tile>;
 
 fn generate_patch(
+    seed: f32,
     map: &mut Map,
-    kind: Kind,
+    kind: &Kind,
     coordinates: (i32, i32),
     radius: f32,
     frequency_scale: f32,
     amplitude_scale: f32,
 ) {
-    let seed = StdRng::from_entropy().gen_range(0..MAX_u32);
-
     let grid_half_size = radius as i32 + 1;
     for w in -grid_half_size..=grid_half_size {
         for h in -grid_half_size..=grid_half_size {
@@ -49,16 +48,27 @@ fn generate_patch(
 
             // Compute noise offset (That will contribute to the "blob" shape
             // the patch will have)
-            let offset =
-                simplex_noise_2d_seeded(p * frequency_scale, seed as f32) * amplitude_scale;
+            let offset = simplex_noise_2d_seeded(p * frequency_scale, seed) * amplitude_scale;
 
             // Height will serve, with a threshold cutoff, as sizing the resulting patch
             let height = radius + offset - ((w * w + h * h) as f32).sqrt();
+            if *kind == Kind::Forest {
+                dbg!(height);
+            }
             let min_height = -1.;
 
-            if height > min_height {
+            let key = (coordinates.0 + w, coordinates.1 + h);
+            // Only replace tile when necessary (for instance, Forest tiles can only be placed on Plains)
+            let replace = !(*kind == Kind::Forest && map.get(&key).unwrap().kind != Kind::Plain);
+            if replace
+                && height > min_height
+                && key.0 > 0
+                && key.1 > 0
+                && key.0 < MAP_WIDTH
+                && key.1 < MAP_HEIGHT
+            {
                 map.insert(
-                    (coordinates.0 + w, coordinates.1 + h),
+                    key,
                     Tile {
                         kind: kind.clone(),
                         transform: Transform::from_translation(Vec3::new(
@@ -73,15 +83,56 @@ fn generate_patch(
     }
 }
 
-fn build_map(width: i32, height: i32, seed: u64) -> Map {
-    let mut rng = StdRng::seed_from_u64(seed);
-    dbg!(seed as f32);
+fn generate_multiple_patches(
+    pseudo_rng_instance: &mut StdRng,
+    mut map: &mut Map,
+    kind: Kind,
+    count: i32,
+    min_radius: i32,
+    max_radius: i32,
+    delta_frequency_scale: f32,
+    delta_amplitude_scale: f32,
+) {
+    let max_offset = 5;
+    let mut points: Vec<(i32, i32)> = Vec::new();
+    for w in 1..count {
+        for h in 1..count {
+            points.push((
+                pseudo_rng_instance.gen_range(-max_offset..=max_offset)
+                    + MAP_WIDTH as i32 * w / count,
+                pseudo_rng_instance.gen_range(-max_offset..=max_offset)
+                    + MAP_HEIGHT as i32 * h / count,
+            ));
+        }
+    }
+    for coordinates in points {
+        generate_patch(
+            pseudo_rng_instance.gen_range(0..MAX_u32) as f32,
+            &mut map,
+            &kind,
+            coordinates,
+            pseudo_rng_instance.gen_range(min_radius..max_radius) as f32,
+            pseudo_rng_instance.gen_range(
+                BASE_FREQUENCY_SCALE - delta_frequency_scale
+                    ..BASE_FREQUENCY_SCALE + delta_frequency_scale,
+            ),
+            pseudo_rng_instance.gen_range(
+                BASE_AMPLITUDE_SCALE - delta_amplitude_scale
+                    ..BASE_AMPLITUDE_SCALE + delta_amplitude_scale,
+            ),
+        );
+    }
+}
+
+fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
+    let map_seed = pseudo_rng_instance.gen_range(0..MAX_u64);
+    dbg!(map_seed);
     let mut map: Map = HashMap::new();
 
     // Init with Ocean tiles
     {
-        for w in 0..width {
-            for h in 0..height {
+        for w in 0..MAP_WIDTH {
+            for h in 0..MAP_HEIGHT {
                 map.insert(
                     (w, h),
                     Tile {
@@ -99,77 +150,37 @@ fn build_map(width: i32, height: i32, seed: u64) -> Map {
 
     // Generate patches of Plain to serve as a main continent
     // (but with an irregular shape)
-    {
-        let max_offset = 5; // Maximum offset from the original starting spot
-        for coordinates in [
-            (
-                rng.gen_range(-max_offset..=max_offset) + width as i32 / 3,
-                rng.gen_range(-max_offset..=max_offset) + height as i32 / 3,
-            ),
-            (
-                rng.gen_range(-max_offset..=max_offset) + width as i32 / 3,
-                rng.gen_range(-max_offset..=max_offset) + height as i32 * 2 / 3,
-            ),
-            (
-                rng.gen_range(-max_offset..=max_offset) + width as i32 * 2 / 3,
-                rng.gen_range(-max_offset..=max_offset) + height as i32 / 3,
-            ),
-            (
-                rng.gen_range(-max_offset..=max_offset) + width as i32 * 2 / 3,
-                rng.gen_range(-max_offset..=max_offset) + height as i32 * 2 / 3,
-            ),
-        ] {
-            generate_patch(
-                &mut map,
-                Kind::Plain,
-                coordinates,
-                rng.gen_range(20 - max_offset..20 + max_offset) as f32,
-                rng.gen_range(BASE_FREQUENCY_SCALE - 0.01..BASE_FREQUENCY_SCALE + 0.01),
-                rng.gen_range(BASE_AMPLITUDE_SCALE - 0.4..BASE_AMPLITUDE_SCALE + 0.4),
-            );
-        }
-    }
+    generate_multiple_patches(
+        &mut pseudo_rng_instance,
+        &mut map,
+        Kind::Plain,
+        6,
+        2,
+        20,
+        0.01,
+        0.4,
+    );
 
     // Generate randow patches of Forests
-    {
-        let max_offset = 5; // Maximum offset from the original starting spot
-        for coordinates in [
-            (
-                rng.gen_range(-max_offset..=max_offset) + width as i32 / 3,
-                rng.gen_range(-max_offset..=max_offset) + height as i32 / 3,
-            ),
-            (
-                rng.gen_range(-max_offset..=max_offset) + width as i32 / 3,
-                rng.gen_range(-max_offset..=max_offset) + height as i32 * 2 / 3,
-            ),
-            (
-                rng.gen_range(-max_offset..=max_offset) + width as i32 * 2 / 3,
-                rng.gen_range(-max_offset..=max_offset) + height as i32 / 3,
-            ),
-            (
-                rng.gen_range(-max_offset..=max_offset) + width as i32 * 2 / 3,
-                rng.gen_range(-max_offset..=max_offset) + height as i32 * 2 / 3,
-            ),
-        ] {
-            generate_patch(
-                &mut map,
-                Kind::Forest,
-                coordinates,
-                rng.gen_range(5 - max_offset..5 + max_offset) as f32,
-                rng.gen_range(BASE_FREQUENCY_SCALE - 0.05..BASE_FREQUENCY_SCALE + 0.05),
-                rng.gen_range(BASE_AMPLITUDE_SCALE - 0.8..BASE_AMPLITUDE_SCALE + 0.8),
-            );
-        }
-    }
+    generate_multiple_patches(
+        &mut pseudo_rng_instance,
+        &mut map,
+        Kind::Forest,
+        6,
+        1,
+        5,
+        0.05,
+        0.8,
+    );
+
     return map;
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // PRNG initialization
-    let seed = StdRng::from_entropy().gen_range(0..MAX_u64);
-
+    let mut pseudo_rng_instance: StdRng = StdRng::from_entropy();
     // Map generation
-    let map = build_map(MAP_WIDTH as i32, MAP_HEIGHT as i32, seed);
+    let map = build_map(&mut pseudo_rng_instance);
 
     // Configure Camera that can be panned and zoomed with the mouse
     let mut cam = Camera2dBundle::default();
