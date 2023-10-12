@@ -67,9 +67,6 @@ fn generate_patch(
 
             // Height will serve, with a threshold cutoff, as sizing the resulting patch
             let height = radius + offset - ((w * w + h * h) as f32).sqrt();
-            if *kind == Kind::Forest {
-                dbg!(height);
-            }
             let min_height = 0.;
 
             let key = (coordinates.0 + w, coordinates.1 + h);
