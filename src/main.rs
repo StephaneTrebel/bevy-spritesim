@@ -189,7 +189,11 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
 }
 
 /// Setup the whole game.
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+) {
     // PRNG initialization
     let mut pseudo_rng_instance: StdRng = StdRng::from_entropy();
     // Map generation
@@ -204,20 +208,47 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     // Load the sprites
     let forest_sprite_handle = asset_server.load("sprites/terrain/forest.png");
-    let ocean_sprite_handle = asset_server.load("sprites/terrain/ocean.png");
     let plain_sprite_handle = asset_server.load("sprites/terrain/plain.png");
+
+    // Load animated sprites
+    let ocean_sprite_handle = asset_server.load("sprites/terrain/ocean.png");
+    let ocean_sprite_atlas =
+        TextureAtlas::from_grid(ocean_sprite_handle, Vec2::new(32.0, 32.0), 2, 2, None, None);
+    let ocean_sprite_atlas_handle = texture_atlases.add(ocean_sprite_atlas);
+
+    // Use only the subset of sprites in the sheet that make up the run animation
+    let animation_indices = AnimationIndices { first: 0, last: 3 };
 
     // Display the sprites
     for item in map {
-        commands.spawn(SpriteBundle {
-            texture: match item.1.kind {
-                Kind::Forest => forest_sprite_handle.clone(),
-                Kind::Ocean => ocean_sprite_handle.clone(),
-                Kind::Plain => plain_sprite_handle.clone(),
-            },
-            transform: item.1.transform,
-            ..default()
-        });
+        match item.1.kind {
+            Kind::Forest => {
+                commands.spawn(SpriteBundle {
+                    texture: forest_sprite_handle.clone(),
+                    transform: item.1.transform,
+                    ..default()
+                });
+            }
+            Kind::Ocean => {
+                commands.spawn((
+                    SpriteSheetBundle {
+                        texture_atlas: ocean_sprite_atlas_handle.clone(),
+                        sprite: TextureAtlasSprite::new(animation_indices.clone().first),
+                        transform: item.1.transform,
+                        ..default()
+                    },
+                    animation_indices.clone(),
+                    AnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
+                ));
+            }
+            Kind::Plain => {
+                commands.spawn(SpriteBundle {
+                    texture: plain_sprite_handle.clone(),
+                    transform: item.1.transform,
+                    ..default()
+                });
+            }
+        }
     }
 }
 
@@ -229,28 +260,60 @@ impl Plugin for GamePlugin {
     }
 }
 
+#[derive(Component, Clone)]
+struct AnimationIndices {
+    first: usize,
+    last: usize,
+}
+
+#[derive(Component, Deref, DerefMut)]
+struct AnimationTimer(Timer);
+
+fn animate_sprite(
+    time: Res<Time>,
+    mut query: Query<(
+        &AnimationIndices,
+        &mut AnimationTimer,
+        &mut TextureAtlasSprite,
+    )>,
+) {
+    for (indices, mut timer, mut sprite) in &mut query {
+        timer.tick(time.delta());
+        if timer.just_finished() {
+            sprite.index = if sprite.index == indices.last {
+                indices.first
+            } else {
+                sprite.index + 1
+            };
+        }
+    }
+}
+
 /// There we go !
 fn main() {
     App::new()
         .add_plugins((
-            DefaultPlugins.set(WindowPlugin {
-                primary_window: Some(Window {
-                    title: "SpriteSim".into(),
-                    position: WindowPosition::Centered(MonitorSelection::Index(1)),
-                    resolution: WindowResolution::new(
-                        WINDOW_PHYSICAL_WIDTH,
-                        WINDOW_PHYSICAL_HEIGHT,
-                    )
-                    .with_scale_factor_override(WINDOW_SCALE_FACTOR),
-                    present_mode: PresentMode::AutoVsync,
-                    window_theme: Some(WindowTheme::Dark),
-                    window_level: WindowLevel::AlwaysOnTop,
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "SpriteSim".into(),
+                        position: WindowPosition::Centered(MonitorSelection::Index(1)),
+                        resolution: WindowResolution::new(
+                            WINDOW_PHYSICAL_WIDTH,
+                            WINDOW_PHYSICAL_HEIGHT,
+                        )
+                        .with_scale_factor_override(WINDOW_SCALE_FACTOR),
+                        present_mode: PresentMode::AutoVsync,
+                        window_theme: Some(WindowTheme::Dark),
+                        window_level: WindowLevel::AlwaysOnTop,
+                        ..default()
+                    }),
                     ..default()
-                }),
-                ..default()
-            }),
+                })
+                .set(ImagePlugin::default_nearest()),
             GamePlugin,
             PanCamPlugin::default(),
         ))
+        .add_systems(Update, animate_sprite)
         .run();
 }
