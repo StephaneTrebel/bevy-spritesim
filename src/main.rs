@@ -207,9 +207,14 @@ fn setup(
     commands.spawn((cam, PanCam::default()));
 
     // Load the sprites
-    let forest_sprite_handle = asset_server.load("sprites/terrain/forest.png");
-
-    // Load animated sprites
+    let forest_sprite_atlas_handle = texture_atlases.add(TextureAtlas::from_grid(
+        asset_server.load("sprites/terrain/forest.png"),
+        Vec2::new(32.0, 32.0),
+        2,
+        2,
+        None,
+        None,
+    ));
     let ocean_sprite_atlas_handle = texture_atlases.add(TextureAtlas::from_grid(
         asset_server.load("sprites/terrain/ocean.png"),
         Vec2::new(32.0, 32.0),
@@ -234,11 +239,16 @@ fn setup(
     for item in map {
         match item.1.kind {
             Kind::Forest => {
-                commands.spawn(SpriteBundle {
-                    texture: forest_sprite_handle.clone(),
-                    transform: item.1.transform,
-                    ..default()
-                });
+                commands.spawn((
+                    SpriteSheetBundle {
+                        texture_atlas: forest_sprite_atlas_handle.clone(),
+                        sprite: TextureAtlasSprite::new(animation_indices.clone().first),
+                        transform: item.1.transform,
+                        ..default()
+                    },
+                    animation_indices.clone(),
+                    AnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
+                ));
             }
             Kind::Ocean => {
                 commands.spawn((
