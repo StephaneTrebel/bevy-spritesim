@@ -208,13 +208,24 @@ fn setup(
 
     // Load the sprites
     let forest_sprite_handle = asset_server.load("sprites/terrain/forest.png");
-    let plain_sprite_handle = asset_server.load("sprites/terrain/plain.png");
 
     // Load animated sprites
-    let ocean_sprite_handle = asset_server.load("sprites/terrain/ocean.png");
-    let ocean_sprite_atlas =
-        TextureAtlas::from_grid(ocean_sprite_handle, Vec2::new(32.0, 32.0), 2, 2, None, None);
-    let ocean_sprite_atlas_handle = texture_atlases.add(ocean_sprite_atlas);
+    let ocean_sprite_atlas_handle = texture_atlases.add(TextureAtlas::from_grid(
+        asset_server.load("sprites/terrain/ocean.png"),
+        Vec2::new(32.0, 32.0),
+        2,
+        2,
+        None,
+        None,
+    ));
+    let plain_sprite_atlas_handle = texture_atlases.add(TextureAtlas::from_grid(
+        asset_server.load("sprites/terrain/plain.png"),
+        Vec2::new(32.0, 32.0),
+        2,
+        2,
+        None,
+        None,
+    ));
 
     // Use only the subset of sprites in the sheet that make up the run animation
     let animation_indices = AnimationIndices { first: 0, last: 3 };
@@ -242,11 +253,16 @@ fn setup(
                 ));
             }
             Kind::Plain => {
-                commands.spawn(SpriteBundle {
-                    texture: plain_sprite_handle.clone(),
-                    transform: item.1.transform,
-                    ..default()
-                });
+                commands.spawn((
+                    SpriteSheetBundle {
+                        texture_atlas: plain_sprite_atlas_handle.clone(),
+                        sprite: TextureAtlasSprite::new(animation_indices.clone().first),
+                        transform: item.1.transform,
+                        ..default()
+                    },
+                    animation_indices.clone(),
+                    AnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
+                ));
             }
         }
     }
