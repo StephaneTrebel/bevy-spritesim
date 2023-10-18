@@ -23,6 +23,10 @@ const TILESET_INDEX_EAST: usize = 7;
 const TILESET_INDEX_SOUTH_WEST: usize = 10;
 const TILESET_INDEX_SOUTH: usize = 11;
 const TILESET_INDEX_SOUTH_EAST: usize = 12;
+const TILESET_INDEX_INTERNAL_SOUTH_WEST: usize = 4;
+const TILESET_INDEX_INTERNAL_SOUTH_EAST: usize = 3;
+const TILESET_INDEX_INTERNAL_NORTH_WEST: usize = 8;
+const TILESET_INDEX_INTERNAL_NORTH_EAST: usize = 9;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Kind {
@@ -199,6 +203,47 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
     return map;
 }
 
+/// Retrive the adequate tileset index for the tile
+///
+/// Indeed, tiles can either be one in the center of a patch (hence the tileable
+/// center tile will be used), or on the edge (maybe even in a corner), so a proper
+/// algorithmic pass must done to ensure the proper tile is used
+fn get_tileset_index(map: &Map, coordinates: &(i32, i32), kind: &Kind) -> usize {
+    let default_tile = Tile {
+        kind: kind.clone(),
+        transform: Transform::from_xyz(0., 0., 0.),
+    };
+
+
+    let left = map
+        .get(&(coordinates.0 - 1, coordinates.1))
+        .unwrap_or(&default_tile);
+    let right = map
+        .get(&(coordinates.0 + 1, coordinates.1))
+        .unwrap_or(&default_tile);
+    let bottom = map
+        .get(&(coordinates.0, coordinates.1 - 1))
+        .unwrap_or(&default_tile);
+    let top = map
+        .get(&(coordinates.0, coordinates.1 + 1))
+        .unwrap_or(&default_tile);
+
+
+    if top.kind != *kind && bottom.kind == *kind && left.kind == *kind && right.kind == *kind {
+        return TILESET_INDEX_NORTH;
+    }
+    if top.kind == *kind && bottom.kind != *kind && left.kind == *kind && right.kind == *kind {
+        return TILESET_INDEX_SOUTH;
+    }
+    if top.kind == *kind && bottom.kind == *kind && left.kind != *kind && right.kind == *kind {
+        return TILESET_INDEX_WEST;
+    }
+    if top.kind == *kind && bottom.kind == *kind && left.kind == *kind && right.kind != *kind {
+        return TILESET_INDEX_EAST;
+    }
+    return TILESET_INDEX_CENTER_TILE;
+}
+
 /// Setup the whole game.
 fn setup(
     mut commands: Commands,
@@ -252,12 +297,13 @@ fn setup(
     let animation_indices = AnimationIndices { first: 0, last: 3 };
 
     // Display the sprites
-    for item in map {
-        match item.1.kind {
+    for item in &map {
+        let kind = &item.1.kind;
+        match kind {
             Kind::Forest => {
                 commands.spawn((SpriteSheetBundle {
                     texture_atlas: forest_sprite_atlas_handle.clone(),
-                    sprite: TextureAtlasSprite::new(TILESET_INDEX_CENTER_TILE),
+                    sprite: TextureAtlasSprite::new(get_tileset_index(&map, &item.0, &kind)),
                     transform: item.1.transform,
                     ..default()
                 },));
@@ -265,7 +311,7 @@ fn setup(
             Kind::Ocean => {
                 commands.spawn((SpriteSheetBundle {
                     texture_atlas: ocean_sprite_atlas_handle.clone(),
-                    sprite: TextureAtlasSprite::new(TILESET_INDEX_CENTER_TILE),
+                    sprite: TextureAtlasSprite::new(get_tileset_index(&map, &item.0, &kind)),
                     transform: item.1.transform,
                     ..default()
                 },));
