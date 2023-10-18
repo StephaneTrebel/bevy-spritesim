@@ -9,9 +9,20 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 const WINDOW_PHYSICAL_WIDTH: f32 = 1280.; // In pixels
 const WINDOW_PHYSICAL_HEIGHT: f32 = 1280.; // In pixels
 const WINDOW_SCALE_FACTOR: f64 = 2.0; // How much tiles are streched out in the beginning
-const SPRITE_SIZE: f32 = 32.;
+const SPRITE_SIZE: f32 = 16.;
 const MAP_WIDTH: i32 = 100;
 const MAP_HEIGHT: i32 = 100;
+
+// Better naming for tiles in the tilesheet
+const TILESET_INDEX_NORTH_WEST: usize = 0;
+const TILESET_INDEX_NORTH: usize = 1;
+const TILESET_INDEX_NORTH_EAST: usize = 2;
+const TILESET_INDEX_WEST: usize = 5;
+const TILESET_INDEX_CENTER_TILE: usize = 6;
+const TILESET_INDEX_EAST: usize = 7;
+const TILESET_INDEX_SOUTH_WEST: usize = 10;
+const TILESET_INDEX_SOUTH: usize = 11;
+const TILESET_INDEX_SOUTH_EAST: usize = 12;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Kind {
@@ -207,60 +218,57 @@ fn setup(
     commands.spawn((cam, PanCam::default()));
 
     // Load the sprites
+
+    // Tilesets are 5x3-2=13 tiles (1 center tile, 4 edge tiles, 4 corner tiles, and 4 internal corner
+    // tiles). There are 2 «dead» (unused) tiles for now.
     let forest_sprite_atlas_handle = texture_atlases.add(TextureAtlas::from_grid(
         asset_server.load("sprites/terrain/forest.png"),
-        Vec2::new(32.0, 32.0),
-        2,
-        2,
+        Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
+        5,
+        3,
         None,
         None,
     ));
     let ocean_sprite_atlas_handle = texture_atlases.add(TextureAtlas::from_grid(
         asset_server.load("sprites/terrain/ocean.png"),
-        Vec2::new(32.0, 32.0),
-        2,
-        2,
+        Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
+        5,
+        3,
         None,
         None,
     ));
+
+    // Animated tiles are 2x2=4 frames long
     let plain_sprite_atlas_handle = texture_atlases.add(TextureAtlas::from_grid(
         asset_server.load("sprites/terrain/plain.png"),
-        Vec2::new(32.0, 32.0),
+        Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
         2,
         2,
         None,
         None,
     ));
 
-    // Use only the subset of sprites in the sheet that make up the run animation
+    // Indices in the tilesheet (TextureAtlas) that are composing the animation
     let animation_indices = AnimationIndices { first: 0, last: 3 };
 
     // Display the sprites
     for item in map {
         match item.1.kind {
             Kind::Forest => {
-                commands.spawn((
-                    SpriteSheetBundle {
-                        texture_atlas: forest_sprite_atlas_handle.clone(),
-                        sprite: TextureAtlasSprite::new(animation_indices.clone().first),
-                        transform: item.1.transform,
-                        ..default()
-                    },
-                    animation_indices.clone(),
-                    AnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
-                ));
+                commands.spawn((SpriteSheetBundle {
+                    texture_atlas: forest_sprite_atlas_handle.clone(),
+                    sprite: TextureAtlasSprite::new(TILESET_INDEX_CENTER_TILE),
+                    transform: item.1.transform,
+                    ..default()
+                },));
             }
             Kind::Ocean => {
-                commands.spawn((
-                    SpriteSheetBundle {
-                        texture_atlas: ocean_sprite_atlas_handle.clone(),
-                        sprite: TextureAtlasSprite::new(animation_indices.clone().first),
-                        transform: item.1.transform,
-                        ..default()
-                    },
-                    animation_indices.clone(),
-                    AnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
-                ));
+                commands.spawn((SpriteSheetBundle {
+                    texture_atlas: ocean_sprite_atlas_handle.clone(),
+                    sprite: TextureAtlasSprite::new(TILESET_INDEX_CENTER_TILE),
+                    transform: item.1.transform,
+                    ..default()
+                },));
             }
             Kind::Plain => {
                 commands.spawn((
