@@ -193,8 +193,7 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
 /// Indeed, tiles can either be one in the center of a patch (hence the tileable
 /// center tile will be used), or on the edge (maybe even in a corner), so a proper
 /// algorithmic pass must done to ensure the proper tile is used
-fn get_tileset_index(map: &Map, coordinates: &(i32, i32), kind: &Kind) -> Vec<usize> {
-    let mut output = Vec::new();
+fn get_tileset_index(map: &Map, coordinates: &(i32, i32), kind: &Kind) -> usize {
     let default_tile = Tile {
         kind: kind.clone(),
         transform: Transform::from_xyz(0., 0., 0.),
@@ -241,7 +240,7 @@ fn get_tileset_index(map: &Map, coordinates: &(i32, i32), kind: &Kind) -> Vec<us
         .kind
         .clone();
 
-    match (
+    return match (
         top_left == *kind,
         top == *kind,
         top_right == *kind,
@@ -252,78 +251,76 @@ fn get_tileset_index(map: &Map, coordinates: &(i32, i32), kind: &Kind) -> Vec<us
         bottom_right == *kind,
     ) {
         // Regular corners
-        (_, false, _, false, true, _, true, true) => output.push(0),
-        (_, false, _, true, false, true, true, _) => output.push(2),
-        (_, true, true, false, true, _, false, _) => output.push(14),
-        (true, true, _, true, false, _, false, _) => output.push(16),
+        (_, false, _, false, true, _, true, true) => 0,
+        (_, false, _, true, false, true, true, _) => 2,
+        (_, true, true, false, true, _, false, _) => 14,
+        (true, true, _, true, false, _, false, _) => 16,
 
         // Regular sides
-        (_, true, true, false, true, _, true, true) => output.push(7),
-        (true, true, _, true, false, true, true, _) => output.push(9),
-        (_, false, _, true, true, true, true, true) => output.push(1),
-        (true, true, true, true, true, _, false, _) => output.push(15),
+        (_, true, true, false, true, _, true, true) => 7,
+        (true, true, _, true, false, true, true, _) => 9,
+        (_, false, _, true, true, true, true, true) => 1,
+        (true, true, true, true, true, _, false, _) => 15,
 
         // 1-width tiles (with edges on either side)
         // Vertical
-        (_, false, _, false, false, _, true, _) => output.push(3),
-        (_, true, _, false, false, _, true, _) => output.push(10),
-        (_, true, _, false, false, _, false, _) => output.push(17),
+        (_, false, _, false, false, _, true, _) => 3,
+        (_, true, _, false, false, _, true, _) => 10,
+        (_, true, _, false, false, _, false, _) => 17,
         // Horizontal
-        (_, false, _, false, true, _, false, _) => output.push(21),
-        (_, false, _, true, true, _, false, _) => output.push(22),
-        (_, false, _, true, false, _, false, _) => output.push(23),
+        (_, false, _, false, true, _, false, _) => 21,
+        (_, false, _, true, true, _, false, _) => 22,
+        (_, false, _, true, false, _, false, _) => 23,
 
         // Single internal corners (without edges)
-        (true, true, true, true, true, true, true, false) => output.push(4),
-        (true, true, true, true, true, false, true, true) => output.push(5),
-        (true, true, false, true, true, true, true, true) => output.push(11),
-        (false, true, true, true, true, true, true, true) => output.push(12),
+        (true, true, true, true, true, true, true, false) => 4,
+        (true, true, true, true, true, false, true, true) => 5,
+        (true, true, false, true, true, true, true, true) => 11,
+        (false, true, true, true, true, true, true, true) => 12,
 
         // Single internal corners (with vertical edges)
-        (_, true, true, false, true, _, true, false) => output.push(28),
-        (true, true, _, true, false, false, true, _) => output.push(29),
-        (_, true, false, false, true, _, true, true) => output.push(35),
-        (false, true, _, true, false, true, true, _) => output.push(36),
+        (_, true, true, false, true, _, true, false) => 28,
+        (true, true, _, true, false, false, true, _) => 29,
+        (_, true, false, false, true, _, true, true) => 35,
+        (false, true, _, true, false, true, true, _) => 36,
 
         // Single internal corners (with horizontal edges)
-        (_, false, _, true, true, true, true, false) => output.push(30),
-        (_, false, _, true, true, false, true, true) => output.push(31),
-        (true, true, false, true, true, _, false, _) => output.push(37),
-        (false, true, true, true, true, _, false, _) => output.push(38),
+        (_, false, _, true, true, true, true, false) => 30,
+        (_, false, _, true, true, false, true, true) => 31,
+        (true, true, false, true, true, _, false, _) => 37,
+        (false, true, true, true, true, _, false, _) => 38,
 
         // Double internal corners (without edges)
-        (false, true, false, true, true, true, true, true) => output.push(6),
-        (false, true, true, true, true, false, true, true) => output.push(13),
-        (true, true, false, true, true, true, true, false) => output.push(20),
-        (true, true, true, true, true, false, true, false) => output.push(27),
-        (true, true, false, true, true, false, true, true) => output.push(44),
-        (false, true, true, true, true, true, true, false) => output.push(45),
+        (false, true, false, true, true, true, true, true) => 6,
+        (false, true, true, true, true, false, true, true) => 13,
+        (true, true, false, true, true, true, true, false) => 20,
+        (true, true, true, true, true, false, true, false) => 27,
+        (true, true, false, true, true, false, true, true) => 44,
+        (false, true, true, true, true, true, true, false) => 45,
 
         // Triple internal corners (without edges)
-        (false, true, false, true, true, true, true, false) => output.push(18),
-        (false, true, true, true, true, false, true, false) => output.push(19),
-        (true, true, false, true, true, false, true, false) => output.push(25),
-        (false, true, false, true, true, false, true, true) => output.push(26),
+        (false, true, false, true, true, true, true, false) => 18,
+        (false, true, true, true, true, false, true, false) => 19,
+        (true, true, false, true, true, false, true, false) => 25,
+        (false, true, false, true, true, false, true, true) => 26,
 
         // Corners + opposite internal corners
-        (_, false, _, false, true, _, true, false) => output.push(32),
-        (_, false, _, true, false, false, true, _) => output.push(34),
-        (_, true, false, false, true, _, false, _) => output.push(46),
-        (false, true, _, true, false, _, false, _) => output.push(48),
+        (_, false, _, false, true, _, true, false) => 32,
+        (_, false, _, true, false, false, true, _) => 34,
+        (_, true, false, false, true, _, false, _) => 46,
+        (false, true, _, true, false, _, false, _) => 48,
 
         // Edges + opposite internal corners
-        (_, false, _, true, true, false, true, false) => output.push(33),
-        (_, true, false, false, true, _, true, false) => output.push(39),
-        (false, true, _, true, false, false, true, _) => output.push(41),
-        (false, true, false, true, true, _, false, _) => output.push(47),
+        (_, false, _, true, true, false, true, false) => 33,
+        (_, true, false, false, true, _, true, false) => 39,
+        (false, true, _, true, false, false, true, _) => 41,
+        (false, true, false, true, true, _, false, _) => 47,
 
         // Center tiles (either isolated, with or without full corners, etc.)
-        (true, true, true, true, true, true, true, true) => output.push(8),
-        (false, true, false, true, true, false, true, false) => output.push(40),
-        (_, _, _, _, _, _, _, _) => output.push(24),
-    }
-
-    return output;
+        (true, true, true, true, true, true, true, true) => 8,
+        (false, true, false, true, true, false, true, false) => 40,
+        (_, _, _, _, _, _, _, _) => 24,
+    };
 }
 
 /// Setup the whole game.
@@ -357,8 +354,8 @@ fn setup(
     let ocean_sprite_atlas_handle = texture_atlases.add(TextureAtlas::from_grid(
         asset_server.load("sprites/terrain/ocean.png"),
         Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-        5,
-        3,
+        7,
+        7,
         None,
         None,
     ));
@@ -391,27 +388,39 @@ fn setup(
                     animation_indices.clone(),
                     AnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
                 ));
-                let indices = get_tileset_index(&map, &item.0, &kind);
-                for index in indices {
-                    commands.spawn(SpriteSheetBundle {
-                        texture_atlas: forest_sprite_atlas_handle.clone(),
-                        sprite: TextureAtlasSprite::new(index),
-                        transform: item.1.transform,
-                        ..default()
-                    });
-                }
+                commands.spawn(SpriteSheetBundle {
+                    texture_atlas: forest_sprite_atlas_handle.clone(),
+                    sprite: TextureAtlasSprite::new(get_tileset_index(&map, &item.0, &kind)),
+                    transform: item.1.transform,
+                    ..default()
+                });
             }
             Kind::Ocean => {
-                // let indices = get_tileset_index(&map, &item.0, &kind);
-                let indices = [6];
-                for index in indices {
-                    commands.spawn(SpriteSheetBundle {
-                        texture_atlas: ocean_sprite_atlas_handle.clone(),
-                        sprite: TextureAtlasSprite::new(index),
-                        transform: item.1.transform,
+                commands.spawn((
+                    SpriteSheetBundle {
+                        texture_atlas: plain_sprite_atlas_handle.clone(),
+                        sprite: TextureAtlasSprite::new(animation_indices.clone().first),
+                        // Drawing Plain tiles UNDER Ocean tiles
+                        transform: item.1.transform.with_translation(Vec3 {
+                            x: 0.,
+                            y: 0.,
+                            z: 0.,
+                        }),
                         ..default()
-                    });
-                }
+                    },
+                    animation_indices.clone(),
+                    AnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
+                ));
+                commands.spawn(SpriteSheetBundle {
+                    texture_atlas: ocean_sprite_atlas_handle.clone(),
+                    sprite: TextureAtlasSprite::new(get_tileset_index(&map, &item.0, &kind)),
+                    transform: item.1.transform.with_translation(Vec3 {
+                        x: 0.,
+                        y: 0.,
+                        z: 0.,
+                    }),
+                    ..default()
+                });
             }
             Kind::Plain => {
                 commands.spawn((
