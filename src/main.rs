@@ -13,21 +13,6 @@ const SPRITE_SIZE: f32 = 16.;
 const MAP_WIDTH: i32 = 100;
 const MAP_HEIGHT: i32 = 100;
 
-// Better naming for tiles in the tilesheet
-const TILESET_INDEX_NORTH_WEST: usize = 0;
-const TILESET_INDEX_NORTH: usize = 1;
-const TILESET_INDEX_NORTH_EAST: usize = 2;
-const TILESET_INDEX_WEST: usize = 5;
-const TILESET_INDEX_CENTER_TILE: usize = 6;
-const TILESET_INDEX_EAST: usize = 7;
-const TILESET_INDEX_SOUTH_WEST: usize = 10;
-const TILESET_INDEX_SOUTH: usize = 11;
-const TILESET_INDEX_SOUTH_EAST: usize = 12;
-const TILESET_INDEX_INTERNAL_SOUTH_WEST: usize = 4;
-const TILESET_INDEX_INTERNAL_SOUTH_EAST: usize = 3;
-const TILESET_INDEX_INTERNAL_NORTH_WEST: usize = 8;
-const TILESET_INDEX_INTERNAL_NORTH_EAST: usize = 9;
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Kind {
     Plain,
@@ -208,40 +193,137 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
 /// Indeed, tiles can either be one in the center of a patch (hence the tileable
 /// center tile will be used), or on the edge (maybe even in a corner), so a proper
 /// algorithmic pass must done to ensure the proper tile is used
-fn get_tileset_index(map: &Map, coordinates: &(i32, i32), kind: &Kind) -> usize {
+fn get_tileset_index(map: &Map, coordinates: &(i32, i32), kind: &Kind) -> Vec<usize> {
+    let mut output = Vec::new();
     let default_tile = Tile {
         kind: kind.clone(),
         transform: Transform::from_xyz(0., 0., 0.),
     };
 
-
-    let left = map
-        .get(&(coordinates.0 - 1, coordinates.1))
-        .unwrap_or(&default_tile);
-    let right = map
-        .get(&(coordinates.0 + 1, coordinates.1))
-        .unwrap_or(&default_tile);
-    let bottom = map
-        .get(&(coordinates.0, coordinates.1 - 1))
-        .unwrap_or(&default_tile);
+    let top_left = map
+        .get(&(coordinates.0 - 1, coordinates.1 + 1))
+        .unwrap_or(&default_tile)
+        .kind
+        .clone();
     let top = map
         .get(&(coordinates.0, coordinates.1 + 1))
-        .unwrap_or(&default_tile);
+        .unwrap_or(&default_tile)
+        .kind
+        .clone();
+    let top_right = map
+        .get(&(coordinates.0 + 1, coordinates.1 + 1))
+        .unwrap_or(&default_tile)
+        .kind
+        .clone();
+    let left = map
+        .get(&(coordinates.0 - 1, coordinates.1))
+        .unwrap_or(&default_tile)
+        .kind
+        .clone();
+    let right = map
+        .get(&(coordinates.0 + 1, coordinates.1))
+        .unwrap_or(&default_tile)
+        .kind
+        .clone();
+    let bottom_left = map
+        .get(&(coordinates.0 - 1, coordinates.1 - 1))
+        .unwrap_or(&default_tile)
+        .kind
+        .clone();
+    let bottom = map
+        .get(&(coordinates.0, coordinates.1 - 1))
+        .unwrap_or(&default_tile)
+        .kind
+        .clone();
+    let bottom_right = map
+        .get(&(coordinates.0 + 1, coordinates.1 - 1))
+        .unwrap_or(&default_tile)
+        .kind
+        .clone();
 
+    match (
+        top_left == *kind,
+        top == *kind,
+        top_right == *kind,
+        left == *kind,
+        right == *kind,
+        bottom_left == *kind,
+        bottom == *kind,
+        bottom_right == *kind,
+    ) {
+        // Regular corners
+        (_, false, _, false, true, _, true, true) => output.push(0),
+        (_, false, _, true, false, true, true, _) => output.push(2),
+        (_, true, true, false, true, _, false, _) => output.push(14),
+        (true, true, _, true, false, _, false, _) => output.push(16),
 
-    if top.kind != *kind && bottom.kind == *kind && left.kind == *kind && right.kind == *kind {
-        return TILESET_INDEX_NORTH;
+        // Regular sides
+        (_, true, true, false, true, _, true, true) => output.push(7),
+        (true, true, _, true, false, true, true, _) => output.push(9),
+        (_, false, _, true, true, true, true, true) => output.push(1),
+        (true, true, true, true, true, _, false, _) => output.push(15),
+
+        // 1-width tiles (with edges on either side)
+        // Vertical
+        (_, false, _, false, false, _, true, _) => output.push(3),
+        (_, true, _, false, false, _, true, _) => output.push(10),
+        (_, true, _, false, false, _, false, _) => output.push(17),
+        // Horizontal
+        (_, false, _, false, true, _, false, _) => output.push(21),
+        (_, false, _, true, true, _, false, _) => output.push(22),
+        (_, false, _, true, false, _, false, _) => output.push(23),
+
+        // Single internal corners (without edges)
+        (true, true, true, true, true, true, true, false) => output.push(4),
+        (true, true, true, true, true, false, true, true) => output.push(5),
+        (true, true, false, true, true, true, true, true) => output.push(11),
+        (false, true, true, true, true, true, true, true) => output.push(12),
+
+        // Single internal corners (with vertical edges)
+        (_, true, true, false, true, _, true, false) => output.push(28),
+        (true, true, _, true, false, false, true, _) => output.push(29),
+        (_, true, false, false, true, _, true, true) => output.push(35),
+        (false, true, _, true, false, true, true, _) => output.push(36),
+
+        // Single internal corners (with horizontal edges)
+        (_, false, _, true, true, true, true, false) => output.push(30),
+        (_, false, _, true, true, false, true, true) => output.push(31),
+        (true, true, false, true, true, _, false, _) => output.push(37),
+        (false, true, true, true, true, _, false, _) => output.push(38),
+
+        // Double internal corners (without edges)
+        (false, true, false, true, true, true, true, true) => output.push(6),
+        (false, true, true, true, true, false, true, true) => output.push(13),
+        (true, true, false, true, true, true, true, false) => output.push(20),
+        (true, true, true, true, true, false, true, false) => output.push(27),
+        (true, true, false, true, true, false, true, true) => output.push(44),
+        (false, true, true, true, true, true, true, false) => output.push(45),
+
+        // Triple internal corners (without edges)
+        (false, true, false, true, true, true, true, false) => output.push(18),
+        (false, true, true, true, true, false, true, false) => output.push(19),
+        (true, true, false, true, true, false, true, false) => output.push(25),
+        (false, true, false, true, true, false, true, true) => output.push(26),
+
+        // Corners + opposite internal corners
+        (_, false, _, false, true, _, true, false) => output.push(32),
+        (_, false, _, true, false, false, true, _) => output.push(34),
+        (_, true, false, false, true, _, false, _) => output.push(46),
+        (false, true, _, true, false, _, false, _) => output.push(48),
+
+        // Edges + opposite internal corners
+        (_, false, _, true, true, false, true, false) => output.push(33),
+        (_, true, false, false, true, _, true, false) => output.push(39),
+        (false, true, _, true, false, false, true, _) => output.push(41),
+        (false, true, false, true, true, _, false, _) => output.push(47),
+
+        // Center tiles (either isolated, with or without full corners, etc.)
+        (true, true, true, true, true, true, true, true) => output.push(8),
+        (false, true, false, true, true, false, true, false) => output.push(40),
+        (_, _, _, _, _, _, _, _) => output.push(24),
     }
-    if top.kind == *kind && bottom.kind != *kind && left.kind == *kind && right.kind == *kind {
-        return TILESET_INDEX_SOUTH;
-    }
-    if top.kind == *kind && bottom.kind == *kind && left.kind != *kind && right.kind == *kind {
-        return TILESET_INDEX_WEST;
-    }
-    if top.kind == *kind && bottom.kind == *kind && left.kind == *kind && right.kind != *kind {
-        return TILESET_INDEX_EAST;
-    }
-    return TILESET_INDEX_CENTER_TILE;
+
+    return output;
 }
 
 /// Setup the whole game.
@@ -259,18 +341,16 @@ fn setup(
     let mut cam = Camera2dBundle::default();
     cam.transform =
         Transform::from_xyz(WINDOW_PHYSICAL_WIDTH / 2., WINDOW_PHYSICAL_HEIGHT / 2., 0.);
-    cam.projection.scaling_mode = ScalingMode::FixedVertical(5000.);
+    cam.projection.scaling_mode = ScalingMode::FixedVertical(300.);
     commands.spawn((cam, PanCam::default()));
 
     // Load the sprites
 
-    // Tilesets are 5x3-2=13 tiles (1 center tile, 4 edge tiles, 4 corner tiles, and 4 internal corner
-    // tiles). There are 2 «dead» (unused) tiles for now.
     let forest_sprite_atlas_handle = texture_atlases.add(TextureAtlas::from_grid(
         asset_server.load("sprites/terrain/forest.png"),
         Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-        5,
-        3,
+        7,
+        7,
         None,
         None,
     ));
@@ -301,20 +381,37 @@ fn setup(
         let kind = &item.1.kind;
         match kind {
             Kind::Forest => {
-                commands.spawn((SpriteSheetBundle {
-                    texture_atlas: forest_sprite_atlas_handle.clone(),
-                    sprite: TextureAtlasSprite::new(get_tileset_index(&map, &item.0, &kind)),
-                    transform: item.1.transform,
-                    ..default()
-                },));
+                commands.spawn((
+                    SpriteSheetBundle {
+                        texture_atlas: plain_sprite_atlas_handle.clone(),
+                        sprite: TextureAtlasSprite::new(animation_indices.clone().first),
+                        transform: item.1.transform,
+                        ..default()
+                    },
+                    animation_indices.clone(),
+                    AnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
+                ));
+                let indices = get_tileset_index(&map, &item.0, &kind);
+                for index in indices {
+                    commands.spawn(SpriteSheetBundle {
+                        texture_atlas: forest_sprite_atlas_handle.clone(),
+                        sprite: TextureAtlasSprite::new(index),
+                        transform: item.1.transform,
+                        ..default()
+                    });
+                }
             }
             Kind::Ocean => {
-                commands.spawn((SpriteSheetBundle {
-                    texture_atlas: ocean_sprite_atlas_handle.clone(),
-                    sprite: TextureAtlasSprite::new(get_tileset_index(&map, &item.0, &kind)),
-                    transform: item.1.transform,
-                    ..default()
-                },));
+                // let indices = get_tileset_index(&map, &item.0, &kind);
+                let indices = [6];
+                for index in indices {
+                    commands.spawn(SpriteSheetBundle {
+                        texture_atlas: ocean_sprite_atlas_handle.clone(),
+                        sprite: TextureAtlasSprite::new(index),
+                        transform: item.1.transform,
+                        ..default()
+                    });
+                }
             }
             Kind::Plain => {
                 commands.spawn((
