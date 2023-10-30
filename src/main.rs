@@ -404,7 +404,7 @@ fn setup(
                         transform: item.1.transform.with_translation(Vec3 {
                             x: 0.,
                             y: 0.,
-                            z: 0.,
+                            z: 1000.,
                         }),
                         ..default()
                     },
@@ -414,11 +414,7 @@ fn setup(
                 commands.spawn(SpriteSheetBundle {
                     texture_atlas: ocean_sprite_atlas_handle.clone(),
                     sprite: TextureAtlasSprite::new(get_tileset_index(&map, &item.0, &kind)),
-                    transform: item.1.transform.with_translation(Vec3 {
-                        x: 0.,
-                        y: 0.,
-                        z: 0.,
-                    }),
+                    transform: item.1.transform,
                     ..default()
                 });
             }
