@@ -23,7 +23,7 @@ enum Kind {
 #[derive(Debug)]
 struct Tile {
     kind: Kind,
-    transform: Transform,
+    coordinates: (f32, f32),
 }
 
 type Map = HashMap<(i32, i32), Tile>;
@@ -78,11 +78,10 @@ fn generate_patch(
                         key,
                         Tile {
                             kind: kind.clone(),
-                            transform: Transform::from_translation(Vec3::new(
+                            coordinates: (
                                 (coordinates.0 + w) as f32 * SPRITE_SIZE,
                                 (coordinates.1 + h) as f32 * SPRITE_SIZE,
-                                1., // z-index
-                            )),
+                            ),
                         },
                     );
                 }
@@ -151,11 +150,7 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
                     (w, h),
                     Tile {
                         kind: Kind::Ocean,
-                        transform: Transform::from_translation(Vec3::new(
-                            (w as f32) * SPRITE_SIZE,
-                            (h as f32) * SPRITE_SIZE,
-                            0.,
-                        )),
+                        coordinates: ((w as f32) * SPRITE_SIZE, (h as f32) * SPRITE_SIZE),
                     },
                 );
             }
@@ -194,9 +189,10 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
 /// center tile will be used), or on the edge (maybe even in a corner), so a proper
 /// algorithmic pass must done to ensure the proper tile is used
 fn get_tileset_index(map: &Map, coordinates: &(i32, i32), kind: &Kind) -> usize {
+    // Dummy tile to handle edge cases like the map borders
     let default_tile = Tile {
-        kind: kind.clone(),
-        transform: Transform::from_xyz(0., 0., 0.),
+        kind: Kind::Forest,
+        coordinates: (0., 0.),
     };
 
     let top_left = map
@@ -382,7 +378,11 @@ fn setup(
                     SpriteSheetBundle {
                         texture_atlas: plain_sprite_atlas_handle.clone(),
                         sprite: TextureAtlasSprite::new(animation_indices.clone().first),
-                        transform: item.1.transform,
+                        transform: Transform::from_xyz(
+                            item.1.coordinates.0,
+                            item.1.coordinates.1,
+                            0.5,
+                        ),
                         ..default()
                     },
                     animation_indices.clone(),
@@ -391,7 +391,7 @@ fn setup(
                 commands.spawn(SpriteSheetBundle {
                     texture_atlas: forest_sprite_atlas_handle.clone(),
                     sprite: TextureAtlasSprite::new(get_tileset_index(&map, &item.0, &kind)),
-                    transform: item.1.transform,
+                    transform: Transform::from_xyz(item.1.coordinates.0, item.1.coordinates.1, 1.),
                     ..default()
                 });
             }
@@ -401,11 +401,11 @@ fn setup(
                         texture_atlas: plain_sprite_atlas_handle.clone(),
                         sprite: TextureAtlasSprite::new(animation_indices.clone().first),
                         // Drawing Plain tiles UNDER Ocean tiles
-                        transform: item.1.transform.with_translation(Vec3 {
-                            x: 0.,
-                            y: 0.,
-                            z: 1000.,
-                        }),
+                        transform: Transform::from_xyz(
+                            item.1.coordinates.0,
+                            item.1.coordinates.1,
+                            0.5,
+                        ),
                         ..default()
                     },
                     animation_indices.clone(),
@@ -414,7 +414,7 @@ fn setup(
                 commands.spawn(SpriteSheetBundle {
                     texture_atlas: ocean_sprite_atlas_handle.clone(),
                     sprite: TextureAtlasSprite::new(get_tileset_index(&map, &item.0, &kind)),
-                    transform: item.1.transform,
+                    transform: Transform::from_xyz(item.1.coordinates.0, item.1.coordinates.1, 1.),
                     ..default()
                 });
             }
@@ -423,7 +423,11 @@ fn setup(
                     SpriteSheetBundle {
                         texture_atlas: plain_sprite_atlas_handle.clone(),
                         sprite: TextureAtlasSprite::new(animation_indices.clone().first),
-                        transform: item.1.transform,
+                        transform: Transform::from_xyz(
+                            item.1.coordinates.0,
+                            item.1.coordinates.1,
+                            1.,
+                        ),
                         ..default()
                     },
                     animation_indices.clone(),
