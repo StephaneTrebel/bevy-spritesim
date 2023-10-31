@@ -10,6 +10,8 @@ const WINDOW_PHYSICAL_WIDTH: f32 = 1280.; // In pixels
 const WINDOW_PHYSICAL_HEIGHT: f32 = 1280.; // In pixels
 const WINDOW_SCALE_FACTOR: f64 = 2.0; // How much tiles are streched out in the beginning
 const SPRITE_SIZE: f32 = 16.;
+const TILESET_SIZE: usize = 7;
+const ANIMATION_FRAME_COUNT: usize = 4;
 const MAP_WIDTH: i32 = 100;
 const MAP_HEIGHT: i32 = 100;
 
@@ -338,20 +340,23 @@ fn setup(
     commands.spawn((cam, PanCam::default()));
 
     // Load the sprites
+    //
+    // Animated tileset MUST be saved as one column, N rows for the animation algorithm to work
+    // properly
 
     let forest_sprite_atlas_handle = texture_atlases.add(TextureAtlas::from_grid(
         asset_server.load("sprites/terrain/forest.png"),
         Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-        7,
-        7,
+        TILESET_SIZE,
+        TILESET_SIZE * ANIMATION_FRAME_COUNT,
         None,
         None,
     ));
     let ocean_sprite_atlas_handle = texture_atlases.add(TextureAtlas::from_grid(
         asset_server.load("sprites/terrain/ocean.png"),
         Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-        7,
-        7,
+        TILESET_SIZE,
+        TILESET_SIZE * ANIMATION_FRAME_COUNT,
         None,
         None,
     ));
@@ -367,7 +372,10 @@ fn setup(
     ));
 
     // Indices in the tilesheet (TextureAtlas) that are composing the animation
-    let animation_indices = AnimationIndices { first: 0, last: 3 };
+    let animation_indices = AnimationIndices {
+        first: 0,
+        last: ANIMATION_FRAME_COUNT - 1,
+    };
 
     // Display the sprites
     for item in &map {
@@ -386,21 +394,31 @@ fn setup(
                         ..default()
                     },
                     animation_indices.clone(),
+                    PlainAnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
+                ));
+                commands.spawn((
+                    SpriteSheetBundle {
+                        texture_atlas: forest_sprite_atlas_handle.clone(),
+                        sprite: TextureAtlasSprite::new(
+                            animation_indices.clone().first * TILESET_SIZE
+                                + get_tileset_index(&map, &item.0, &kind),
+                        ),
+                        transform: Transform::from_xyz(
+                            item.1.coordinates.0,
+                            item.1.coordinates.1,
+                            1.,
+                        ),
+                        ..default()
+                    },
+                    animation_indices.clone(),
                     AnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
                 ));
-                commands.spawn(SpriteSheetBundle {
-                    texture_atlas: forest_sprite_atlas_handle.clone(),
-                    sprite: TextureAtlasSprite::new(get_tileset_index(&map, &item.0, &kind)),
-                    transform: Transform::from_xyz(item.1.coordinates.0, item.1.coordinates.1, 1.),
-                    ..default()
-                });
             }
             Kind::Ocean => {
                 commands.spawn((
                     SpriteSheetBundle {
                         texture_atlas: plain_sprite_atlas_handle.clone(),
                         sprite: TextureAtlasSprite::new(animation_indices.clone().first),
-                        // Drawing Plain tiles UNDER Ocean tiles
                         transform: Transform::from_xyz(
                             item.1.coordinates.0,
                             item.1.coordinates.1,
@@ -409,14 +427,25 @@ fn setup(
                         ..default()
                     },
                     animation_indices.clone(),
+                    PlainAnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
+                ));
+                commands.spawn((
+                    SpriteSheetBundle {
+                        texture_atlas: ocean_sprite_atlas_handle.clone(),
+                        sprite: TextureAtlasSprite::new(
+                            animation_indices.clone().first * TILESET_SIZE
+                                + get_tileset_index(&map, &item.0, &kind),
+                        ),
+                        transform: Transform::from_xyz(
+                            item.1.coordinates.0,
+                            item.1.coordinates.1,
+                            1.,
+                        ),
+                        ..default()
+                    },
+                    animation_indices.clone(),
                     AnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
                 ));
-                commands.spawn(SpriteSheetBundle {
-                    texture_atlas: ocean_sprite_atlas_handle.clone(),
-                    sprite: TextureAtlasSprite::new(get_tileset_index(&map, &item.0, &kind)),
-                    transform: Transform::from_xyz(item.1.coordinates.0, item.1.coordinates.1, 1.),
-                    ..default()
-                });
             }
             Kind::Plain => {
                 commands.spawn((
@@ -431,7 +460,7 @@ fn setup(
                         ..default()
                     },
                     animation_indices.clone(),
-                    AnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
+                    PlainAnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
                 ));
             }
         }
@@ -453,7 +482,30 @@ struct AnimationIndices {
 }
 
 #[derive(Component, Deref, DerefMut)]
+struct PlainAnimationTimer(Timer);
+
+#[derive(Component, Deref, DerefMut)]
 struct AnimationTimer(Timer);
+
+fn animate_sprite_plain(
+    time: Res<Time>,
+    mut query: Query<(
+        &AnimationIndices,
+        &mut PlainAnimationTimer,
+        &mut TextureAtlasSprite,
+    )>,
+) {
+    for (indices, mut timer, mut sprite) in &mut query {
+        timer.tick(time.delta());
+        if timer.just_finished() {
+            sprite.index = if sprite.index == indices.last {
+                indices.first
+            } else {
+                sprite.index + 1
+            };
+        }
+    }
+}
 
 fn animate_sprite(
     time: Res<Time>,
@@ -466,11 +518,19 @@ fn animate_sprite(
     for (indices, mut timer, mut sprite) in &mut query {
         timer.tick(time.delta());
         if timer.just_finished() {
-            sprite.index = if sprite.index == indices.last {
+            // We have to decompose the current sprite position into two parts:
+            // - The current animation frame tileset
+            let current_animation_index = sprite.index / (TILESET_SIZE * TILESET_SIZE);
+            // - The current sprite index INSIDE the current animation tileset
+            let current_sprite = sprite.index % (TILESET_SIZE * TILESET_SIZE);
+            // Now we can determine what is the next animation frame tileset
+            let next_animation_index = if current_animation_index == indices.last {
                 indices.first
             } else {
-                sprite.index + 1
+                current_animation_index + 1
             };
+            // and recompute the proper sprite position inside this animation frame
+            sprite.index = next_animation_index * (TILESET_SIZE * TILESET_SIZE) + current_sprite;
         }
     }
 }
@@ -500,6 +560,7 @@ fn main() {
             GamePlugin,
             PanCamPlugin::default(),
         ))
+        .add_systems(Update, animate_sprite_plain)
         .add_systems(Update, animate_sprite)
         .run();
 }
