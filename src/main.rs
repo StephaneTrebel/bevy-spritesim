@@ -345,7 +345,7 @@ fn setup(
     // properly
 
     let forest_sprite_atlas_handle = texture_atlases.add(TextureAtlas::from_grid(
-        asset_server.load("sprites/terrain/forest.png"),
+        asset_server.load("sprites/terrain/debug.png"),
         Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
         TILESET_SIZE,
         TILESET_SIZE * ANIMATION_FRAME_COUNT,
