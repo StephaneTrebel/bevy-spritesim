@@ -19,7 +19,8 @@ const TIME_BETWEEN_FRAMES: f32 = 2.;
 const MAP_WIDTH: i32 = 100;
 const MAP_HEIGHT: i32 = 100;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// A tile «kind» (because "type" is a reserved word, haha ^^')
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum Kind {
     Plain,
     Ocean,
@@ -29,6 +30,8 @@ enum Kind {
 #[derive(Debug)]
 struct Tile {
     kind: Kind,
+    // Base layer on top of which the tile will be placed
+    base_kind: Kind,
     // These are called «real» coordinates because they are not the coordinates
     // in the map, but rather are the coordinates of where the sprite will be drawn
     real_coordinates: (f32, f32),
@@ -37,6 +40,10 @@ struct Tile {
 /// In-memory map for all gameplay and render purposes.
 /// This is the heart of the game.
 type Map = HashMap<(i32, i32), Tile>;
+
+/// In-memory map that ties Kind elements with their corresponding
+/// TextureAtlas handle.
+type HandleMap = HashMap<Kind, Handle<TextureAtlas>>;
 
 /// Determines if a tile can be replaced by another
 ///
@@ -87,6 +94,7 @@ fn generate_patch(
                     map.insert(
                         key,
                         Tile {
+                            base_kind: Kind::Plain,
                             kind: kind.clone(),
                             real_coordinates: (
                                 (coordinates.0 + w) as f32 * SPRITE_SIZE,
@@ -159,6 +167,8 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
                 map.insert(
                     (w, h),
                     Tile {
+                        // This may surprise you, but it's for beach generation
+                        base_kind: Kind::Plain,
                         kind: Kind::Ocean,
                         real_coordinates: ((w as f32) * SPRITE_SIZE, (h as f32) * SPRITE_SIZE),
                     },
@@ -201,6 +211,8 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
 fn get_tileset_index(map: &Map, coordinates: &(i32, i32), kind: &Kind) -> usize {
     // Dummy tile to handle edge cases like the map borders
     let default_tile = Tile {
+        // Irrevelant, but's it's needed
+        base_kind: kind.clone(),
         kind: kind.clone(),
         real_coordinates: (0., 0.),
     };
@@ -332,8 +344,8 @@ fn get_tileset_index(map: &Map, coordinates: &(i32, i32), kind: &Kind) -> usize 
 fn generate_layer_tiles(
     commands: &mut Commands,
     real_coordinates: (f32, f32),
-    base_handle: Handle<TextureAtlas>,
-    handle: Handle<TextureAtlas>,
+    base_handle: &Handle<TextureAtlas>,
+    handle: &Handle<TextureAtlas>,
     animation_indices: &AnimationIndices,
     tileset_index: usize,
 ) {
@@ -390,32 +402,40 @@ fn setup(
     // Animated tileset MUST be saved as one column, N rows for the animation algorithm to work
     // properly
 
-    let forest_sprite_atlas_handle = texture_atlases.add(TextureAtlas::from_grid(
-        asset_server.load("sprites/terrain/forest.png"),
-        Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-        LAYERED_TILESET_WIDTH,
-        LAYERED_TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
-        None,
-        None,
-    ));
-    let ocean_sprite_atlas_handle = texture_atlases.add(TextureAtlas::from_grid(
-        asset_server.load("sprites/terrain/ocean.png"),
-        Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-        LAYERED_TILESET_WIDTH,
-        LAYERED_TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
-        None,
-        None,
-    ));
-
-    // Animated tiles are 2x2=4 frames long
-    let plain_sprite_atlas_handle = texture_atlases.add(TextureAtlas::from_grid(
-        asset_server.load("sprites/terrain/plain.png"),
-        Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-        BASE_TILESET_WIDTH,
-        BASE_TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
-        None,
-        None,
-    ));
+    let mut handle_map: HandleMap = HashMap::new();
+    handle_map.insert(
+        Kind::Forest,
+        texture_atlases.add(TextureAtlas::from_grid(
+            asset_server.load("sprites/terrain/forest.png"),
+            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
+            LAYERED_TILESET_WIDTH,
+            LAYERED_TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
+            None,
+            None,
+        )),
+    );
+    handle_map.insert(
+        Kind::Ocean,
+        texture_atlases.add(TextureAtlas::from_grid(
+            asset_server.load("sprites/terrain/ocean.png"),
+            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
+            LAYERED_TILESET_WIDTH,
+            LAYERED_TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
+            None,
+            None,
+        )),
+    );
+    handle_map.insert(
+        Kind::Plain,
+        texture_atlases.add(TextureAtlas::from_grid(
+            asset_server.load("sprites/terrain/plain.png"),
+            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
+            BASE_TILESET_WIDTH,
+            BASE_TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
+            None,
+            None,
+        )),
+    );
 
     // Indices in the tilesheet (TextureAtlas) that are composing the animation
     let animation_indices = AnimationIndices {
@@ -431,8 +451,8 @@ fn setup(
                 generate_layer_tiles(
                     &mut commands,
                     item.1.real_coordinates,
-                    plain_sprite_atlas_handle.clone(),
-                    forest_sprite_atlas_handle.clone(),
+                    handle_map.get(&item.1.base_kind).unwrap(),
+                    handle_map.get(&item.1.kind).unwrap(),
                     &animation_indices,
                     get_tileset_index(&map, &item.0, &kind),
                 );
@@ -441,8 +461,8 @@ fn setup(
                 generate_layer_tiles(
                     &mut commands,
                     item.1.real_coordinates,
-                    plain_sprite_atlas_handle.clone(),
-                    ocean_sprite_atlas_handle.clone(),
+                    handle_map.get(&item.1.base_kind).unwrap(),
+                    handle_map.get(&item.1.kind).unwrap(),
                     &animation_indices,
                     get_tileset_index(&map, &item.0, &kind),
                 );
@@ -450,7 +470,7 @@ fn setup(
             Kind::Plain => {
                 commands.spawn((
                     SpriteSheetBundle {
-                        texture_atlas: plain_sprite_atlas_handle.clone(),
+                        texture_atlas: handle_map.get(&item.1.kind).unwrap().clone(),
                         sprite: TextureAtlasSprite::new(
                             pseudo_rng_instance.gen_range(0..BASE_TILESET_WIDTH),
                         ),
