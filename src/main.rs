@@ -197,7 +197,7 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
 fn get_tileset_index(map: &Map, coordinates: &(i32, i32), kind: &Kind) -> usize {
     // Dummy tile to handle edge cases like the map borders
     let default_tile = Tile {
-        kind: Kind::Forest,
+        kind: kind.clone(),
         coordinates: (0., 0.),
     };
 
