@@ -15,6 +15,7 @@ const BASE_TILESET_HEIGHT: usize = 1;
 const LAYERED_TILESET_WIDTH: usize = 7;
 const LAYERED_TILESET_HEIGHT: usize = 7;
 const ANIMATION_FRAME_COUNT: usize = 4;
+const TIME_BETWEEN_FRAMES: f32 = 2.;
 const MAP_WIDTH: i32 = 100;
 const MAP_HEIGHT: i32 = 100;
 
@@ -397,7 +398,10 @@ fn setup(
                         ..default()
                     },
                     animation_indices.clone(),
-                    BaseLayerAnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
+                    BaseLayerAnimationTimer(Timer::from_seconds(
+                        TIME_BETWEEN_FRAMES,
+                        TimerMode::Repeating,
+                    )),
                 ));
                 commands.spawn((
                     SpriteSheetBundle {
@@ -414,7 +418,7 @@ fn setup(
                         ..default()
                     },
                     animation_indices.clone(),
-                    AnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
+                    AnimationTimer(Timer::from_seconds(TIME_BETWEEN_FRAMES, TimerMode::Repeating)),
                 ));
             }
             Kind::Ocean => {
@@ -430,7 +434,7 @@ fn setup(
                         ..default()
                     },
                     animation_indices.clone(),
-                    BaseLayerAnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
+                    BaseLayerAnimationTimer(Timer::from_seconds(TIME_BETWEEN_FRAMES, TimerMode::Repeating)),
                 ));
                 commands.spawn((
                     SpriteSheetBundle {
@@ -447,7 +451,7 @@ fn setup(
                         ..default()
                     },
                     animation_indices.clone(),
-                    AnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
+                    AnimationTimer(Timer::from_seconds(TIME_BETWEEN_FRAMES, TimerMode::Repeating)),
                 ));
             }
             Kind::Plain => {
@@ -465,7 +469,7 @@ fn setup(
                         ..default()
                     },
                     animation_indices.clone(),
-                    BaseLayerAnimationTimer(Timer::from_seconds(1., TimerMode::Repeating)),
+                    BaseLayerAnimationTimer(Timer::from_seconds(TIME_BETWEEN_FRAMES, TimerMode::Repeating)),
                 ));
             }
         }
