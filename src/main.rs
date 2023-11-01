@@ -329,6 +329,44 @@ fn get_tileset_index(map: &Map, coordinates: &(i32, i32), kind: &Kind) -> usize 
     };
 }
 
+fn generate_layer_tiles(
+    commands: &mut Commands,
+    real_coordinates: (f32, f32),
+    base_handle: Handle<TextureAtlas>,
+    handle: Handle<TextureAtlas>,
+    animation_indices: &AnimationIndices,
+    tileset_index: usize,
+) {
+    commands.spawn((
+        SpriteSheetBundle {
+            texture_atlas: base_handle.clone(),
+            sprite: TextureAtlasSprite::new(animation_indices.clone().first),
+            transform: Transform::from_xyz(real_coordinates.0, real_coordinates.1, 0.5),
+            ..default()
+        },
+        animation_indices.clone(),
+        BaseLayerAnimationTimer(Timer::from_seconds(
+            TIME_BETWEEN_FRAMES,
+            TimerMode::Repeating,
+        )),
+    ));
+    commands.spawn((
+        SpriteSheetBundle {
+            texture_atlas: handle.clone(),
+            sprite: TextureAtlasSprite::new(
+                animation_indices.clone().first * LAYERED_TILESET_HEIGHT + tileset_index,
+            ),
+            transform: Transform::from_xyz(real_coordinates.0, real_coordinates.1, 1.),
+            ..default()
+        },
+        animation_indices.clone(),
+        AnimationTimer(Timer::from_seconds(
+            TIME_BETWEEN_FRAMES,
+            TimerMode::Repeating,
+        )),
+    ));
+}
+
 /// Setup the whole game.
 fn setup(
     mut commands: Commands,
@@ -390,73 +428,24 @@ fn setup(
         let kind = &item.1.kind;
         match kind {
             Kind::Forest => {
-                commands.spawn((
-                    SpriteSheetBundle {
-                        texture_atlas: plain_sprite_atlas_handle.clone(),
-                        sprite: TextureAtlasSprite::new(animation_indices.clone().first),
-                        transform: Transform::from_xyz(
-                            item.1.real_coordinates.0,
-                            item.1.real_coordinates.1,
-                            0.5,
-                        ),
-                        ..default()
-                    },
-                    animation_indices.clone(),
-                    BaseLayerAnimationTimer(Timer::from_seconds(
-                        TIME_BETWEEN_FRAMES,
-                        TimerMode::Repeating,
-                    )),
-                ));
-                commands.spawn((
-                    SpriteSheetBundle {
-                        texture_atlas: forest_sprite_atlas_handle.clone(),
-                        sprite: TextureAtlasSprite::new(
-                            animation_indices.clone().first * LAYERED_TILESET_HEIGHT
-                                + get_tileset_index(&map, &item.0, &kind),
-                        ),
-                        transform: Transform::from_xyz(
-                            item.1.real_coordinates.0,
-                            item.1.real_coordinates.1,
-                            1.,
-                        ),
-                        ..default()
-                    },
-                    animation_indices.clone(),
-                    AnimationTimer(Timer::from_seconds(TIME_BETWEEN_FRAMES, TimerMode::Repeating)),
-                ));
+                generate_layer_tiles(
+                    &mut commands,
+                    item.1.real_coordinates,
+                    plain_sprite_atlas_handle.clone(),
+                    forest_sprite_atlas_handle.clone(),
+                    &animation_indices,
+                    get_tileset_index(&map, &item.0, &kind),
+                );
             }
             Kind::Ocean => {
-                commands.spawn((
-                    SpriteSheetBundle {
-                        texture_atlas: plain_sprite_atlas_handle.clone(),
-                        sprite: TextureAtlasSprite::new(animation_indices.clone().first),
-                        transform: Transform::from_xyz(
-                            item.1.real_coordinates.0,
-                            item.1.real_coordinates.1,
-                            0.5,
-                        ),
-                        ..default()
-                    },
-                    animation_indices.clone(),
-                    BaseLayerAnimationTimer(Timer::from_seconds(TIME_BETWEEN_FRAMES, TimerMode::Repeating)),
-                ));
-                commands.spawn((
-                    SpriteSheetBundle {
-                        texture_atlas: ocean_sprite_atlas_handle.clone(),
-                        sprite: TextureAtlasSprite::new(
-                            animation_indices.clone().first * LAYERED_TILESET_HEIGHT
-                                + get_tileset_index(&map, &item.0, &kind),
-                        ),
-                        transform: Transform::from_xyz(
-                            item.1.real_coordinates.0,
-                            item.1.real_coordinates.1,
-                            1.,
-                        ),
-                        ..default()
-                    },
-                    animation_indices.clone(),
-                    AnimationTimer(Timer::from_seconds(TIME_BETWEEN_FRAMES, TimerMode::Repeating)),
-                ));
+                generate_layer_tiles(
+                    &mut commands,
+                    item.1.real_coordinates,
+                    plain_sprite_atlas_handle.clone(),
+                    ocean_sprite_atlas_handle.clone(),
+                    &animation_indices,
+                    get_tileset_index(&map, &item.0, &kind),
+                );
             }
             Kind::Plain => {
                 commands.spawn((
@@ -473,7 +462,10 @@ fn setup(
                         ..default()
                     },
                     animation_indices.clone(),
-                    BaseLayerAnimationTimer(Timer::from_seconds(TIME_BETWEEN_FRAMES, TimerMode::Repeating)),
+                    BaseLayerAnimationTimer(Timer::from_seconds(
+                        TIME_BETWEEN_FRAMES,
+                        TimerMode::Repeating,
+                    )),
                 ));
             }
         }
