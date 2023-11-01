@@ -29,9 +29,13 @@ enum Kind {
 #[derive(Debug)]
 struct Tile {
     kind: Kind,
-    coordinates: (f32, f32),
+    // These are called «real» coordinates because they are not the coordinates
+    // in the map, but rather are the coordinates of where the sprite will be drawn
+    real_coordinates: (f32, f32),
 }
 
+/// In-memory map for all gameplay and render purposes.
+/// This is the heart of the game.
 type Map = HashMap<(i32, i32), Tile>;
 
 /// Determines if a tile can be replaced by another
@@ -48,10 +52,10 @@ fn can_replace_continent_tile(kind: &Kind, map: &Map, coordinates: (i32, i32)) -
 /// Generates a patch of tile at given coordinates.
 ///
 /// This function requires several parameters:
-/// - The map and its seed (@TODO Join them in the future ?)
+/// - The map and its seed
 /// - The tile Kind (Forest, Plain, etc.)
 /// - The patch radius (its size, since we're making roughly round patches)
-/// - Frequency and Amplitude scales are used for roughness (I don't full understand
+/// - Frequency and Amplitude scales are used for roughness (I don't fully understand
 /// them for the moment...)
 fn generate_patch(
     seed: f32,
@@ -84,7 +88,7 @@ fn generate_patch(
                         key,
                         Tile {
                             kind: kind.clone(),
-                            coordinates: (
+                            real_coordinates: (
                                 (coordinates.0 + w) as f32 * SPRITE_SIZE,
                                 (coordinates.1 + h) as f32 * SPRITE_SIZE,
                             ),
@@ -156,7 +160,7 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
                     (w, h),
                     Tile {
                         kind: Kind::Ocean,
-                        coordinates: ((w as f32) * SPRITE_SIZE, (h as f32) * SPRITE_SIZE),
+                        real_coordinates: ((w as f32) * SPRITE_SIZE, (h as f32) * SPRITE_SIZE),
                     },
                 );
             }
@@ -189,7 +193,7 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
     return map;
 }
 
-/// Retrive the adequate tileset index for the tile
+/// Retrieve the adequate tileset index for the tile
 ///
 /// Indeed, tiles can either be one in the center of a patch (hence the tileable
 /// center tile will be used), or on the edge (maybe even in a corner), so a proper
@@ -198,7 +202,7 @@ fn get_tileset_index(map: &Map, coordinates: &(i32, i32), kind: &Kind) -> usize 
     // Dummy tile to handle edge cases like the map borders
     let default_tile = Tile {
         kind: kind.clone(),
-        coordinates: (0., 0.),
+        real_coordinates: (0., 0.),
     };
 
     let top_left = map
@@ -381,7 +385,7 @@ fn setup(
         last: ANIMATION_FRAME_COUNT - 1,
     };
 
-    // Display the sprites
+    // Create the sprite objects based on the Map
     for item in &map {
         let kind = &item.1.kind;
         match kind {
@@ -391,8 +395,8 @@ fn setup(
                         texture_atlas: plain_sprite_atlas_handle.clone(),
                         sprite: TextureAtlasSprite::new(animation_indices.clone().first),
                         transform: Transform::from_xyz(
-                            item.1.coordinates.0,
-                            item.1.coordinates.1,
+                            item.1.real_coordinates.0,
+                            item.1.real_coordinates.1,
                             0.5,
                         ),
                         ..default()
@@ -411,8 +415,8 @@ fn setup(
                                 + get_tileset_index(&map, &item.0, &kind),
                         ),
                         transform: Transform::from_xyz(
-                            item.1.coordinates.0,
-                            item.1.coordinates.1,
+                            item.1.real_coordinates.0,
+                            item.1.real_coordinates.1,
                             1.,
                         ),
                         ..default()
@@ -427,8 +431,8 @@ fn setup(
                         texture_atlas: plain_sprite_atlas_handle.clone(),
                         sprite: TextureAtlasSprite::new(animation_indices.clone().first),
                         transform: Transform::from_xyz(
-                            item.1.coordinates.0,
-                            item.1.coordinates.1,
+                            item.1.real_coordinates.0,
+                            item.1.real_coordinates.1,
                             0.5,
                         ),
                         ..default()
@@ -444,8 +448,8 @@ fn setup(
                                 + get_tileset_index(&map, &item.0, &kind),
                         ),
                         transform: Transform::from_xyz(
-                            item.1.coordinates.0,
-                            item.1.coordinates.1,
+                            item.1.real_coordinates.0,
+                            item.1.real_coordinates.1,
                             1.,
                         ),
                         ..default()
@@ -462,8 +466,8 @@ fn setup(
                             pseudo_rng_instance.gen_range(0..BASE_TILESET_WIDTH),
                         ),
                         transform: Transform::from_xyz(
-                            item.1.coordinates.0,
-                            item.1.coordinates.1,
+                            item.1.real_coordinates.0,
+                            item.1.real_coordinates.1,
                             1.,
                         ),
                         ..default()
