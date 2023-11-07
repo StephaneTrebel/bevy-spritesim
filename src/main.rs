@@ -19,254 +19,130 @@ const TIME_BETWEEN_FRAMES: f32 = 2.;
 const MAP_WIDTH: i32 = 100;
 const MAP_HEIGHT: i32 = 100;
 
-/// A tile «kind» (because "type" is a reserved word, haha ^^')
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-enum Kind {
-    Plain,
+/// A Tile is made of several layers, from bottom to top (only the first one is
+/// mandatory, the other are all optional):
+/// - A base Terrain (Plain, Ocean, etc.)
+/// - a Feature (Forest, Hills, etc.)
+/// - a Special characteristic (Food, Ore, Silver, etc.)
+/// - a Development (Road, Farmland, etc.)
+/// - a Settlement (Village, Fort, etc.)
+/// - a Unit (Settler, Canon, etc.) that is moving through it
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum Layer {
+    Terrain,
+    Feature,
+}
+
+/// Terrain are the base layers of all tiles
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum TerrainKind {
     Ocean,
+    Plain,
+}
+
+/// Features are natural deposits that adds value to a Terrain
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum FeatureKind {
     Forest,
 }
 
+/// This is a union of all sprites types. Used for using common sprite
+/// drawing functions.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+enum Kind {
+    TKind(TerrainKind),
+    FKind(Option<FeatureKind>),
+}
+
+/// A «Tile» is a superposition of several things that will compose the Map.
 #[derive(Debug)]
 struct Tile {
-    kind: Kind,
-    // Base layer on top of which the tile will be placed
-    base_kind: Kind,
+    terrain: TerrainKind,
+    feature: Option<FeatureKind>,
+
     // These are called «real» coordinates because they are not the coordinates
     // in the map, but rather are the coordinates of where the sprite will be drawn
     real_coordinates: (f32, f32),
 }
 
-/// In-memory map for all gameplay and render purposes.
-/// This is the heart of the game.
-type Map = HashMap<(i32, i32), Tile>;
-
-/// In-memory map that ties Kind elements with their corresponding
-/// TextureAtlas handle.
-type HandleMap = HashMap<Kind, Handle<TextureAtlas>>;
-
-/// Determines if a tile can be replaced by another
-///
-/// This is handy when replacing a base Plain tile with a more complex one
-/// (like a Forest, Desert, etc.)
-///
-/// The only tile that is allowed to override this rule is of course the Plain type,
-/// since it is placed on Ocean tiles
-fn can_replace_continent_tile(kind: &Kind, map: &Map, coordinates: (i32, i32)) -> bool {
-    return *kind != Kind::Forest || map.get(&coordinates).unwrap().kind == Kind::Plain;
+/// Retrieve the concrete kind of a tile on a given Layer
+fn get_layer_kind(tile: &Tile, layer: Layer) -> Kind {
+    return match layer {
+        Layer::Terrain => Kind::TKind(tile.terrain),
+        Layer::Feature => Kind::FKind(tile.feature),
+    };
 }
 
-/// Generates a patch of tile at given coordinates.
-///
-/// This function requires several parameters:
-/// - The map and its seed
-/// - The tile Kind (Forest, Plain, etc.)
-/// - The patch radius (its size, since we're making roughly round patches)
-/// - Frequency and Amplitude scales are used for roughness (I don't fully understand
-/// them for the moment...)
-fn generate_patch(
-    seed: f32,
-    map: &mut Map,
-    kind: &Kind,
-    coordinates: (i32, i32),
-    radius: f32,
-    frequency_scale: f32,
-    amplitude_scale: f32,
-) {
-    let grid_half_size = radius as i32 + 1;
-    for w in -grid_half_size..=grid_half_size {
-        for h in -grid_half_size..=grid_half_size {
-            let p = vec2(w as f32, h as f32);
-
-            // Compute noise offset (That will contribute to the "blob" shape
-            // the patch will have)
-            let offset = simplex_noise_2d_seeded(p * frequency_scale, seed) * amplitude_scale;
-
-            // Height will serve, with a threshold cutoff, as sizing the resulting patch
-            let height = radius + offset - ((w * w + h * h) as f32).sqrt();
-            let min_height = 0.;
-
-            let key = (coordinates.0 + w, coordinates.1 + h);
-            if key.0 > 0 && key.1 > 0 && key.0 < MAP_WIDTH && key.1 < MAP_HEIGHT {
-                // Only replace tile when necessary (for instance, Forest tiles can only be placed on Plains)
-                let replace = can_replace_continent_tile(&kind, map, coordinates);
-                if replace && height > min_height {
-                    map.insert(
-                        key,
-                        Tile {
-                            base_kind: Kind::Plain,
-                            kind: kind.clone(),
-                            real_coordinates: (
-                                (coordinates.0 + w) as f32 * SPRITE_SIZE,
-                                (coordinates.1 + h) as f32 * SPRITE_SIZE,
-                            ),
-                        },
-                    );
-                }
-            }
-        }
-    }
-}
-
-/// Generates several patches in one go.
-///
-/// Use this function to avoid having to place patches one by one.
-/// Patches are put in a kinda equidistant positions (based on their count), and
-/// every parameter is randomly adjusted to simulate realism and RNG
-fn generate_multiple_patches(
-    pseudo_rng_instance: &mut StdRng,
-    mut map: &mut Map,
-    kind: Kind,
-    count: i32,
-    radius_range: Range<i32>,
-    frequency_range: Range<f32>,
-    amplitude_range: Range<f32>,
-) {
-    // Positions patches centers on the map
-    // (kinda equidistant, but with random variations)
-    let max_offset = 5;
-    let mut patch_centers: Vec<(i32, i32)> = Vec::new();
-    for w in 1..count {
-        for h in 1..count {
-            patch_centers.push((
-                pseudo_rng_instance.gen_range(-max_offset..=max_offset)
-                    + MAP_WIDTH as i32 * w / count,
-                pseudo_rng_instance.gen_range(-max_offset..=max_offset)
-                    + MAP_HEIGHT as i32 * h / count,
-            ));
-        }
-    }
-
-    // Main generation process
-    for coordinates in patch_centers {
-        generate_patch(
-            pseudo_rng_instance.gen_range(0..MAX_u32) as f32,
-            &mut map,
-            &kind,
-            coordinates,
-            pseudo_rng_instance.gen_range(radius_range.clone()) as f32,
-            pseudo_rng_instance.gen_range(frequency_range.clone()),
-            pseudo_rng_instance.gen_range(amplitude_range.clone()),
-        );
-    }
-}
-
-/// Main map building function.
-///
-/// Size are hard-coded so the only need parameter is the PRNG instance to generate
-/// seeds for the different layers (patch groups) that are applied on the map.
-fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
-    let map_seed = pseudo_rng_instance.gen_range(0..MAX_u64);
-    dbg!(map_seed);
-    let mut map: Map = HashMap::new();
-
-    // Initialize the whole map with Ocean tiles
-    {
-        for w in 0..MAP_WIDTH {
-            for h in 0..MAP_HEIGHT {
-                map.insert(
-                    (w, h),
-                    Tile {
-                        // This may surprise you, but it's for beach generation
-                        base_kind: Kind::Plain,
-                        kind: Kind::Ocean,
-                        real_coordinates: ((w as f32) * SPRITE_SIZE, (h as f32) * SPRITE_SIZE),
-                    },
-                );
-            }
-        }
-    }
-
-    // Generate patches of Plain to serve as a main continent
-    // (but with an irregular shape by overlapping them)
-    generate_multiple_patches(
-        &mut pseudo_rng_instance,
-        &mut map,
-        Kind::Plain,
-        6,
-        2..20,
-        0.04..0.06,
-        3.60..4.40,
-    );
-
-    // Generate randow patches of Forests
-    generate_multiple_patches(
-        &mut pseudo_rng_instance,
-        &mut map,
-        Kind::Forest,
-        15,
-        1..3,
-        0.05..1.0,
-        3.60..4.40,
-    );
-
-    return map;
-}
+/// Retrieve the concrete kind of a tile on a given Layer
 
 /// Retrieve the adequate tileset index for the tile
 ///
 /// Indeed, tiles can either be one in the center of a patch (hence the tileable
 /// center tile will be used), or on the edge (maybe even in a corner), so a proper
 /// algorithmic pass must done to ensure the proper tile is used
-fn get_tileset_index(map: &Map, coordinates: &(i32, i32), kind: &Kind) -> usize {
-    // Dummy tile to handle edge cases like the map borders
+fn get_tileset_index(tile: &Tile, map: &Map, coordinates: &(i32, i32), layer: Layer) -> usize {
+    let kind = get_layer_kind(tile, layer);
+
+    if let Kind::TKind(TerrainKind::Plain) = kind {
+        return 0;
+    }
+
     let default_tile = Tile {
-        // Irrevelant, but's it's needed
-        base_kind: kind.clone(),
-        kind: kind.clone(),
+        terrain: tile.terrain,
+        feature: None,
         real_coordinates: (0., 0.),
     };
 
-    let top_left = map
-        .get(&(coordinates.0 - 1, coordinates.1 + 1))
-        .unwrap_or(&default_tile)
-        .kind
-        .clone();
-    let top = map
-        .get(&(coordinates.0, coordinates.1 + 1))
-        .unwrap_or(&default_tile)
-        .kind
-        .clone();
-    let top_right = map
-        .get(&(coordinates.0 + 1, coordinates.1 + 1))
-        .unwrap_or(&default_tile)
-        .kind
-        .clone();
-    let left = map
-        .get(&(coordinates.0 - 1, coordinates.1))
-        .unwrap_or(&default_tile)
-        .kind
-        .clone();
-    let right = map
-        .get(&(coordinates.0 + 1, coordinates.1))
-        .unwrap_or(&default_tile)
-        .kind
-        .clone();
-    let bottom_left = map
-        .get(&(coordinates.0 - 1, coordinates.1 - 1))
-        .unwrap_or(&default_tile)
-        .kind
-        .clone();
-    let bottom = map
-        .get(&(coordinates.0, coordinates.1 - 1))
-        .unwrap_or(&default_tile)
-        .kind
-        .clone();
-    let bottom_right = map
-        .get(&(coordinates.0 + 1, coordinates.1 - 1))
-        .unwrap_or(&default_tile)
-        .kind
-        .clone();
+    let top_left = get_layer_kind(
+        map.get(&(coordinates.0 - 1, coordinates.1 + 1))
+            .unwrap_or(&default_tile),
+        layer,
+    );
+    let top = get_layer_kind(
+        map.get(&(coordinates.0, coordinates.1 + 1))
+            .unwrap_or(&default_tile),
+        layer,
+    );
+    let top_right = get_layer_kind(
+        map.get(&(coordinates.0 + 1, coordinates.1 + 1))
+            .unwrap_or(&default_tile),
+        layer,
+    );
+    let left = get_layer_kind(
+        map.get(&(coordinates.0 - 1, coordinates.1))
+            .unwrap_or(&default_tile),
+        layer,
+    );
+    let right = get_layer_kind(
+        map.get(&(coordinates.0 + 1, coordinates.1))
+            .unwrap_or(&default_tile),
+        layer,
+    );
+    let bottom_left = get_layer_kind(
+        map.get(&(coordinates.0 - 1, coordinates.1 - 1))
+            .unwrap_or(&default_tile),
+        layer,
+    );
+    let bottom = get_layer_kind(
+        map.get(&(coordinates.0, coordinates.1 - 1))
+            .unwrap_or(&default_tile),
+        layer,
+    );
+    let bottom_right = get_layer_kind(
+        map.get(&(coordinates.0 + 1, coordinates.1 - 1))
+            .unwrap_or(&default_tile),
+        layer,
+    );
 
     return match (
-        top_left == *kind,
-        top == *kind,
-        top_right == *kind,
-        left == *kind,
-        right == *kind,
-        bottom_left == *kind,
-        bottom == *kind,
-        bottom_right == *kind,
+        top_left == kind,
+        top == kind,
+        top_right == kind,
+        left == kind,
+        right == kind,
+        bottom_left == kind,
+        bottom == kind,
+        bottom_right == kind,
     ) {
         // Regular corners
         (_, false, _, false, true, _, true, true) => 0,
@@ -341,27 +217,182 @@ fn get_tileset_index(map: &Map, coordinates: &(i32, i32), kind: &Kind) -> usize 
     };
 }
 
+/// In-memory map for all gameplay and render purposes.
+/// This is the heart of the game.
+type Map = HashMap<(i32, i32), Tile>;
+
+/// A dedicated enum for Kinds that are used as key in TerrainHandleMap
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+enum HandleKind {
+    TKind(TerrainKind),
+    FKind(FeatureKind),
+}
+
+/// In-memory map that ties Kind elements with their corresponding
+/// TextureAtlas handle.
+type TerrainHandleMap = HashMap<HandleKind, Handle<TextureAtlas>>;
+
+/// Determines if a tile can be replaced by another
+///
+/// This is handy when replacing a base Plain tile with a more complex one
+/// (like a Forest, Desert, etc.)
+///
+/// The only tile that is allowed to override this rule is of course the Plain type,
+/// since it is placed on Ocean tiles
+// fn can_be_placed_on_terrain(kind: &FeatureKind, map: &Map, coordinates: (i32, i32)) -> bool {
+// return *kind != FeatureKind::Forest
+// || map.get(&coordinates).unwrap().terrain == TerrainKind::Plain;
+// }
+
+/// Generates several terrain patches in one go.
+///
+/// Use this function to avoid having to place patches one by one.
+/// Patches are put in a kinda equidistant positions (based on their count), and
+/// every parameter is randomly adjusted to simulate realism and RNG
+fn generate_multiple_patches(
+    pseudo_rng_instance: &mut StdRng,
+    map: &mut Map,
+    kind: Kind,
+    count: i32,
+    radius_range: Range<i32>,
+    frequency_range: Range<f32>,
+    amplitude_range: Range<f32>,
+) {
+    // Positions patches centers on the map
+    // (kinda equidistant, but with random variations)
+    let max_offset = 5;
+    let mut patch_centers: Vec<(i32, i32)> = Vec::new();
+    for w in 1..count {
+        for h in 1..count {
+            patch_centers.push((
+                pseudo_rng_instance.gen_range(-max_offset..=max_offset)
+                    + MAP_WIDTH as i32 * w / count,
+                pseudo_rng_instance.gen_range(-max_offset..=max_offset)
+                    + MAP_HEIGHT as i32 * h / count,
+            ));
+        }
+    }
+
+    // Main generation process
+    for coordinates in patch_centers {
+        let radius = pseudo_rng_instance.gen_range(radius_range.clone()) as f32;
+        let frequency_scale = pseudo_rng_instance.gen_range(frequency_range.clone());
+        let amplitude_scale = pseudo_rng_instance.gen_range(amplitude_range.clone());
+        let grid_half_size = radius as i32 + 1;
+        for w in -grid_half_size..=grid_half_size {
+            for h in -grid_half_size..=grid_half_size {
+                let p = vec2(w as f32, h as f32);
+
+                // Compute noise offset (That will contribute to the "blob" shape
+                // the patch will have)
+                let offset = simplex_noise_2d_seeded(
+                    p * frequency_scale,
+                    pseudo_rng_instance.gen_range(0..MAX_u32) as f32,
+                ) * amplitude_scale;
+
+                // Height will serve, with a threshold cutoff, as sizing the resulting patch
+                let height = radius + offset - ((w * w + h * h) as f32).sqrt();
+                let min_height = 0.;
+
+                let key = (coordinates.0 + w, coordinates.1 + h);
+
+                // Here we go !
+                if
+                // No sense in adding tiles outside of the map
+                ( key.0 > 0 && key.1 > 0 && key.0 < MAP_WIDTH && key.1 < MAP_HEIGHT ) &&
+                    // Only replace tile when necessary (for instance, Forest tiles can only be placed on Plains)
+                    ( kind != Kind::FKind(Some(FeatureKind::Forest))
+                    || map.get(&coordinates).unwrap().terrain == TerrainKind::Plain) &&
+                    // Height threshold for size the shape
+                    (height > min_height)
+                {
+                    let real_coordinates = (
+                        (coordinates.0 + w) as f32 * SPRITE_SIZE,
+                        (coordinates.1 + h) as f32 * SPRITE_SIZE,
+                    );
+                    let existing_tile = map.get(&key);
+                    map.insert(
+                        key,
+                        match kind {
+                            Kind::TKind(terrain) => Tile {
+                                terrain,
+                                feature: None,
+                                real_coordinates,
+                            },
+                            Kind::FKind(feature) => Tile {
+                                terrain: existing_tile.unwrap().terrain,
+                                feature,
+                                real_coordinates,
+                            },
+                        },
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// Main map building function.
+///
+/// Size are hard-coded so the only need parameter is the PRNG instance to generate
+/// seeds for the different layers (patch groups) that are applied on the map.
+fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
+    let map_seed = pseudo_rng_instance.gen_range(0..MAX_u64);
+    dbg!(map_seed);
+    let mut map: Map = HashMap::new();
+
+    // Initialize the whole map with Ocean tiles
+    {
+        for w in 0..MAP_WIDTH {
+            for h in 0..MAP_HEIGHT {
+                map.insert(
+                    (w, h),
+                    Tile {
+                        terrain: TerrainKind::Ocean,
+                        feature: None,
+                        real_coordinates: ((w as f32) * SPRITE_SIZE, (h as f32) * SPRITE_SIZE),
+                    },
+                );
+            }
+        }
+    }
+
+    // Generate patches of Plain to serve as a main continent
+    // (but with an irregular shape by overlapping them)
+    generate_multiple_patches(
+        &mut pseudo_rng_instance,
+        &mut map,
+        Kind::TKind(TerrainKind::Plain),
+        6,
+        2..20,
+        0.04..0.06,
+        3.60..4.40,
+    );
+
+    // Generate randow patches of Forests
+    generate_multiple_patches(
+        &mut pseudo_rng_instance,
+        &mut map,
+        Kind::FKind(Some(FeatureKind::Forest)),
+        15,
+        1..3,
+        0.05..1.0,
+        3.60..4.40,
+    );
+
+    return map;
+}
+
 fn generate_layer_tiles(
     commands: &mut Commands,
     real_coordinates: (f32, f32),
-    base_handle: &Handle<TextureAtlas>,
-    handle: &Handle<TextureAtlas>,
+    handle_map: &TerrainHandleMap,
+    handle_kind: &HandleKind,
     animation_indices: &AnimationIndices,
     tileset_index: usize,
 ) {
-    commands.spawn((
-        SpriteSheetBundle {
-            texture_atlas: base_handle.clone(),
-            sprite: TextureAtlasSprite::new(animation_indices.clone().first),
-            transform: Transform::from_xyz(real_coordinates.0, real_coordinates.1, 0.5),
-            ..default()
-        },
-        animation_indices.clone(),
-        BaseLayerAnimationTimer(Timer::from_seconds(
-            TIME_BETWEEN_FRAMES,
-            TimerMode::Repeating,
-        )),
-    ));
+    let handle = handle_map.get(handle_kind).unwrap();
+
     commands.spawn((
         SpriteSheetBundle {
             texture_atlas: handle.clone(),
@@ -372,10 +403,18 @@ fn generate_layer_tiles(
             ..default()
         },
         animation_indices.clone(),
-        AnimationTimer(Timer::from_seconds(
-            TIME_BETWEEN_FRAMES,
-            TimerMode::Repeating,
-        )),
+        // Dirty hack for now
+        if *handle_kind == HandleKind::TKind(TerrainKind::Plain) {
+            BaseLayerAnimationTimer(Timer::from_seconds(
+                TIME_BETWEEN_FRAMES,
+                TimerMode::Repeating,
+            ));
+        } else {
+            AnimationTimer(Timer::from_seconds(
+                TIME_BETWEEN_FRAMES,
+                TimerMode::Repeating,
+            ));
+        },
     ));
 }
 
@@ -402,9 +441,9 @@ fn setup(
     // Animated tileset MUST be saved as one column, N rows for the animation algorithm to work
     // properly
 
-    let mut handle_map: HandleMap = HashMap::new();
+    let mut handle_map: TerrainHandleMap = HashMap::new();
     handle_map.insert(
-        Kind::Forest,
+        HandleKind::FKind(FeatureKind::Forest),
         texture_atlases.add(TextureAtlas::from_grid(
             asset_server.load("sprites/terrain/forest.png"),
             Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
@@ -415,7 +454,7 @@ fn setup(
         )),
     );
     handle_map.insert(
-        Kind::Ocean,
+        HandleKind::TKind(TerrainKind::Ocean),
         texture_atlases.add(TextureAtlas::from_grid(
             asset_server.load("sprites/terrain/ocean.png"),
             Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
@@ -426,7 +465,7 @@ fn setup(
         )),
     );
     handle_map.insert(
-        Kind::Plain,
+        HandleKind::TKind(TerrainKind::Plain),
         texture_atlases.add(TextureAtlas::from_grid(
             asset_server.load("sprites/terrain/plain.png"),
             Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
@@ -445,48 +484,30 @@ fn setup(
 
     // Create the sprite objects based on the Map
     for item in &map {
-        let kind = &item.1.kind;
-        match kind {
-            Kind::Forest => {
-                generate_layer_tiles(
-                    &mut commands,
-                    item.1.real_coordinates,
-                    handle_map.get(&item.1.base_kind).unwrap(),
-                    handle_map.get(&item.1.kind).unwrap(),
-                    &animation_indices,
-                    get_tileset_index(&map, &item.0, &kind),
-                );
-            }
-            Kind::Ocean => {
-                generate_layer_tiles(
-                    &mut commands,
-                    item.1.real_coordinates,
-                    handle_map.get(&item.1.base_kind).unwrap(),
-                    handle_map.get(&item.1.kind).unwrap(),
-                    &animation_indices,
-                    get_tileset_index(&map, &item.0, &kind),
-                );
-            }
-            Kind::Plain => {
-                commands.spawn((
-                    SpriteSheetBundle {
-                        texture_atlas: handle_map.get(&item.1.kind).unwrap().clone(),
-                        sprite: TextureAtlasSprite::new(
-                            pseudo_rng_instance.gen_range(0..BASE_TILESET_WIDTH),
-                        ),
-                        transform: Transform::from_xyz(
-                            item.1.real_coordinates.0,
-                            item.1.real_coordinates.1,
-                            1.,
-                        ),
-                        ..default()
-                    },
-                    animation_indices.clone(),
-                    BaseLayerAnimationTimer(Timer::from_seconds(
-                        TIME_BETWEEN_FRAMES,
-                        TimerMode::Repeating,
-                    )),
-                ));
+        for layer in [Layer::Terrain, Layer::Feature] {
+            match layer {
+                Layer::Terrain => {
+                    generate_layer_tiles(
+                        &mut commands,
+                        item.1.real_coordinates,
+                        &handle_map,
+                        &HandleKind::TKind(item.1.terrain),
+                        &animation_indices,
+                        get_tileset_index(&item.1, &map, &item.0, Layer::Terrain),
+                    );
+                }
+                Layer::Feature => {
+                    if let Some(feature) = &item.1.feature {
+                        generate_layer_tiles(
+                            &mut commands,
+                            item.1.real_coordinates,
+                            &handle_map,
+                            &HandleKind::FKind(*feature),
+                            &animation_indices,
+                            get_tileset_index(&item.1, &map, &item.0, Layer::Feature),
+                        );
+                    }
+                }
             }
         }
     }
