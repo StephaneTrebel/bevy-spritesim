@@ -34,40 +34,47 @@ enum Layer {
 /// Terrain are the base layers of all tiles
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum TerrainKind {
-    Ocean,
     Plain,
 }
 
 /// Features are natural deposits that adds value to a Terrain
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum FeatureKind {
+    Ocean,
     Forest,
 }
 
 /// This is a union of all sprites types. Used for using common sprite
 /// drawing functions.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum Kind {
     TKind(TerrainKind),
-    FKind(Option<FeatureKind>),
+    FKind(FeatureKind),
 }
+
+/// In-memory map for all layers of a Tile
+type TileLayers = HashMap<Layer, Kind>;
 
 /// A «Tile» is a superposition of several things that will compose the Map.
 #[derive(Debug)]
 struct Tile {
-    terrain: TerrainKind,
-    feature: Option<FeatureKind>,
+    layers: TileLayers,
 
     // These are called «real» coordinates because they are not the coordinates
     // in the map, but rather are the coordinates of where the sprite will be drawn
     real_coordinates: (f32, f32),
 }
 
-/// Retrieve the concrete kind of a tile on a given Layer
-fn get_layer_kind(tile: &Tile, layer: Layer) -> Kind {
-    return match layer {
-        Layer::Terrain => Kind::TKind(tile.terrain),
-        Layer::Feature => Kind::FKind(tile.feature),
+/// Retrieve the related layer of a Kind
+fn get_kind_of_tile_layer(tile: &Tile, layer: Layer) -> Option<&Kind> {
+    return tile.layers.get(&layer);
+}
+
+/// Retrieve the concrete Kind of a tile on a given Layer
+fn get_layer_from_kind(kind: &Kind) -> Layer {
+    return match kind {
+        Kind::TKind(_) => Layer::Terrain,
+        Kind::FKind(_) => Layer::Feature,
     };
 }
 
@@ -79,54 +86,46 @@ fn get_layer_kind(tile: &Tile, layer: Layer) -> Kind {
 /// center tile will be used), or on the edge (maybe even in a corner), so a proper
 /// algorithmic pass must done to ensure the proper tile is used
 fn get_tileset_index(tile: &Tile, map: &Map, coordinates: &(i32, i32), layer: Layer) -> usize {
-    let kind = get_layer_kind(tile, layer);
+    let kind = get_kind_of_tile_layer(tile, layer);
 
-    if let Kind::TKind(TerrainKind::Plain) = kind {
-        return 0;
-    }
+    let default_tile = tile.clone();
 
-    let default_tile = Tile {
-        terrain: tile.terrain,
-        feature: None,
-        real_coordinates: (0., 0.),
-    };
-
-    let top_left = get_layer_kind(
+    let top_left = get_kind_of_tile_layer(
         map.get(&(coordinates.0 - 1, coordinates.1 + 1))
             .unwrap_or(&default_tile),
         layer,
     );
-    let top = get_layer_kind(
+    let top = get_kind_of_tile_layer(
         map.get(&(coordinates.0, coordinates.1 + 1))
             .unwrap_or(&default_tile),
         layer,
     );
-    let top_right = get_layer_kind(
+    let top_right = get_kind_of_tile_layer(
         map.get(&(coordinates.0 + 1, coordinates.1 + 1))
             .unwrap_or(&default_tile),
         layer,
     );
-    let left = get_layer_kind(
+    let left = get_kind_of_tile_layer(
         map.get(&(coordinates.0 - 1, coordinates.1))
             .unwrap_or(&default_tile),
         layer,
     );
-    let right = get_layer_kind(
+    let right = get_kind_of_tile_layer(
         map.get(&(coordinates.0 + 1, coordinates.1))
             .unwrap_or(&default_tile),
         layer,
     );
-    let bottom_left = get_layer_kind(
+    let bottom_left = get_kind_of_tile_layer(
         map.get(&(coordinates.0 - 1, coordinates.1 - 1))
             .unwrap_or(&default_tile),
         layer,
     );
-    let bottom = get_layer_kind(
+    let bottom = get_kind_of_tile_layer(
         map.get(&(coordinates.0, coordinates.1 - 1))
             .unwrap_or(&default_tile),
         layer,
     );
-    let bottom_right = get_layer_kind(
+    let bottom_right = get_kind_of_tile_layer(
         map.get(&(coordinates.0 + 1, coordinates.1 - 1))
             .unwrap_or(&default_tile),
         layer,
@@ -219,28 +218,9 @@ fn get_tileset_index(tile: &Tile, map: &Map, coordinates: &(i32, i32), layer: La
 /// This is the heart of the game.
 type Map = HashMap<(i32, i32), Tile>;
 
-/// A dedicated enum for Kinds that are used as key in TerrainHandleMap
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-enum HandleKind {
-    TKind(TerrainKind),
-    FKind(FeatureKind),
-}
-
 /// In-memory map that ties Kind elements with their corresponding
 /// TextureAtlas handle.
-type TerrainHandleMap = HashMap<HandleKind, Handle<TextureAtlas>>;
-
-/// Determines if a tile can be replaced by another
-///
-/// This is handy when replacing a base Plain tile with a more complex one
-/// (like a Forest, Desert, etc.)
-///
-/// The only tile that is allowed to override this rule is of course the Plain type,
-/// since it is placed on Ocean tiles
-// fn can_be_placed_on_terrain(kind: &FeatureKind, map: &Map, coordinates: (i32, i32)) -> bool {
-// return *kind != FeatureKind::Forest
-// || map.get(&coordinates).unwrap().terrain == TerrainKind::Plain;
-// }
+type TerrainHandleMap = HashMap<Kind, Handle<TextureAtlas>>;
 
 /// Generates several terrain patches in one go.
 ///
@@ -299,8 +279,8 @@ fn generate_multiple_patches(
                 // No sense in adding tiles outside of the map
                 ( key.0 > 0 && key.1 > 0 && key.0 < MAP_WIDTH && key.1 < MAP_HEIGHT ) &&
                     // Only replace tile when necessary (for instance, Forest tiles can only be placed on Plains)
-                    ( kind != Kind::FKind(Some(FeatureKind::Forest))
-                    || map.get(&coordinates).unwrap().terrain == TerrainKind::Plain) &&
+                    ( kind != Kind::FKind(FeatureKind::Forest)
+                    || map.get(&coordinates).unwrap().layers.get(&Layer::Terrain).unwrap() == &Kind::TKind(TerrainKind::Plain)) &&
                     // Height threshold for size the shape
                     (height > min_height)
                 {
@@ -308,22 +288,24 @@ fn generate_multiple_patches(
                         (coordinates.0 + w) as f32 * SPRITE_SIZE,
                         (coordinates.1 + h) as f32 * SPRITE_SIZE,
                     );
-                    let existing_tile = map.get(&key);
-                    map.insert(
-                        key,
-                        match kind {
-                            Kind::TKind(terrain) => Tile {
-                                terrain,
-                                feature: None,
-                                real_coordinates,
-                            },
-                            Kind::FKind(feature) => Tile {
-                                terrain: existing_tile.unwrap().terrain,
-                                feature,
-                                real_coordinates,
-                            },
-                        },
-                    );
+                    let default_tile = {
+                        let layers = TileLayers::new();
+                        Tile {
+                            layers,
+                            real_coordinates,
+                        }
+                    };
+                    let mut existing_tile_layers =
+                        map.get(&key).unwrap_or(&default_tile).layers.clone();
+                    // @TODO Hack for Plain terrain generation, should be better handled
+                    existing_tile_layers.remove(&Layer::Feature);
+                    map.insert(key, {
+                        existing_tile_layers.insert(get_layer_from_kind(&kind), kind);
+                        Tile {
+                            layers: existing_tile_layers,
+                            real_coordinates,
+                        }
+                    });
                 }
             }
         }
@@ -343,14 +325,20 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
     {
         for w in 0..MAP_WIDTH {
             for h in 0..MAP_HEIGHT {
-                map.insert(
-                    (w, h),
+                map.insert((w, h), {
                     Tile {
-                        terrain: TerrainKind::Ocean,
-                        feature: None,
+                        layers: {
+                            let mut layers = TileLayers::new();
+
+                            // @TODO Hack for Ocean partial tiles
+                            layers.insert(Layer::Terrain, Kind::TKind(TerrainKind::Plain));
+
+                            layers.insert(Layer::Feature, Kind::FKind(FeatureKind::Ocean));
+                            layers
+                        },
                         real_coordinates: ((w as f32) * SPRITE_SIZE, (h as f32) * SPRITE_SIZE),
-                    },
-                );
+                    }
+                });
             }
         }
     }
@@ -371,7 +359,7 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
     generate_multiple_patches(
         &mut pseudo_rng_instance,
         &mut map,
-        Kind::FKind(Some(FeatureKind::Forest)),
+        Kind::FKind(FeatureKind::Forest),
         15,
         1..3,
         0.05..1.0,
@@ -381,10 +369,10 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
     return map;
 }
 
-fn get_zindex_from_kind(kind: &HandleKind) -> f32 {
+fn get_zindex_from_kind(kind: &Kind) -> f32 {
     return match kind {
-        HandleKind::TKind(_) => 1.,
-        HandleKind::FKind(_) => 2.,
+        Kind::TKind(_) => 1.,
+        Kind::FKind(_) => 2.,
     };
 }
 
@@ -392,11 +380,11 @@ fn create_layer_sprites(
     commands: &mut Commands,
     real_coordinates: (f32, f32),
     handle_map: &TerrainHandleMap,
-    handle_kind: &HandleKind,
+    kind: &Kind,
     animation_indices: &AnimationIndices,
     tileset_index: usize,
 ) {
-    let handle = handle_map.get(handle_kind).unwrap();
+    let handle = handle_map.get(kind).unwrap();
 
     commands.spawn((
         SpriteSheetBundle {
@@ -407,7 +395,7 @@ fn create_layer_sprites(
             transform: Transform::from_xyz(
                 real_coordinates.0,
                 real_coordinates.1,
-                get_zindex_from_kind(handle_kind),
+                get_zindex_from_kind(kind),
             ),
             ..default()
         },
@@ -444,7 +432,7 @@ fn setup(
 
     let mut handle_map: TerrainHandleMap = HashMap::new();
     handle_map.insert(
-        HandleKind::FKind(FeatureKind::Forest),
+        Kind::FKind(FeatureKind::Forest),
         texture_atlases.add(TextureAtlas::from_grid(
             asset_server.load("sprites/terrain/forest.png"),
             Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
@@ -455,7 +443,7 @@ fn setup(
         )),
     );
     handle_map.insert(
-        HandleKind::TKind(TerrainKind::Ocean),
+        Kind::FKind(FeatureKind::Ocean),
         texture_atlases.add(TextureAtlas::from_grid(
             asset_server.load("sprites/terrain/ocean.png"),
             Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
@@ -466,7 +454,7 @@ fn setup(
         )),
     );
     handle_map.insert(
-        HandleKind::TKind(TerrainKind::Plain),
+        Kind::TKind(TerrainKind::Plain),
         texture_atlases.add(TextureAtlas::from_grid(
             asset_server.load("sprites/terrain/plain.png"),
             Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
@@ -483,32 +471,18 @@ fn setup(
         last: ANIMATION_FRAME_COUNT - 1,
     };
 
-    // Create the sprite objects based on the Map
+    // Create the layer sprites for every tile on the Map
     for item in &map {
         for layer in [Layer::Terrain, Layer::Feature] {
-            match layer {
-                Layer::Terrain => {
-                    create_layer_sprites(
-                        &mut commands,
-                        item.1.real_coordinates,
-                        &handle_map,
-                        &HandleKind::TKind(item.1.terrain),
-                        &animation_indices,
-                        get_tileset_index(&item.1, &map, &item.0, Layer::Terrain),
-                    );
-                }
-                Layer::Feature => {
-                    if let Some(feature) = &item.1.feature {
-                        create_layer_sprites(
-                            &mut commands,
-                            item.1.real_coordinates,
-                            &handle_map,
-                            &HandleKind::FKind(*feature),
-                            &animation_indices,
-                            get_tileset_index(&item.1, &map, &item.0, Layer::Feature),
-                        );
-                    }
-                }
+            if let Some(kind) = get_kind_of_tile_layer(item.1, layer) {
+                create_layer_sprites(
+                    &mut commands,
+                    item.1.real_coordinates,
+                    &handle_map,
+                    kind,
+                    &animation_indices,
+                    get_tileset_index(&item.1, &map, &item.0, layer),
+                );
             }
         }
     }
