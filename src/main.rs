@@ -10,10 +10,8 @@ const WINDOW_PHYSICAL_WIDTH: f32 = 1280.; // In pixels
 const WINDOW_PHYSICAL_HEIGHT: f32 = 1280.; // In pixels
 const WINDOW_SCALE_FACTOR: f64 = 2.0; // How much tiles are streched out in the beginning
 const SPRITE_SIZE: f32 = 16.;
-const BASE_TILESET_WIDTH: usize = 4;
-const BASE_TILESET_HEIGHT: usize = 1;
-const LAYERED_TILESET_WIDTH: usize = 7;
-const LAYERED_TILESET_HEIGHT: usize = 7;
+const TILESET_WIDTH: usize = 7;
+const TILESET_HEIGHT: usize = 7;
 const ANIMATION_FRAME_COUNT: usize = 4;
 const TIME_BETWEEN_FRAMES: f32 = 2.;
 const MAP_WIDTH: i32 = 100;
@@ -383,7 +381,14 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
     return map;
 }
 
-fn generate_layer_tiles(
+fn get_zindex_from_kind(kind: &HandleKind) -> f32 {
+    return match kind {
+        HandleKind::TKind(_) => 1.,
+        HandleKind::FKind(_) => 2.,
+    };
+}
+
+fn create_layer_sprites(
     commands: &mut Commands,
     real_coordinates: (f32, f32),
     handle_map: &TerrainHandleMap,
@@ -397,24 +402,20 @@ fn generate_layer_tiles(
         SpriteSheetBundle {
             texture_atlas: handle.clone(),
             sprite: TextureAtlasSprite::new(
-                animation_indices.clone().first * LAYERED_TILESET_HEIGHT + tileset_index,
+                animation_indices.clone().first * TILESET_HEIGHT + tileset_index,
             ),
-            transform: Transform::from_xyz(real_coordinates.0, real_coordinates.1, 1.),
+            transform: Transform::from_xyz(
+                real_coordinates.0,
+                real_coordinates.1,
+                get_zindex_from_kind(handle_kind),
+            ),
             ..default()
         },
         animation_indices.clone(),
-        // Dirty hack for now
-        if *handle_kind == HandleKind::TKind(TerrainKind::Plain) {
-            BaseLayerAnimationTimer(Timer::from_seconds(
-                TIME_BETWEEN_FRAMES,
-                TimerMode::Repeating,
-            ));
-        } else {
-            AnimationTimer(Timer::from_seconds(
-                TIME_BETWEEN_FRAMES,
-                TimerMode::Repeating,
-            ));
-        },
+        AnimationTimer(Timer::from_seconds(
+            TIME_BETWEEN_FRAMES,
+            TimerMode::Repeating,
+        )),
     ));
 }
 
@@ -447,8 +448,8 @@ fn setup(
         texture_atlases.add(TextureAtlas::from_grid(
             asset_server.load("sprites/terrain/forest.png"),
             Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-            LAYERED_TILESET_WIDTH,
-            LAYERED_TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
+            TILESET_WIDTH,
+            TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
             None,
             None,
         )),
@@ -458,8 +459,8 @@ fn setup(
         texture_atlases.add(TextureAtlas::from_grid(
             asset_server.load("sprites/terrain/ocean.png"),
             Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-            LAYERED_TILESET_WIDTH,
-            LAYERED_TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
+            TILESET_WIDTH,
+            TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
             None,
             None,
         )),
@@ -469,8 +470,8 @@ fn setup(
         texture_atlases.add(TextureAtlas::from_grid(
             asset_server.load("sprites/terrain/plain.png"),
             Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-            BASE_TILESET_WIDTH,
-            BASE_TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
+            TILESET_WIDTH,
+            TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
             None,
             None,
         )),
@@ -487,7 +488,7 @@ fn setup(
         for layer in [Layer::Terrain, Layer::Feature] {
             match layer {
                 Layer::Terrain => {
-                    generate_layer_tiles(
+                    create_layer_sprites(
                         &mut commands,
                         item.1.real_coordinates,
                         &handle_map,
@@ -498,7 +499,7 @@ fn setup(
                 }
                 Layer::Feature => {
                     if let Some(feature) = &item.1.feature {
-                        generate_layer_tiles(
+                        create_layer_sprites(
                             &mut commands,
                             item.1.real_coordinates,
                             &handle_map,
@@ -563,27 +564,6 @@ fn get_next_sprite_index(
     return next_animation_index * (tileset_width * tileset_height) + current_sprite;
 }
 
-fn animate_base_layer_sprite(
-    time: Res<Time>,
-    mut query: Query<(
-        &AnimationIndices,
-        &mut BaseLayerAnimationTimer,
-        &mut TextureAtlasSprite,
-    )>,
-) {
-    for (indices, mut timer, mut sprite) in &mut query {
-        timer.tick(time.delta());
-        if timer.just_finished() {
-            sprite.index = get_next_sprite_index(
-                sprite.index,
-                indices,
-                BASE_TILESET_WIDTH,
-                BASE_TILESET_HEIGHT,
-            );
-        }
-    }
-}
-
 fn animate_layer_sprite(
     time: Res<Time>,
     mut query: Query<(
@@ -595,12 +575,8 @@ fn animate_layer_sprite(
     for (indices, mut timer, mut sprite) in &mut query {
         timer.tick(time.delta());
         if timer.just_finished() {
-            sprite.index = get_next_sprite_index(
-                sprite.index,
-                indices,
-                LAYERED_TILESET_WIDTH,
-                LAYERED_TILESET_HEIGHT,
-            );
+            sprite.index =
+                get_next_sprite_index(sprite.index, indices, TILESET_WIDTH, TILESET_HEIGHT);
         }
     }
 }
@@ -630,7 +606,6 @@ fn main() {
             GamePlugin,
             PanCamPlugin::default(),
         ))
-        .add_systems(Update, animate_base_layer_sprite)
         .add_systems(Update, animate_layer_sprite)
         .run();
 }
