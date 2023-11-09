@@ -278,11 +278,11 @@ fn generate_multiple_patches(
 
                 // Here we go !
                 if
+                // Height threshold for size the shape
+                (height > height_threshold) &&
                 // Only replace tile when necessary (for instance, Forest tiles can only be placed on Plains)
                 ( kind != Kind::FKind(FeatureKind::Forest)
-                    || map.get(&coordinates).unwrap().layers.get(&Layer::Feature)== None) &&
-                    // Height threshold for size the shape
-                    (height > height_threshold)
+                    || map.get(&coordinates).unwrap().layers.get(&Layer::Feature)== None)
                 {
                     let real_coordinates = (key.0 as f32 * SPRITE_SIZE, key.1 as f32 * SPRITE_SIZE);
                     let default_tile = {
