@@ -284,23 +284,26 @@ fn generate_multiple_patches(
                 ( kind != Kind::FKind(FeatureKind::Forest)
                     || map.get(&coordinates).unwrap().layers.get(&Layer::Feature)== None)
                 {
-                    let real_coordinates = (key.0 as f32 * SPRITE_SIZE, key.1 as f32 * SPRITE_SIZE);
+                    let screen_coordinates =
+                        (key.0 as f32 * SPRITE_SIZE, key.1 as f32 * SPRITE_SIZE);
                     let default_tile = {
                         let layers = TileLayers::new();
                         Tile {
                             layers,
-                            real_coordinates,
+                            real_coordinates: screen_coordinates,
                         }
                     };
                     let mut existing_tile_layers =
                         map.get(&key).unwrap_or(&default_tile).layers.clone();
+
                     // @TODO Hack for regular terrain generation, should be better handled
                     existing_tile_layers.remove(&Layer::Feature);
+
                     map.insert(key, {
                         existing_tile_layers.insert(get_layer_from_kind(&kind), kind);
                         Tile {
                             layers: existing_tile_layers,
-                            real_coordinates,
+                            real_coordinates: screen_coordinates,
                         }
                     });
                 }
