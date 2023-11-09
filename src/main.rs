@@ -259,7 +259,6 @@ fn generate_multiple_patches(
         let grid_half_size = radius as i32 + 1;
         for w in -grid_half_size..=grid_half_size {
             for h in -grid_half_size..=grid_half_size {
-
                 // Compute noise offset (That will contribute to the "blob" shape
                 // the patch will have)
                 let offset = simplex_noise_2d_seeded(
@@ -271,22 +270,21 @@ fn generate_multiple_patches(
                 let height = radius + offset - ((w * w + h * h) as f32).sqrt();
                 let height_threshold = 0.;
 
-                let key = (coordinates.0 + w, coordinates.1 + h);
+                let key = (
+                    // No sense in adding tiles outside of the map
+                    (coordinates.0 + w).clamp(1, MAP_WIDTH - 1),
+                    (coordinates.1 + h).clamp(1, MAP_HEIGHT - 1),
+                );
 
                 // Here we go !
                 if
-                // No sense in adding tiles outside of the map
-                ( key.0 > 0 && key.1 > 0 && key.0 < MAP_WIDTH && key.1 < MAP_HEIGHT ) &&
                     // Only replace tile when necessary (for instance, Forest tiles can only be placed on Plains)
                     ( kind != Kind::FKind(FeatureKind::Forest)
                     || map.get(&coordinates).unwrap().layers.get(&Layer::Terrain).unwrap() == &Kind::TKind(TerrainKind::Plain)) &&
                     // Height threshold for size the shape
                     (height > height_threshold)
                 {
-                    let real_coordinates = (
-                        (coordinates.0 + w) as f32 * SPRITE_SIZE,
-                        (coordinates.1 + h) as f32 * SPRITE_SIZE,
-                    );
+                    let real_coordinates = (key.0 as f32 * SPRITE_SIZE, key.1 as f32 * SPRITE_SIZE);
                     let default_tile = {
                         let layers = TileLayers::new();
                         Tile {
