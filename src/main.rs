@@ -278,9 +278,9 @@ fn generate_multiple_patches(
 
                 // Here we go !
                 if
-                    // Only replace tile when necessary (for instance, Forest tiles can only be placed on Plains)
-                    ( kind != Kind::FKind(FeatureKind::Forest)
-                    || map.get(&coordinates).unwrap().layers.get(&Layer::Terrain).unwrap() == &Kind::TKind(TerrainKind::Plain)) &&
+                // Only replace tile when necessary (for instance, Forest tiles can only be placed on Plains)
+                ( kind != Kind::FKind(FeatureKind::Forest)
+                    || map.get(&coordinates).unwrap().layers.get(&Layer::Feature)== None) &&
                     // Height threshold for size the shape
                     (height > height_threshold)
                 {
