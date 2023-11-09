@@ -19,7 +19,7 @@ const MAP_HEIGHT: i32 = 100;
 
 /// A Tile is made of several layers, from bottom to top (only the first one is
 /// mandatory, the other are all optional):
-/// - A base Terrain (Plain, Ocean, etc.)
+/// - A base Terrain (Plain, Desert, etc.)
 /// - a Feature (Forest, Hills, etc.)
 /// - a Special characteristic (Food, Ore, Silver, etc.)
 /// - a Development (Road, Farmland, etc.)
@@ -259,18 +259,17 @@ fn generate_multiple_patches(
         let grid_half_size = radius as i32 + 1;
         for w in -grid_half_size..=grid_half_size {
             for h in -grid_half_size..=grid_half_size {
-                let p = vec2(w as f32, h as f32);
 
                 // Compute noise offset (That will contribute to the "blob" shape
                 // the patch will have)
                 let offset = simplex_noise_2d_seeded(
-                    p * frequency_scale,
+                    vec2(w as f32, h as f32) * frequency_scale,
                     pseudo_rng_instance.gen_range(0..MAX_u32) as f32,
                 ) * amplitude_scale;
 
                 // Height will serve, with a threshold cutoff, as sizing the resulting patch
                 let height = radius + offset - ((w * w + h * h) as f32).sqrt();
-                let min_height = 0.;
+                let height_threshold = 0.;
 
                 let key = (coordinates.0 + w, coordinates.1 + h);
 
@@ -282,7 +281,7 @@ fn generate_multiple_patches(
                     ( kind != Kind::FKind(FeatureKind::Forest)
                     || map.get(&coordinates).unwrap().layers.get(&Layer::Terrain).unwrap() == &Kind::TKind(TerrainKind::Plain)) &&
                     // Height threshold for size the shape
-                    (height > min_height)
+                    (height > height_threshold)
                 {
                     let real_coordinates = (
                         (coordinates.0 + w) as f32 * SPRITE_SIZE,
@@ -297,7 +296,7 @@ fn generate_multiple_patches(
                     };
                     let mut existing_tile_layers =
                         map.get(&key).unwrap_or(&default_tile).layers.clone();
-                    // @TODO Hack for Plain terrain generation, should be better handled
+                    // @TODO Hack for regular terrain generation, should be better handled
                     existing_tile_layers.remove(&Layer::Feature);
                     map.insert(key, {
                         existing_tile_layers.insert(get_layer_from_kind(&kind), kind);
@@ -330,7 +329,7 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
                         layers: {
                             let mut layers = TileLayers::new();
 
-                            // @TODO Hack for Ocean partial tiles
+                            // @TODO Hack for Ocean partial tiles (like beaches)
                             layers.insert(Layer::Terrain, Kind::TKind(TerrainKind::Plain));
 
                             layers.insert(Layer::Feature, Kind::FKind(FeatureKind::Ocean));
