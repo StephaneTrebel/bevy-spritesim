@@ -302,7 +302,8 @@ fn generate_multiple_patches(
                 (height > height_threshold) &&
                 // Only replace tile when necessary (for instance, Forest tiles can only be placed on Plains)
                 ( kind != Kind::FKind(FeatureKind::Forest)
-                    || map.get(&coordinates).unwrap().layers.get(&Layer::Feature)== None)
+                    || map.get(&key).unwrap().layers.get(&Layer::Terrain).unwrap()
+                    == &Kind::TKind(TerrainKind::Plain))
                 {
                     let screen_coordinates =
                         (key.0 as f32 * SPRITE_SIZE, key.1 as f32 * SPRITE_SIZE);
