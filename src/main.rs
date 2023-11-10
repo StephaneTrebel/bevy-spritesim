@@ -34,13 +34,13 @@ enum Layer {
 /// Terrain are the base layers of all tiles
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum TerrainKind {
+    Ocean,
     Plain,
 }
 
 /// Features are natural deposits that adds value to a Terrain
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum FeatureKind {
-    Ocean,
     Forest,
 }
 
@@ -66,8 +66,8 @@ struct Tile {
 }
 
 /// Retrieve the related layer of a Kind
-fn get_kind_of_tile_layer(tile: &Tile, layer: Layer) -> Option<&Kind> {
-    return tile.layers.get(&layer);
+fn get_kind_of_tile_layer(tile: &Tile, layer: &Layer) -> Option<Kind> {
+    return tile.layers.get(layer).map(|layer| layer.clone());
 }
 
 /// Retrieve the concrete Kind of a tile on a given Layer
@@ -78,59 +78,79 @@ fn get_layer_from_kind(kind: &Kind) -> Layer {
     };
 }
 
-/// Retrieve the concrete kind of a tile on a given Layer
-
-/// Retrieve the adequate tileset index for the tile
+/// Retrieve the adequate tileset indices to properly display a tile.
 ///
 /// Indeed, tiles can either be one in the center of a patch (hence the tileable
 /// center tile will be used), or on the edge (maybe even in a corner), so a proper
-/// algorithmic pass must done to ensure the proper tile is used
-fn get_tileset_index(tile: &Tile, map: &Map, coordinates: &(i32, i32), layer: Layer) -> usize {
-    let kind = get_kind_of_tile_layer(tile, layer);
+/// algorithmic pass must done to ensure the proper tile is used.
+///
+/// Additionnaly if a «partial» tile (like a corner) is used, we have to add
+/// an underlying tile to serve as background so for instance a beach is composed of
+/// a plain (its shore) and the ocean (its beach) over it.
+fn get_tiles_to_display(
+    tile: &Tile,
+    map: &Map,
+    coordinates: &(i32, i32),
+    layer: Layer,
+) -> (usize, Option<Kind>) {
+    let kind = get_kind_of_tile_layer(tile, &layer);
 
     let default_tile = tile.clone();
 
     let top_left = get_kind_of_tile_layer(
         map.get(&(coordinates.0 - 1, coordinates.1 + 1))
             .unwrap_or(&default_tile),
-        layer,
+        &layer,
     );
     let top = get_kind_of_tile_layer(
         map.get(&(coordinates.0, coordinates.1 + 1))
             .unwrap_or(&default_tile),
-        layer,
+        &layer,
     );
     let top_right = get_kind_of_tile_layer(
         map.get(&(coordinates.0 + 1, coordinates.1 + 1))
             .unwrap_or(&default_tile),
-        layer,
+        &layer,
     );
     let left = get_kind_of_tile_layer(
         map.get(&(coordinates.0 - 1, coordinates.1))
             .unwrap_or(&default_tile),
-        layer,
+        &layer,
     );
     let right = get_kind_of_tile_layer(
         map.get(&(coordinates.0 + 1, coordinates.1))
             .unwrap_or(&default_tile),
-        layer,
+        &layer,
     );
     let bottom_left = get_kind_of_tile_layer(
         map.get(&(coordinates.0 - 1, coordinates.1 - 1))
             .unwrap_or(&default_tile),
-        layer,
+        &layer,
     );
     let bottom = get_kind_of_tile_layer(
         map.get(&(coordinates.0, coordinates.1 - 1))
             .unwrap_or(&default_tile),
-        layer,
+        &layer,
     );
     let bottom_right = get_kind_of_tile_layer(
         map.get(&(coordinates.0 + 1, coordinates.1 - 1))
             .unwrap_or(&default_tile),
-        layer,
+        &layer,
     );
 
+    // The main algorithm relies on a truth table which determines a tileset index
+    // to use based on the ones surrounding the current tile:
+    //
+    // top_left    | top      | top_right
+    // left        | OUR TILE | right
+    // bottom_left | bottom   | bottom_right
+    //
+    // Depending on the surround tile we use one of the 47 possible tiles which
+    // encompass all possible arrangements of corners, edgeds, internal corners, etc.
+    //
+    // A second value is returned, which is either None (for regular «full» tiles),
+    // or Some(kind) which is the "background" tile on top of which a partial tile
+    // will be applied (think an ocean shore on top of a plain to make a beach).
     return match (
         top_left == kind,
         top == kind,
@@ -142,75 +162,75 @@ fn get_tileset_index(tile: &Tile, map: &Map, coordinates: &(i32, i32), layer: La
         bottom_right == kind,
     ) {
         // Regular corners
-        (_, false, _, false, true, _, true, true) => 0,
-        (_, false, _, true, false, true, true, _) => 2,
-        (_, true, true, false, true, _, false, _) => 14,
-        (true, true, _, true, false, _, false, _) => 16,
+        (_, false, _, false, true, _, true, true) => (0, top),
+        (_, false, _, true, false, true, true, _) => (2, top),
+        (_, true, true, false, true, _, false, _) => (14, left),
+        (true, true, _, true, false, _, false, _) => (16, right),
 
         // Regular sides
-        (_, true, true, false, true, _, true, true) => 7,
-        (true, true, _, true, false, true, true, _) => 9,
-        (_, false, _, true, true, true, true, true) => 1,
-        (true, true, true, true, true, _, false, _) => 15,
+        (_, true, true, false, true, _, true, true) => (7, left),
+        (true, true, _, true, false, true, true, _) => (9, right),
+        (_, false, _, true, true, true, true, true) => (1, top),
+        (true, true, true, true, true, _, false, _) => (15, bottom),
 
         // 1-width tiles (with edges on either side)
         // Vertical
-        (_, false, _, false, false, _, true, _) => 3,
-        (_, true, _, false, false, _, true, _) => 10,
-        (_, true, _, false, false, _, false, _) => 17,
+        (_, false, _, false, false, _, true, _) => (3, top),
+        (_, true, _, false, false, _, true, _) => (10, left),
+        (_, true, _, false, false, _, false, _) => (17, right),
         // Horizontal
-        (_, false, _, false, true, _, false, _) => 21,
-        (_, false, _, true, true, _, false, _) => 22,
-        (_, false, _, true, false, _, false, _) => 23,
+        (_, false, _, false, true, _, false, _) => (21, top),
+        (_, false, _, true, true, _, false, _) => (22, top),
+        (_, false, _, true, false, _, false, _) => (23, top),
 
         // Single internal corners (without edges)
-        (true, true, true, true, true, true, true, false) => 4,
-        (true, true, true, true, true, false, true, true) => 5,
-        (true, true, false, true, true, true, true, true) => 11,
-        (false, true, true, true, true, true, true, true) => 12,
+        (true, true, true, true, true, true, true, false) => (4, bottom_right),
+        (true, true, true, true, true, false, true, true) => (5, bottom_left),
+        (true, true, false, true, true, true, true, true) => (11, left),
+        (false, true, true, true, true, true, true, true) => (12, top_left),
 
         // Single internal corners (with vertical edges)
-        (_, true, true, false, true, _, true, false) => 28,
-        (true, true, _, true, false, false, true, _) => 29,
-        (_, true, false, false, true, _, true, true) => 35,
-        (false, true, _, true, false, true, true, _) => 36,
+        (_, true, true, false, true, _, true, false) => (28, left),
+        (true, true, _, true, false, false, true, _) => (29, right),
+        (_, true, false, false, true, _, true, true) => (35, top_right),
+        (false, true, _, true, false, true, true, _) => (36, top_left),
 
         // Single internal corners (with horizontal edges)
-        (_, false, _, true, true, true, true, false) => 30,
-        (_, false, _, true, true, false, true, true) => 31,
-        (true, true, false, true, true, _, false, _) => 37,
-        (false, true, true, true, true, _, false, _) => 38,
+        (_, false, _, true, true, true, true, false) => (30, top),
+        (_, false, _, true, true, false, true, true) => (31, top),
+        (true, true, false, true, true, _, false, _) => (37, left),
+        (false, true, true, true, true, _, false, _) => (38, top_left),
 
         // Double internal corners (without edges)
-        (false, true, false, true, true, true, true, true) => 6,
-        (false, true, true, true, true, false, true, true) => 13,
-        (true, true, false, true, true, true, true, false) => 20,
-        (true, true, true, true, true, false, true, false) => 27,
-        (true, true, false, true, true, false, true, true) => 44,
-        (false, true, true, true, true, true, true, false) => 45,
+        (false, true, false, true, true, true, true, true) => (6, top_left),
+        (false, true, true, true, true, false, true, true) => (13, top_left),
+        (true, true, false, true, true, true, true, false) => (20, left),
+        (true, true, true, true, true, false, true, false) => (27, bottom_right),
+        (true, true, false, true, true, false, true, true) => (44, top_right),
+        (false, true, true, true, true, true, true, false) => (45, top_left),
 
         // Triple internal corners (without edges)
-        (false, true, false, true, true, true, true, false) => 18,
-        (false, true, true, true, true, false, true, false) => 19,
-        (true, true, false, true, true, false, true, false) => 25,
-        (false, true, false, true, true, false, true, true) => 26,
+        (false, true, false, true, true, true, true, false) => (18, top_left),
+        (false, true, true, true, true, false, true, false) => (19, top_left),
+        (true, true, false, true, true, false, true, false) => (25, left),
+        (false, true, false, true, true, false, true, true) => (26, top_left),
 
         // Corners + opposite internal corners
-        (_, false, _, false, true, _, true, false) => 32,
-        (_, false, _, true, false, false, true, _) => 34,
-        (_, true, false, false, true, _, false, _) => 46,
-        (false, true, _, true, false, _, false, _) => 48,
+        (_, false, _, false, true, _, true, false) => (32, top),
+        (_, false, _, true, false, false, true, _) => (34, top),
+        (_, true, false, false, true, _, false, _) => (46, top_right),
+        (false, true, _, true, false, _, false, _) => (48, top_left),
 
         // Edges + opposite internal corners
-        (_, false, _, true, true, false, true, false) => 33,
-        (_, true, false, false, true, _, true, false) => 39,
-        (false, true, _, true, false, false, true, _) => 41,
-        (false, true, false, true, true, _, false, _) => 47,
+        (_, false, _, true, true, false, true, false) => (33, top),
+        (_, true, false, false, true, _, true, false) => (39, top_right),
+        (false, true, _, true, false, false, true, _) => (41, top_left),
+        (false, true, false, true, true, _, false, _) => (47, top_left),
 
         // Center tiles (either isolated, with or without full corners, etc.)
-        (true, true, true, true, true, true, true, true) => 8,
-        (false, true, false, true, true, false, true, false) => 40,
-        (_, _, _, _, _, _, _, _) => 24,
+        (true, true, true, true, true, true, true, true) => (8, top_left),
+        (false, true, false, true, true, false, true, false) => (40, top_left),
+        (_, _, _, _, _, _, _, _) => (24, top), // "top" is always false in the default case
     };
 }
 
@@ -330,10 +350,7 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
                         layers: {
                             let mut layers = TileLayers::new();
 
-                            // @TODO Hack for Ocean partial tiles (like beaches)
-                            layers.insert(Layer::Terrain, Kind::TKind(TerrainKind::Plain));
-
-                            layers.insert(Layer::Feature, Kind::FKind(FeatureKind::Ocean));
+                            layers.insert(Layer::Terrain, Kind::TKind(TerrainKind::Ocean));
                             layers
                         },
                         real_coordinates: ((w as f32) * SPRITE_SIZE, (h as f32) * SPRITE_SIZE),
@@ -382,15 +399,41 @@ fn create_layer_sprites(
     handle_map: &TerrainHandleMap,
     kind: &Kind,
     animation_indices: &AnimationIndices,
-    tileset_index: usize,
+    tileset_indices: (usize, Option<Kind>),
 ) {
     let handle = handle_map.get(kind).unwrap();
+
+    // For composite tiles (like a beach which is part ocean and part plain),
+    // we can have a second tile to print
+    if let Some(kind) = tileset_indices.1 {
+        let base_handle = handle_map.get(&kind).unwrap();
+        commands.spawn((
+            SpriteSheetBundle {
+                texture_atlas: base_handle.clone(),
+                sprite: TextureAtlasSprite::new(
+                    animation_indices.clone().first * TILESET_HEIGHT + tileset_indices.0,
+                ),
+                transform: Transform::from_xyz(
+                    real_coordinates.0,
+                    real_coordinates.1,
+                    // This is a special case: Base tiles for composites tiles must be under a terrain
+                    0.5,
+                ),
+                ..default()
+            },
+            animation_indices.clone(),
+            AnimationTimer(Timer::from_seconds(
+                TIME_BETWEEN_FRAMES,
+                TimerMode::Repeating,
+            )),
+        ));
+    }
 
     commands.spawn((
         SpriteSheetBundle {
             texture_atlas: handle.clone(),
             sprite: TextureAtlasSprite::new(
-                animation_indices.clone().first * TILESET_HEIGHT + tileset_index,
+                animation_indices.clone().first * TILESET_HEIGHT + tileset_indices.0,
             ),
             transform: Transform::from_xyz(
                 real_coordinates.0,
@@ -443,7 +486,7 @@ fn setup(
         )),
     );
     handle_map.insert(
-        Kind::FKind(FeatureKind::Ocean),
+        Kind::TKind(TerrainKind::Ocean),
         texture_atlases.add(TextureAtlas::from_grid(
             asset_server.load("sprites/terrain/ocean.png"),
             Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
@@ -474,14 +517,14 @@ fn setup(
     // Create the layer sprites for every tile on the Map
     for item in &map {
         for layer in [Layer::Terrain, Layer::Feature] {
-            if let Some(kind) = get_kind_of_tile_layer(item.1, layer) {
+            if let Some(kind) = get_kind_of_tile_layer(item.1, &layer) {
                 create_layer_sprites(
                     &mut commands,
                     item.1.real_coordinates,
                     &handle_map,
-                    kind,
+                    &kind,
                     &animation_indices,
-                    get_tileset_index(&item.1, &map, &item.0, layer),
+                    get_tiles_to_display(&item.1, &map, &item.0, layer),
                 );
             }
         }
