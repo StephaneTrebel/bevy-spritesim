@@ -34,6 +34,7 @@ enum Layer {
 /// Terrain are the base layers of all tiles
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum TerrainKind {
+    Desert,
     Ocean,
     Plain,
 }
@@ -373,6 +374,18 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
         3.60..4.40,
     );
 
+    // Generate patches of Desert
+    generate_multiple_patches(
+        &mut pseudo_rng_instance,
+        &mut map,
+        Kind::TKind(TerrainKind::Desert),
+        2,
+        2..20,
+        0.04..0.06,
+        3.60..4.40,
+    );
+
+
     // Generate randow patches of Forests
     generate_multiple_patches(
         &mut pseudo_rng_instance,
@@ -501,6 +514,17 @@ fn setup(
         Kind::TKind(TerrainKind::Plain),
         texture_atlases.add(TextureAtlas::from_grid(
             asset_server.load("sprites/terrain/plain.png"),
+            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
+            TILESET_WIDTH,
+            TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
+            None,
+            None,
+        )),
+    );
+    handle_map.insert(
+        Kind::TKind(TerrainKind::Desert),
+        texture_atlases.add(TextureAtlas::from_grid(
+            asset_server.load("sprites/terrain/desert.png"),
             Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
             TILESET_WIDTH,
             TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
