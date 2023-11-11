@@ -479,7 +479,7 @@ fn setup(
     let mut cam = Camera2dBundle::default();
     cam.transform =
         Transform::from_xyz(WINDOW_PHYSICAL_WIDTH / 2., WINDOW_PHYSICAL_HEIGHT / 2., 0.);
-    cam.projection.scaling_mode = ScalingMode::FixedVertical(300.);
+    cam.projection.scaling_mode = ScalingMode::FixedVertical(600.);
     commands.spawn((cam, PanCam::default()));
 
     // Load the sprites
