@@ -334,6 +334,23 @@ fn generate_multiple_patches(
     }
 }
 
+fn set_terrain_tile_in_map(map: &mut Map, coordinates: &(i32, i32), terrain_kind: &Kind) {
+    map.insert(coordinates.clone(), {
+        Tile {
+            layers: {
+                let mut layers = TileLayers::new();
+
+                layers.insert(Layer::Terrain, terrain_kind.clone());
+                layers
+            },
+            real_coordinates: (
+                (coordinates.0 as f32) * SPRITE_SIZE,
+                (coordinates.1 as f32) * SPRITE_SIZE,
+            ),
+        }
+    });
+}
+
 /// Main map building function.
 ///
 /// Size are hard-coded so the only need parameter is the PRNG instance to generate
@@ -343,50 +360,36 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
     dbg!(map_seed);
     let mut map: Map = HashMap::new();
 
-    // Initialize the whole map with Ocean tiles
-    {
-        for w in 0..MAP_WIDTH {
-            for h in 0..MAP_HEIGHT {
-                map.insert((w, h), {
-                    Tile {
-                        layers: {
-                            let mut layers = TileLayers::new();
-
-                            layers.insert(Layer::Terrain, Kind::TKind(TerrainKind::Ocean));
-                            layers
-                        },
-                        real_coordinates: ((w as f32) * SPRITE_SIZE, (h as f32) * SPRITE_SIZE),
-                    }
-                });
+    // Initialize the whole map with Terrain tiles
+    // based on their "latitude":
+    // - Top North and bottom south will have Artic terrain
+    // - Desert will be in the middle
+    // - Rest (default) will be Plain tiles
+    for w in 0..=MAP_WIDTH {
+        for h in 0..=MAP_HEIGHT {
+            match (w, h) {
+                // Map borders are Ocean tiles
+                (w, h) if w == 0 || h == 0 || w == MAP_WIDTH || h == MAP_HEIGHT => {
+                    set_terrain_tile_in_map(&mut map, &(w, h), &Kind::TKind(TerrainKind::Ocean))
+                }
+                // Default tiles are Plain
+                _ => set_terrain_tile_in_map(&mut map, &(w, h), &Kind::TKind(TerrainKind::Plain)),
             }
         }
     }
 
-    // Generate patches of Plain to serve as a main continent
-    // (but with an irregular shape by overlapping them)
+    // Generate oceans/rivers
     generate_multiple_patches(
         &mut pseudo_rng_instance,
         &mut map,
-        Kind::TKind(TerrainKind::Plain),
-        6,
-        2..20,
+        Kind::TKind(TerrainKind::Ocean),
+        4,
+        2..10,
         0.04..0.06,
         3.60..4.40,
     );
 
-    // Generate patches of Desert
-    generate_multiple_patches(
-        &mut pseudo_rng_instance,
-        &mut map,
-        Kind::TKind(TerrainKind::Desert),
-        2,
-        2..20,
-        0.04..0.06,
-        3.60..4.40,
-    );
-
-
-    // Generate randow patches of Forests
+    // Generate random patches of Forests
     generate_multiple_patches(
         &mut pseudo_rng_instance,
         &mut map,
