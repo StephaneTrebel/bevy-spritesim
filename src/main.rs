@@ -365,12 +365,22 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
     // - Top North and bottom south will have Artic terrain
     // - Desert will be in the middle
     // - Rest (default) will be Plain tiles
+    let map_middle_h = MAP_HEIGHT / 2;
+    let desert_band_thickness =
+        pseudo_rng_instance.gen_range(10 * MAP_HEIGHT / 100..20 * MAP_HEIGHT / 100);
     for w in 0..=MAP_WIDTH {
         for h in 0..=MAP_HEIGHT {
+            let delta = pseudo_rng_instance.gen_range(0..5 * MAP_HEIGHT / 100);
             match (w, h) {
                 // Map borders are Ocean tiles
                 (w, h) if w == 0 || h == 0 || w == MAP_WIDTH || h == MAP_HEIGHT => {
                     set_terrain_tile_in_map(&mut map, &(w, h), &Kind::TKind(TerrainKind::Ocean))
+                }
+                (w, h)
+                    if h > map_middle_h - desert_band_thickness - delta
+                        && h < map_middle_h + desert_band_thickness + delta =>
+                {
+                    set_terrain_tile_in_map(&mut map, &(w, h), &Kind::TKind(TerrainKind::Desert))
                 }
                 // Default tiles are Plain
                 _ => set_terrain_tile_in_map(&mut map, &(w, h), &Kind::TKind(TerrainKind::Plain)),
