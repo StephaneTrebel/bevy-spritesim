@@ -187,7 +187,7 @@ fn get_tiles_to_display(
         // Single internal corners (without edges)
         (true, true, true, true, true, true, true, false) => (4, bottom_right),
         (true, true, true, true, true, false, true, true) => (5, bottom_left),
-        (true, true, false, true, true, true, true, true) => (11, left),
+        (true, true, false, true, true, true, true, true) => (11, top_right),
         (false, true, true, true, true, true, true, true) => (12, top_left),
 
         // Single internal corners (with vertical edges)
@@ -199,13 +199,13 @@ fn get_tiles_to_display(
         // Single internal corners (with horizontal edges)
         (_, false, _, true, true, true, true, false) => (30, top),
         (_, false, _, true, true, false, true, true) => (31, top),
-        (true, true, false, true, true, _, false, _) => (37, left),
+        (true, true, false, true, true, _, false, _) => (37, top_right),
         (false, true, true, true, true, _, false, _) => (38, top_left),
 
         // Double internal corners (without edges)
         (false, true, false, true, true, true, true, true) => (6, top_left),
         (false, true, true, true, true, false, true, true) => (13, top_left),
-        (true, true, false, true, true, true, true, false) => (20, left),
+        (true, true, false, true, true, true, true, false) => (20, top_right),
         (true, true, true, true, true, false, true, false) => (27, bottom_right),
         (true, true, false, true, true, false, true, true) => (44, top_right),
         (false, true, true, true, true, true, true, false) => (45, top_left),
@@ -213,7 +213,7 @@ fn get_tiles_to_display(
         // Triple internal corners (without edges)
         (false, true, false, true, true, true, true, false) => (18, top_left),
         (false, true, true, true, true, false, true, false) => (19, top_left),
-        (true, true, false, true, true, false, true, false) => (25, left),
+        (true, true, false, true, true, false, true, false) => (25, top_right),
         (false, true, false, true, true, false, true, true) => (26, top_left),
 
         // Corners + opposite internal corners
