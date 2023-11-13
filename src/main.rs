@@ -14,8 +14,8 @@ const TILESET_WIDTH: usize = 7;
 const TILESET_HEIGHT: usize = 7;
 const ANIMATION_FRAME_COUNT: usize = 4;
 const TIME_BETWEEN_FRAMES: f32 = 2.;
-const MAP_WIDTH: i32 = 100;
-const MAP_HEIGHT: i32 = 100;
+const MAP_WIDTH: i32 = 200;
+const MAP_HEIGHT: i32 = 200;
 
 /// A Tile is made of several layers, from bottom to top (only the first one is
 /// mandatory, the other are all optional):
