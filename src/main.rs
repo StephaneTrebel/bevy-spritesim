@@ -35,7 +35,6 @@ enum Layer {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum TerrainKind {
     Desert,
-    Ocean,
     Plain,
 }
 
@@ -43,6 +42,7 @@ enum TerrainKind {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum FeatureKind {
     Forest,
+    Ocean,
 }
 
 /// This is a union of all sprites types. Used for using common sprite
@@ -374,7 +374,7 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
             match (w, h) {
                 // Map borders are Ocean tiles
                 (w, h) if w == 0 || h == 0 || w == MAP_WIDTH || h == MAP_HEIGHT => {
-                    set_terrain_tile_in_map(&mut map, &(w, h), &Kind::TKind(TerrainKind::Ocean))
+                    set_terrain_tile_in_map(&mut map, &(w, h), &Kind::FKind(FeatureKind::Ocean))
                 }
                 (w, h)
                     if h > map_middle_h - desert_band_thickness - delta
@@ -392,7 +392,7 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
     generate_multiple_patches(
         &mut pseudo_rng_instance,
         &mut map,
-        Kind::TKind(TerrainKind::Ocean),
+        Kind::FKind(FeatureKind::Ocean),
         4,
         2..10,
         0.04..0.06,
@@ -513,7 +513,7 @@ fn setup(
         )),
     );
     handle_map.insert(
-        Kind::TKind(TerrainKind::Ocean),
+        Kind::FKind(FeatureKind::Ocean),
         texture_atlases.add(TextureAtlas::from_grid(
             asset_server.load("sprites/terrain/ocean.png"),
             Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
