@@ -308,15 +308,7 @@ fn generate_multiple_patches(
                 {
                     let screen_coordinates =
                         (key.0 as f32 * SPRITE_SIZE, key.1 as f32 * SPRITE_SIZE);
-                    let default_tile = {
-                        let layers = TileLayers::new();
-                        Tile {
-                            layers,
-                            real_coordinates: screen_coordinates,
-                        }
-                    };
-                    let mut existing_tile_layers =
-                        map.get(&key).unwrap_or(&default_tile).layers.clone();
+                    let mut existing_tile_layers = map.get(&key).unwrap().layers.clone();
 
                     // @TODO Hack for regular terrain generation, should be better handled
                     existing_tile_layers.remove(&Layer::Feature);
@@ -334,13 +326,32 @@ fn generate_multiple_patches(
     }
 }
 
-fn set_terrain_tile_in_map(map: &mut Map, coordinates: &(i32, i32), terrain_kind: &Kind) {
+/// Only used in building the map
+fn set_terrain_tile_in_map(
+    map: &mut Map,
+    coordinates: &(i32, i32),
+    terrain_kind: Option<&TerrainKind>,
+    feature_kind: Option<&FeatureKind>,
+) {
     map.insert(coordinates.clone(), {
         Tile {
             layers: {
-                let mut layers = TileLayers::new();
-
-                layers.insert(Layer::Terrain, terrain_kind.clone());
+                let mut layers = match map.get(coordinates) {
+                    Some(tile) => tile.layers.clone(),
+                    None => TileLayers::new(),
+                };
+                match terrain_kind {
+                    Some(kind) => {
+                        layers.insert(Layer::Terrain, Kind::TKind(kind.clone()));
+                    }
+                    _ => {}
+                };
+                match feature_kind {
+                    Some(kind) => {
+                        layers.insert(Layer::Feature, Kind::FKind(kind.clone()));
+                    }
+                    _ => {}
+                };
                 layers
             },
             real_coordinates: (
@@ -360,44 +371,55 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
     dbg!(map_seed);
     let mut map: Map = HashMap::new();
 
-    // Initialize the whole map with Terrain tiles
-    // based on their "latitude":
-    // - Top North and bottom south will have Artic terrain
-    // - Desert will be in the middle
-    // - Rest (default) will be Plain tiles
     let map_middle_h = MAP_HEIGHT / 2;
-    let desert_band_thickness =
-        pseudo_rng_instance.gen_range(10 * MAP_HEIGHT / 100..20 * MAP_HEIGHT / 100);
+
+    // Initialize the whole map with Plain/Ocean tiles
     for w in 0..=MAP_WIDTH {
         for h in 0..=MAP_HEIGHT {
-            let delta = pseudo_rng_instance.gen_range(0..5 * MAP_HEIGHT / 100);
-            match (w, h) {
-                // Map borders are Ocean tiles
-                (w, h) if w == 0 || h == 0 || w == MAP_WIDTH || h == MAP_HEIGHT => {
-                    set_terrain_tile_in_map(&mut map, &(w, h), &Kind::FKind(FeatureKind::Ocean))
-                }
-                (w, h)
-                    if h > map_middle_h - desert_band_thickness - delta
-                        && h < map_middle_h + desert_band_thickness + delta =>
-                {
-                    set_terrain_tile_in_map(&mut map, &(w, h), &Kind::TKind(TerrainKind::Desert))
-                }
-                // Default tiles are Plain
-                _ => set_terrain_tile_in_map(&mut map, &(w, h), &Kind::TKind(TerrainKind::Plain)),
-            }
+            set_terrain_tile_in_map(
+                &mut map,
+                &(w, h),
+                Some(&TerrainKind::Plain),
+                Some(&FeatureKind::Ocean),
+            );
         }
     }
 
-    // Generate oceans/rivers
+    // Generate plain continents
     generate_multiple_patches(
         &mut pseudo_rng_instance,
         &mut map,
-        Kind::FKind(FeatureKind::Ocean),
-        4,
-        2..10,
-        0.04..0.06,
-        3.60..4.40,
+        Kind::TKind(TerrainKind::Plain),
+        8,
+        5..25,
+        0.04..0.10,
+        3.60..6.40,
     );
+
+    // Place Desert tiles
+    let desert_band_thickness =
+        pseudo_rng_instance.gen_range(5 * MAP_HEIGHT / 100..10 * MAP_HEIGHT / 100);
+    for w in 0..=MAP_WIDTH {
+        for h in 0..=MAP_HEIGHT {
+            let delta = pseudo_rng_instance.gen_range(0..10 * MAP_HEIGHT / 100);
+            match (w, h) {
+                (w, h)
+                    if map
+                        .get(&(w, h))
+                        .unwrap()
+                        .layers
+                        .get(&Layer::Terrain)
+                        .unwrap()
+                        == &Kind::TKind(TerrainKind::Plain)
+                        && h > map_middle_h - desert_band_thickness - delta
+                        && h < map_middle_h + desert_band_thickness + delta =>
+                {
+                    set_terrain_tile_in_map(&mut map, &(w, h), Some(&TerrainKind::Desert), None)
+                }
+                _ => {}
+            }
+        }
+    }
 
     // Generate random patches of Forests
     generate_multiple_patches(
