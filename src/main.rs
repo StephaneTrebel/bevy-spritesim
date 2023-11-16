@@ -39,11 +39,12 @@ enum TerrainKind {
     Plain,
 }
 
-/// Features are natural deposits that add value to a tile
+/// Features are natural characteristics that add value to a tile
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum FeatureKind {
     Forest,
     Ocean,
+    Hill,
 }
 
 /// Special are particulary rich deposits that add even more value to a tile
@@ -52,7 +53,6 @@ enum SpecialKind {
     Lumber,
     Corn,
     Fish,
-    Hill,
     Mountain,
 }
 
@@ -464,7 +464,7 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
     generate_multiple_patches(
         &mut pseudo_rng_instance,
         &mut map,
-        Kind::SKind(SpecialKind::Hill),
+        Kind::FKind(FeatureKind::Hill),
         10,
         1..2,
         0.05..1.0,
@@ -477,7 +477,7 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
             let tile = map.get(&(w, h)).unwrap();
             let terrain_kind = tile.layers.get(&Layer::Terrain).unwrap();
             let feature_kind = tile.layers.get(&Layer::Feature);
-            let special_kind = tile.layers.get(&Layer::Special);
+            // let special_kind = tile.layers.get(&Layer::Special);
             match (w, h) {
                 // Corn goes on feature-less plains
                 (w, h)
@@ -503,7 +503,7 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
                 }
                 // Some hills are upgraded to Mountains
                 (w, h)
-                    if special_kind == Some(&Kind::SKind(SpecialKind::Hill))
+                    if feature_kind == Some(&Kind::FKind(FeatureKind::Hill))
                         && pseudo_rng_instance.gen_bool(0.05) =>
                 {
                     update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialKind::Mountain))
@@ -655,6 +655,17 @@ fn setup(
         )),
     );
     handle_map.insert(
+        Kind::FKind(FeatureKind::Hill),
+        texture_atlases.add(TextureAtlas::from_grid(
+            asset_server.load("sprites/terrain/hill.png"),
+            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
+            TILESET_WIDTH,
+            TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
+            None,
+            None,
+        )),
+    );
+    handle_map.insert(
         Kind::SKind(SpecialKind::Lumber),
         texture_atlases.add(TextureAtlas::from_grid(
             asset_server.load("sprites/terrain/specials.png"),
@@ -685,17 +696,6 @@ fn setup(
             1,
             None,
             Some(vec2(32., 0.)),
-        )),
-    );
-    handle_map.insert(
-        Kind::SKind(SpecialKind::Hill),
-        texture_atlases.add(TextureAtlas::from_grid(
-            asset_server.load("sprites/terrain/specials.png"),
-            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-            1,
-            1,
-            None,
-            Some(vec2(48., 0.)),
         )),
     );
     handle_map.insert(
