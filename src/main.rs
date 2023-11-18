@@ -45,6 +45,7 @@ enum FeatureKind {
     Forest,
     Ocean,
     Hill,
+    Mountain,
 }
 
 /// Special are particulary rich deposits that add even more value to a tile
@@ -53,7 +54,6 @@ enum SpecialKind {
     Lumber,
     Corn,
     Fish,
-    Mountain,
 }
 
 /// This is a union of all sprites types. Used for using common sprite
@@ -466,7 +466,18 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
         &mut map,
         Kind::FKind(FeatureKind::Hill),
         10,
-        1..2,
+        3..5,
+        0.05..1.0,
+        3.60..4.40,
+    );
+
+    // Generate random patches of Mountains
+    generate_multiple_patches(
+        &mut pseudo_rng_instance,
+        &mut map,
+        Kind::FKind(FeatureKind::Mountain),
+        10,
+        2..4,
         0.05..1.0,
         3.60..4.40,
     );
@@ -500,13 +511,6 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
                         && pseudo_rng_instance.gen_bool(0.01) =>
                 {
                     update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialKind::Fish))
-                }
-                // Some hills are upgraded to Mountains
-                (w, h)
-                    if feature_kind == Some(&Kind::FKind(FeatureKind::Hill))
-                        && pseudo_rng_instance.gen_bool(0.05) =>
-                {
-                    update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialKind::Mountain))
                 }
                 _ => {}
             }
@@ -666,6 +670,17 @@ fn setup(
         )),
     );
     handle_map.insert(
+        Kind::FKind(FeatureKind::Mountain),
+        texture_atlases.add(TextureAtlas::from_grid(
+            asset_server.load("sprites/terrain/mountain.png"),
+            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
+            TILESET_WIDTH,
+            TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
+            None,
+            None,
+        )),
+    );
+    handle_map.insert(
         Kind::SKind(SpecialKind::Lumber),
         texture_atlases.add(TextureAtlas::from_grid(
             asset_server.load("sprites/terrain/specials.png"),
@@ -696,17 +711,6 @@ fn setup(
             1,
             None,
             Some(vec2(32., 0.)),
-        )),
-    );
-    handle_map.insert(
-        Kind::SKind(SpecialKind::Mountain),
-        texture_atlases.add(TextureAtlas::from_grid(
-            asset_server.load("sprites/terrain/specials.png"),
-            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-            1,
-            1,
-            None,
-            Some(vec2(64., 0.)),
         )),
     );
 
@@ -822,3 +826,4 @@ fn main() {
         .add_systems(Update, animate_layer_sprite)
         .run();
 }
+
