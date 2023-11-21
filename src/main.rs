@@ -3,13 +3,12 @@ use std::{ops::Range, u32::MAX as MAX_u32};
 
 use bevy::{math::vec2, prelude::*, utils::HashMap, window::*};
 use noisy_bevy::simplex_noise_2d_seeded;
+use plugins::camera::CameraPlugin;
+use plugins::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH, WINDOW_SCALE_FACTOR};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
 mod plugins;
 
-const WINDOW_PHYSICAL_WIDTH: f32 = 1280.; // In pixels
-const WINDOW_PHYSICAL_HEIGHT: f32 = 1280.; // In pixels
-const WINDOW_SCALE_FACTOR: f64 = 2.0; // How much tiles are streched out in the beginning
 const SPRITE_SIZE: f32 = 16.;
 const TILESET_WIDTH: usize = 7;
 const TILESET_HEIGHT: usize = 7;
@@ -815,7 +814,7 @@ fn main() {
                 })
                 .set(ImagePlugin::default_nearest()),
             GamePlugin,
-            plugins::camera::CameraPlugin,
+            CameraPlugin,
         ))
         .add_systems(Update, animate_layer_sprite)
         .run();

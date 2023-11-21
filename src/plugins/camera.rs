@@ -1,8 +1,7 @@
 use bevy::{prelude::*, render::camera::ScalingMode};
 use bevy_pancam::{PanCam, PanCamPlugin};
 
-const WINDOW_PHYSICAL_WIDTH: f32 = 1280.; // In pixels
-const WINDOW_PHYSICAL_HEIGHT: f32 = 1280.; // In pixels
+use super::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH};
 
 pub struct CameraPlugin;
 
