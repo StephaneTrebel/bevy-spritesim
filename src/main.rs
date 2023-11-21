@@ -1,10 +1,11 @@
 use std::u64::MAX as MAX_u64;
 use std::{ops::Range, u32::MAX as MAX_u32};
 
-use bevy::{math::vec2, prelude::*, render::camera::ScalingMode, utils::HashMap, window::*};
-use bevy_pancam::{PanCam, PanCamPlugin};
+use bevy::{math::vec2, prelude::*, utils::HashMap, window::*};
 use noisy_bevy::simplex_noise_2d_seeded;
 use rand::{rngs::StdRng, Rng, SeedableRng};
+
+mod plugins;
 
 const WINDOW_PHYSICAL_WIDTH: f32 = 1280.; // In pixels
 const WINDOW_PHYSICAL_HEIGHT: f32 = 1280.; // In pixels
@@ -601,13 +602,6 @@ fn setup(
     // Map generation
     let map = build_map(&mut pseudo_rng_instance);
 
-    // Configure Camera that can be panned and zoomed with the mouse
-    let mut cam = Camera2dBundle::default();
-    cam.transform =
-        Transform::from_xyz(WINDOW_PHYSICAL_WIDTH / 2., WINDOW_PHYSICAL_HEIGHT / 2., 0.);
-    cam.projection.scaling_mode = ScalingMode::FixedVertical(600.);
-    commands.spawn((cam, PanCam::default()));
-
     // Load the sprites
     //
     // Animated tileset MUST be saved as one column, N rows for the animation algorithm to work
@@ -821,9 +815,8 @@ fn main() {
                 })
                 .set(ImagePlugin::default_nearest()),
             GamePlugin,
-            PanCamPlugin::default(),
+            plugins::camera::CameraPlugin,
         ))
         .add_systems(Update, animate_layer_sprite)
         .run();
 }
-
