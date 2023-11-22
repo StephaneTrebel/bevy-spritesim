@@ -2,7 +2,7 @@ use std::u64::MAX as MAX_u64;
 use std::{ops::Range, u32::MAX as MAX_u32};
 
 use bevy::{math::vec2, prelude::*, utils::HashMap};
-use noisy_bevy::simplex_noise_2d_seeded;
+use noisy_bevy::{fbm_simplex_2d, simplex_noise_2d_seeded};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
 const SPRITE_SIZE: f32 = 16.;
@@ -12,6 +12,13 @@ const ANIMATION_FRAME_COUNT: usize = 4;
 const TIME_BETWEEN_FRAMES: f32 = 2.;
 const MAP_WIDTH: i32 = 200;
 const MAP_HEIGHT: i32 = 200;
+
+// Noise map parameters
+const FREQUENCY_SCALE: f32 = 0.05;
+const AMPLITUDE_SCALE: f32 = 100.0;
+const OCTAVES: usize = 10;
+const LACUNARITY: f32 = 2.;
+const GAIN: f32 = 0.5;
 
 /// A Tile is made of several layers, from bottom to top (only the first one is
 /// mandatory, the other are all optional):
@@ -396,84 +403,83 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
 
     let map_middle_h = MAP_HEIGHT / 2;
 
-    // Initialize the whole map with Plain/Ocean tiles
+    // Initialize the whole map terrains
     for w in 0..=MAP_WIDTH {
         for h in 0..=MAP_HEIGHT {
-            update_tile_in_map(
-                &mut map,
-                &(w, h),
-                Some(&TerrainKind::Plain),
-                Some(&FeatureKind::Ocean),
-                None,
-            );
-        }
-    }
+            let p = vec2(w as f32, h as f32);
+            let offset = fbm_simplex_2d(
+                p * FREQUENCY_SCALE,
+                OCTAVES,
+                LACUNARITY,
+                GAIN,
+                // map_seed as f32,
+            ) * AMPLITUDE_SCALE
+                * 0.015;
+            dbg!(offset);
 
-    // Generate plain continents
-    generate_multiple_patches(
-        &mut pseudo_rng_instance,
-        &mut map,
-        Kind::TKind(TerrainKind::Plain),
-        8,
-        5..25,
-        0.04..0.10,
-        3.60..6.40,
-    );
-
-    // Place Desert tiles
-    let desert_band_thickness =
-        pseudo_rng_instance.gen_range(5 * MAP_HEIGHT / 100..10 * MAP_HEIGHT / 100);
-    for w in 0..=MAP_WIDTH {
-        for h in 0..=MAP_HEIGHT {
-            let delta = pseudo_rng_instance.gen_range(0..10 * MAP_HEIGHT / 100);
-            match (w, h) {
-                (w, h)
-                    if map
-                        .get(&(w, h))
-                        .unwrap()
-                        .layers
-                        .get(&Layer::Terrain)
-                        .unwrap()
-                        == &Kind::TKind(TerrainKind::Plain)
-                        && h > map_middle_h - desert_band_thickness - delta
-                        && h < map_middle_h + desert_band_thickness + delta =>
+            // For regular terrain tiles, we will check their latitude and use
+            // the appropriate terrain type to simulate the earth distribution.
+            let base_terrain = {
+                let desert_band_thickness =
+                    pseudo_rng_instance.gen_range(5 * MAP_HEIGHT / 100..10 * MAP_HEIGHT / 100);
+                let delta = pseudo_rng_instance.gen_range(0..10 * MAP_HEIGHT / 100);
+                if h > map_middle_h - desert_band_thickness - delta
+                    && h < map_middle_h + desert_band_thickness + delta
                 {
-                    update_tile_in_map(&mut map, &(w, h), Some(&TerrainKind::Desert), None, None)
+                    TerrainKind::Desert
+                } else {
+                    TerrainKind::Plain
                 }
-                _ => {}
+            };
+
+            let plain_threshold = 0.;
+            let hill_threshold = 1.3;
+            let mountain_threshold = 1.8;
+
+            // Depending on the offset (the point "height" in the noise map),
+            // we will have either an Ocean tile or a regular terrain tile.
+            match offset {
+                o if o >= plain_threshold && o < hill_threshold => {
+                    update_tile_in_map(&mut map, &(w, h), Some(&base_terrain), None, None);
+                }
+                o if o >= hill_threshold && o < mountain_threshold => {
+                    update_tile_in_map(
+                        &mut map,
+                        &(w, h),
+                        Some(&base_terrain),
+                        Some(&FeatureKind::Hill),
+                        None,
+                    );
+                }
+                o if o >= mountain_threshold => {
+                    update_tile_in_map(
+                        &mut map,
+                        &(w, h),
+                        Some(&base_terrain),
+                        Some(&FeatureKind::Mountain),
+                        None,
+                    );
+                }
+                _ => {
+                    update_tile_in_map(
+                        &mut map,
+                        &(w, h),
+                        Some(&base_terrain),
+                        Some(&FeatureKind::Ocean),
+                        None,
+                    );
+                }
             }
         }
     }
 
-    // Generate random patches of Forests
+    //    Generate random patches of Forests
     generate_multiple_patches(
         &mut pseudo_rng_instance,
         &mut map,
         Kind::FKind(FeatureKind::Forest),
         15,
         1..3,
-        0.05..1.0,
-        3.60..4.40,
-    );
-
-    // Generate random patches of Hills
-    generate_multiple_patches(
-        &mut pseudo_rng_instance,
-        &mut map,
-        Kind::FKind(FeatureKind::Hill),
-        10,
-        3..5,
-        0.05..1.0,
-        3.60..4.40,
-    );
-
-    // Generate random patches of Mountains
-    generate_multiple_patches(
-        &mut pseudo_rng_instance,
-        &mut map,
-        Kind::FKind(FeatureKind::Mountain),
-        10,
-        2..4,
         0.05..1.0,
         3.60..4.40,
     );
