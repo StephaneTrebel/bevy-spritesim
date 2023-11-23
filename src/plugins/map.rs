@@ -320,18 +320,20 @@ fn generate_multiple_patches(
                     (coordinates.1 + h).clamp(1, MAP_HEIGHT - 1),
                 );
 
+                let layers = map.get(&key).unwrap().layers.clone();
+
                 // Here we go !
                 if
                 // Height threshold for size the shape
                 (height > height_threshold) &&
                 // Only replace tile when necessary (for instance, Forest tiles can only be placed on Plains)
                 ( kind != Kind::FKind(FeatureKind::Forest)
-                    || map.get(&key).unwrap().layers.get(&Layer::Terrain).unwrap()
-                    == &Kind::TKind(TerrainKind::Plain))
+                  || ( layers.get(&Layer::Terrain).unwrap()
+                       == &Kind::TKind(TerrainKind::Plain) ) && layers.get(&Layer::Feature) == None)
                 {
                     let screen_coordinates =
                         (key.0 as f32 * SPRITE_SIZE, key.1 as f32 * SPRITE_SIZE);
-                    let mut existing_tile_layers = map.get(&key).unwrap().layers.clone();
+                    let mut existing_tile_layers = layers.clone();
 
                     // @TODO Hack for regular terrain generation, should be better handled
                     existing_tile_layers.remove(&Layer::Feature);
