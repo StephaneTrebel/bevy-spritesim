@@ -13,13 +13,6 @@ const TIME_BETWEEN_FRAMES: f32 = 2.;
 const MAP_WIDTH: i32 = 200;
 const MAP_HEIGHT: i32 = 200;
 
-// Noise map parameters
-const FREQUENCY_SCALE: f32 = 0.05;
-const AMPLITUDE_SCALE: f32 = 100.0;
-const OCTAVES: usize = 10;
-const LACUNARITY: f32 = 2.;
-const GAIN: f32 = 0.5;
-
 /// A Tile is made of several layers, from bottom to top (only the first one is
 /// mandatory, the other are all optional):
 /// - A base Terrain (Plain, Desert, etc.)
@@ -403,6 +396,13 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
     dbg!(map_seed);
     let mut map: Map = HashMap::new();
 
+    // Noise map parameters
+    let frequency_scale: f32 = pseudo_rng_instance.gen_range(0.03..0.06);
+    let amplitude_scale: f32 = pseudo_rng_instance.gen_range(100.0..130.0);
+    let octaves: usize = pseudo_rng_instance.gen_range(5..15);
+    let lacunarity: f32 = pseudo_rng_instance.gen_range(1.8..2.0);
+    let gain: f32 = pseudo_rng_instance.gen_range(0.5..0.6);
+
     let map_middle_h = MAP_HEIGHT / 2;
 
     // Initialize the whole map terrains
@@ -410,14 +410,13 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
         for h in 0..=MAP_HEIGHT {
             let p = vec2(w as f32, h as f32);
             let offset = fbm_simplex_2d(
-                p * FREQUENCY_SCALE,
-                OCTAVES,
-                LACUNARITY,
-                GAIN,
+                p * frequency_scale,
+                octaves,
+                lacunarity,
+                gain,
                 // map_seed as f32,
-            ) * AMPLITUDE_SCALE
+            ) * amplitude_scale
                 * 0.015;
-            dbg!(offset);
 
             // For regular terrain tiles, we will check their latitude and use
             // the appropriate terrain type to simulate the earth distribution.
