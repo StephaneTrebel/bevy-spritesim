@@ -17,6 +17,6 @@ fn setup_camera(mut commands: Commands) {
     let mut cam = Camera2dBundle::default();
     cam.transform =
         Transform::from_xyz(WINDOW_PHYSICAL_WIDTH / 2., WINDOW_PHYSICAL_HEIGHT / 2., 0.);
-    cam.projection.scaling_mode = ScalingMode::FixedVertical(600.);
+    cam.projection.scaling_mode = ScalingMode::FixedVertical(1000.);
     commands.spawn((cam, PanCam::default()));
 }
