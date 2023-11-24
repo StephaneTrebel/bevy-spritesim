@@ -41,7 +41,6 @@ enum FeatureKind {
     Forest,
     Ocean,
     Hill,
-    Mountain,
 }
 
 /// Special are particulary rich deposits that add even more value to a tile
@@ -50,6 +49,7 @@ enum SpecialKind {
     Lumber,
     Corn,
     Fish,
+    Mountain,
 }
 
 /// This is a union of all sprites types. Used for using common sprite
@@ -108,7 +108,10 @@ fn get_tiles_to_display(
     let default_tile = tile.clone();
 
     match layer {
-        Layer::Terrain | Layer::Feature => {
+        l if l == Layer::Terrain
+            || l == Layer::Feature
+            || l == Layer::Special && kind == Some(Kind::SKind(SpecialKind::Mountain)) =>
+        {
             let top_left = get_kind_of_tile_layer(
                 map.get(&(coordinates.0 - 1, coordinates.1 + 1))
                     .unwrap_or(&default_tile),
@@ -245,7 +248,7 @@ fn get_tiles_to_display(
                 (_, _, _, _, _, _, _, _) => (24, top), // "top" is always false in the default case
             };
         }
-        Layer::Special => {
+        _ => {
             return (0, None);
         }
     }
@@ -457,8 +460,8 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
                         &mut map,
                         &(w, h),
                         Some(&base_terrain),
-                        Some(&FeatureKind::Mountain),
-                        None,
+                        Some(&FeatureKind::Hill),
+                        Some(&SpecialKind::Mountain),
                     );
                 }
                 _ => {
@@ -674,7 +677,7 @@ fn setup_map(
         )),
     );
     handle_map.insert(
-        Kind::FKind(FeatureKind::Mountain),
+        Kind::SKind(SpecialKind::Mountain),
         texture_atlases.add(TextureAtlas::from_grid(
             asset_server.load("sprites/terrain/mountain.png"),
             Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
