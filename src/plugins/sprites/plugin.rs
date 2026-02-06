@@ -62,28 +62,51 @@ fn create_texture_atlas(
     (texture_atlas_layout, texture_atlas_sources, texture)
 }
 
+fn create_sprite_from_atlas(
+    commands: &mut Commands,
+    asset_server: Res<AssetServer>,
+    atlas_handle: Handle<TextureAtlasLayout>,
+    atlas_texture: Handle<Image>,
+    atlas_sources: TextureAtlasSources,
+) {
+    let desert = asset_server
+        .get_handle("sprites/terrain/desert.png")
+        .unwrap();
+
+    commands.spawn((
+        Sprite::from_atlas_image(
+            atlas_texture,
+            atlas_sources.handle(atlas_handle, &desert).unwrap(),
+        ),
+        Transform {
+            translation: Vec3::new(0., 0., 0.),
+            scale: Vec3::splat(1.),
+            ..default()
+        },
+    ));
+}
+
 fn setup(
     mut commands: Commands,
     sprite_handles: Res<SpriteFolder>,
-    _asset_server: Res<AssetServer>,
+    asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
     loaded_folders: Res<Assets<LoadedFolder>>,
     mut textures: ResMut<Assets<Image>>,
 ) {
     let loaded_folder = loaded_folders.get(&sprite_handles.0).unwrap();
 
-    let (texture_atlas, _sources, texture) =
+    let (texture_atlas_layout, atlas_sources, atlas_texture) =
         create_texture_atlas(loaded_folder, Some(ImageSampler::nearest()), &mut textures);
-    let _atlas_handle = texture_atlases.add(texture_atlas);
+    let atlas_handle = texture_atlases.add(texture_atlas_layout);
 
-    commands.spawn((
-        Sprite::from_image(texture.clone()),
-        Transform {
-            translation: Vec3::new(0., 0., 0.),
-            scale: Vec3::splat(0.5),
-            ..default()
-        },
-    ));
+    create_sprite_from_atlas(
+        &mut commands,
+        asset_server,
+        atlas_handle,
+        atlas_texture,
+        atlas_sources,
+    );
 }
 
 pub struct SpriteDisplayPlugin;
