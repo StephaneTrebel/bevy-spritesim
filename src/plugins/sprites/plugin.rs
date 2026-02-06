@@ -81,9 +81,9 @@ fn setup(
     ));
 }
 
-pub struct SpritePlugin;
+pub struct SpriteDisplayPlugin;
 
-impl Plugin for SpritePlugin {
+impl Plugin for SpriteDisplayPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::Setup), load_textures)
             .add_systems(Update, check_textures.run_if(in_state(AppState::Setup)))
