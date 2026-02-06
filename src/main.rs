@@ -1,9 +1,12 @@
 use bevy::{prelude::*, window::*};
 use plugins::camera::CameraPlugin;
 use plugins::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH, WINDOW_SCALE_FACTOR};
-use plugins::map::MapPlugin;
+
+use crate::plugins::sprites::SpritePlugin;
+use crate::state::AppState;
 
 mod plugins;
+mod state;
 
 /// There we go !
 fn main() {
@@ -27,8 +30,9 @@ fn main() {
                     ..default()
                 })
                 .set(ImagePlugin::default_nearest()),
-            MapPlugin,
+            SpritePlugin,
             CameraPlugin,
         ))
+        .init_state::<AppState>()
         .run();
 }

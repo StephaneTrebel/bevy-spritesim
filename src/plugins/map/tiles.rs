@@ -1,15 +1,12 @@
+use bevy::platform::collections::HashMap;
+use bevy::{math::vec2, prelude::*};
+use noisy_bevy::{fbm_simplex_2d, simplex_noise_2d_seeded};
+use rand::{Rng, rngs::StdRng};
 use std::u64::MAX as MAX_u64;
 use std::{ops::Range, u32::MAX as MAX_u32};
 
-use bevy::{math::vec2, prelude::*, utils::HashMap};
-use noisy_bevy::{fbm_simplex_2d, simplex_noise_2d_seeded};
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use crate::plugins::map::constants::SPRITE_SIZE;
 
-const SPRITE_SIZE: f32 = 16.;
-const TILESET_WIDTH: usize = 7;
-const TILESET_HEIGHT: usize = 7;
-const ANIMATION_FRAME_COUNT: usize = 4;
-const TIME_BETWEEN_FRAMES: f32 = 2.;
 const MAP_WIDTH: i32 = 200;
 const MAP_HEIGHT: i32 = 200;
 
@@ -22,7 +19,7 @@ const MAP_HEIGHT: i32 = 200;
 /// - a Settlement (Village, Fort, etc.)
 /// - a Unit (Settler, Canon, etc.) that is moving through it
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-enum Layer {
+pub enum Layer {
     Terrain,
     Feature,
     Special,
@@ -30,14 +27,14 @@ enum Layer {
 
 /// Terrain are the base layers of all tiles
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-enum TerrainKind {
+pub enum TerrainKind {
     Desert,
     Plain,
 }
 
 /// Features are natural characteristics that add value to a tile
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-enum FeatureKind {
+pub enum FeatureKind {
     Forest,
     Ocean,
     Hill,
@@ -45,7 +42,7 @@ enum FeatureKind {
 
 /// Special are particulary rich deposits that add even more value to a tile
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-enum SpecialKind {
+pub enum SpecialKind {
     Lumber,
     Corn,
     Fish,
@@ -55,14 +52,14 @@ enum SpecialKind {
 /// This is a union of all sprites types. Used for using common sprite
 /// drawing functions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-enum Kind {
+pub enum Kind {
     TKind(TerrainKind),
     FKind(FeatureKind),
     SKind(SpecialKind),
 }
 
 /// In-memory map for all layers of a Tile
-type TileLayers = HashMap<Layer, Kind>;
+pub type TileLayers = HashMap<Layer, Kind>;
 
 /// A «Tile» is a superposition of several things that will compose the Map.
 #[derive(Debug)]
@@ -75,7 +72,7 @@ struct Tile {
 }
 
 /// Retrieve the related layer of a Kind
-fn get_kind_of_tile_layer(tile: &Tile, layer: &Layer) -> Option<Kind> {
+pub fn get_kind_of_tile_layer(tile: &Tile, layer: &Layer) -> Option<Kind> {
     return tile.layers.get(layer).map(|layer| layer.clone());
 }
 
@@ -88,6 +85,10 @@ fn get_layer_from_kind(kind: &Kind) -> Layer {
     };
 }
 
+/// In-memory map for all gameplay and render purposes.
+/// This is the heart of the game.
+type Map = HashMap<(i32, i32), Tile>;
+
 /// Retrieve the adequate tileset indices to properly display a tile.
 ///
 /// Indeed, tiles can either be one in the center of a patch (hence the tileable
@@ -97,7 +98,7 @@ fn get_layer_from_kind(kind: &Kind) -> Layer {
 /// Additionnaly if a «partial» tile (like a corner) is used, we have to add
 /// an underlying tile to serve as background so for instance a beach is composed of
 /// a plain (its shore) and the ocean (its beach) over it.
-fn get_tiles_to_display(
+pub fn get_tiles_to_display(
     tile: &Tile,
     map: &Map,
     coordinates: &(i32, i32),
@@ -254,14 +255,6 @@ fn get_tiles_to_display(
     }
 }
 
-/// In-memory map for all gameplay and render purposes.
-/// This is the heart of the game.
-type Map = HashMap<(i32, i32), Tile>;
-
-/// In-memory map that ties Kind elements with their corresponding
-/// TextureAtlas handle.
-type TerrainHandleMap = HashMap<Kind, Handle<TextureAtlas>>;
-
 /// Generates several terrain patches in one go.
 ///
 /// Use this function to avoid having to place patches one by one.
@@ -283,9 +276,9 @@ fn generate_multiple_patches(
     for w in 1..count {
         for h in 1..count {
             patch_centers.push((
-                pseudo_rng_instance.gen_range(-max_offset..=max_offset)
+                pseudo_rng_instance.random_range(-max_offset..=max_offset)
                     + MAP_WIDTH as i32 * w / count,
-                pseudo_rng_instance.gen_range(-max_offset..=max_offset)
+                pseudo_rng_instance.random_range(-max_offset..=max_offset)
                     + MAP_HEIGHT as i32 * h / count,
             ));
         }
@@ -293,9 +286,9 @@ fn generate_multiple_patches(
 
     // Main generation process
     for coordinates in patch_centers {
-        let radius = pseudo_rng_instance.gen_range(radius_range.clone()) as f32;
-        let frequency_scale = pseudo_rng_instance.gen_range(frequency_range.clone());
-        let amplitude_scale = pseudo_rng_instance.gen_range(amplitude_range.clone());
+        let radius = pseudo_rng_instance.random_range(radius_range.clone()) as f32;
+        let frequency_scale = pseudo_rng_instance.random_range(frequency_range.clone());
+        let amplitude_scale = pseudo_rng_instance.random_range(amplitude_range.clone());
         let grid_half_size = radius as i32 + 1;
         for w in -grid_half_size..=grid_half_size {
             for h in -grid_half_size..=grid_half_size {
@@ -303,7 +296,7 @@ fn generate_multiple_patches(
                 // the patch will have)
                 let offset = simplex_noise_2d_seeded(
                     vec2(w as f32, h as f32) * frequency_scale,
-                    pseudo_rng_instance.gen_range(0..MAX_u32) as f32,
+                    pseudo_rng_instance.random_range(0..MAX_u32) as f32,
                 ) * amplitude_scale;
 
                 // Height will serve, with a threshold cutoff, as sizing the resulting patch
@@ -394,17 +387,17 @@ fn update_tile_in_map(
 ///
 /// Size are hard-coded so the only need parameter is the PRNG instance to generate
 /// seeds for the different layers (patch groups) that are applied on the map.
-fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
-    let map_seed = pseudo_rng_instance.gen_range(0..MAX_u64);
+pub fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
+    let map_seed = pseudo_rng_instance.random_range(0..MAX_u64);
     dbg!(map_seed);
     let mut map: Map = HashMap::new();
 
     // Noise map parameters
-    let frequency_scale: f32 = pseudo_rng_instance.gen_range(0.03..0.06);
-    let amplitude_scale: f32 = pseudo_rng_instance.gen_range(100.0..130.0);
-    let octaves: usize = pseudo_rng_instance.gen_range(5..15);
-    let lacunarity: f32 = pseudo_rng_instance.gen_range(1.8..2.0);
-    let gain: f32 = pseudo_rng_instance.gen_range(0.5..0.6);
+    let frequency_scale: f32 = pseudo_rng_instance.random_range(0.03..0.06);
+    let amplitude_scale: f32 = pseudo_rng_instance.random_range(100.0..130.0);
+    let octaves: usize = pseudo_rng_instance.random_range(5..15);
+    let lacunarity: f32 = pseudo_rng_instance.random_range(1.8..2.0);
+    let gain: f32 = pseudo_rng_instance.random_range(0.5..0.6);
 
     let map_middle_h = MAP_HEIGHT / 2;
 
@@ -425,8 +418,8 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
             // the appropriate terrain type to simulate the earth distribution.
             let base_terrain = {
                 let desert_band_thickness =
-                    pseudo_rng_instance.gen_range(5 * MAP_HEIGHT / 100..10 * MAP_HEIGHT / 100);
-                let delta = pseudo_rng_instance.gen_range(0..10 * MAP_HEIGHT / 100);
+                    pseudo_rng_instance.random_range(5 * MAP_HEIGHT / 100..10 * MAP_HEIGHT / 100);
+                let delta = pseudo_rng_instance.random_range(0..10 * MAP_HEIGHT / 100);
                 if h > map_middle_h - desert_band_thickness - delta
                     && h < map_middle_h + desert_band_thickness + delta
                 {
@@ -500,21 +493,21 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
                 (w, h)
                     if terrain_kind == &Kind::TKind(TerrainKind::Plain)
                         && feature_kind == None
-                        && pseudo_rng_instance.gen_bool(0.01) =>
+                        && pseudo_rng_instance.random_bool(0.01) =>
                 {
                     update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialKind::Corn))
                 }
                 // Lumber goes on forests
                 (w, h)
                     if feature_kind == Some(&Kind::FKind(FeatureKind::Forest))
-                        && pseudo_rng_instance.gen_bool(0.05) =>
+                        && pseudo_rng_instance.random_bool(0.05) =>
                 {
                     update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialKind::Lumber))
                 }
                 // Fish goes on oceans
                 (w, h)
                     if feature_kind == Some(&Kind::FKind(FeatureKind::Ocean))
-                        && pseudo_rng_instance.gen_bool(0.01) =>
+                        && pseudo_rng_instance.random_bool(0.01) =>
                 {
                     update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialKind::Fish))
                 }
@@ -526,273 +519,10 @@ fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
     return map;
 }
 
-fn get_zindex_from_kind(kind: &Kind) -> f32 {
+pub fn get_zindex_from_kind(kind: &Kind) -> f32 {
     return match kind {
         Kind::TKind(_) => 1.,
         Kind::FKind(_) => 2.,
         Kind::SKind(_) => 3.,
     };
-}
-
-fn create_layer_sprites(
-    commands: &mut Commands,
-    real_coordinates: (f32, f32),
-    handle_map: &TerrainHandleMap,
-    kind: &Kind,
-    animation_indices: &AnimationIndices,
-    tileset_indices: (usize, Option<Kind>),
-) {
-    let handle = handle_map.get(kind).unwrap();
-
-    let static_animation_indices = AnimationIndices { first: 0, last: 0 };
-
-    // For composite tiles (like a beach which is part ocean and part plain),
-    // we can have a second tile to print
-    if let Some(kind) = tileset_indices.1 {
-        let base_handle = handle_map.get(&kind).unwrap();
-        commands.spawn((
-            SpriteSheetBundle {
-                texture_atlas: base_handle.clone(),
-                sprite: TextureAtlasSprite::new(
-                    animation_indices.clone().first * TILESET_HEIGHT + tileset_indices.0,
-                ),
-                transform: Transform::from_xyz(
-                    real_coordinates.0,
-                    real_coordinates.1,
-                    // This is a special case: Base tiles for composites tiles must be under a terrain
-                    0.5,
-                ),
-                ..default()
-            },
-            animation_indices.clone(),
-            AnimationTimer(Timer::from_seconds(
-                TIME_BETWEEN_FRAMES,
-                TimerMode::Repeating,
-            )),
-        ));
-    }
-
-    commands.spawn((
-        SpriteSheetBundle {
-            texture_atlas: handle.clone(),
-            sprite: TextureAtlasSprite::new(
-                animation_indices.clone().first * TILESET_HEIGHT + tileset_indices.0,
-            ),
-            transform: Transform::from_xyz(
-                real_coordinates.0,
-                real_coordinates.1,
-                get_zindex_from_kind(kind),
-            ),
-            ..default()
-        },
-        match kind {
-            Kind::SKind(_) => static_animation_indices.clone(),
-            _ => animation_indices.clone(),
-        },
-        AnimationTimer(Timer::from_seconds(
-            TIME_BETWEEN_FRAMES,
-            TimerMode::Repeating,
-        )),
-    ));
-}
-
-pub struct MapPlugin;
-
-impl Plugin for MapPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_map)
-            .add_systems(Update, animate_layer_sprite);
-    }
-}
-
-fn setup_map(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-) {
-    // PRNG initialization
-    let mut pseudo_rng_instance: StdRng = StdRng::from_entropy();
-    // Map generation
-    let map = build_map(&mut pseudo_rng_instance);
-
-    // Load the sprites
-    //
-    // Animated tileset MUST be saved as one column, N rows for the animation algorithm to work
-    // properly
-
-    let mut handle_map: TerrainHandleMap = HashMap::new();
-    handle_map.insert(
-        Kind::FKind(FeatureKind::Forest),
-        texture_atlases.add(TextureAtlas::from_grid(
-            asset_server.load("sprites/terrain/forest.png"),
-            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-            TILESET_WIDTH,
-            TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
-            None,
-            None,
-        )),
-    );
-    handle_map.insert(
-        Kind::FKind(FeatureKind::Ocean),
-        texture_atlases.add(TextureAtlas::from_grid(
-            asset_server.load("sprites/terrain/ocean.png"),
-            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-            TILESET_WIDTH,
-            TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
-            None,
-            None,
-        )),
-    );
-    handle_map.insert(
-        Kind::TKind(TerrainKind::Plain),
-        texture_atlases.add(TextureAtlas::from_grid(
-            asset_server.load("sprites/terrain/plain.png"),
-            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-            TILESET_WIDTH,
-            TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
-            None,
-            None,
-        )),
-    );
-    handle_map.insert(
-        Kind::TKind(TerrainKind::Desert),
-        texture_atlases.add(TextureAtlas::from_grid(
-            asset_server.load("sprites/terrain/desert.png"),
-            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-            TILESET_WIDTH,
-            TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
-            None,
-            None,
-        )),
-    );
-    handle_map.insert(
-        Kind::FKind(FeatureKind::Hill),
-        texture_atlases.add(TextureAtlas::from_grid(
-            asset_server.load("sprites/terrain/hill.png"),
-            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-            TILESET_WIDTH,
-            TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
-            None,
-            None,
-        )),
-    );
-    handle_map.insert(
-        Kind::SKind(SpecialKind::Mountain),
-        texture_atlases.add(TextureAtlas::from_grid(
-            asset_server.load("sprites/terrain/mountain.png"),
-            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-            TILESET_WIDTH,
-            TILESET_HEIGHT * ANIMATION_FRAME_COUNT,
-            None,
-            None,
-        )),
-    );
-    handle_map.insert(
-        Kind::SKind(SpecialKind::Lumber),
-        texture_atlases.add(TextureAtlas::from_grid(
-            asset_server.load("sprites/terrain/specials.png"),
-            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-            1,
-            1,
-            None,
-            None,
-        )),
-    );
-    handle_map.insert(
-        Kind::SKind(SpecialKind::Corn),
-        texture_atlases.add(TextureAtlas::from_grid(
-            asset_server.load("sprites/terrain/specials.png"),
-            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-            1,
-            1,
-            None,
-            Some(vec2(16., 0.)),
-        )),
-    );
-    handle_map.insert(
-        Kind::SKind(SpecialKind::Fish),
-        texture_atlases.add(TextureAtlas::from_grid(
-            asset_server.load("sprites/terrain/specials.png"),
-            Vec2::new(SPRITE_SIZE, SPRITE_SIZE),
-            1,
-            1,
-            None,
-            Some(vec2(32., 0.)),
-        )),
-    );
-
-    // Indices in the tilesheet (TextureAtlas) that are composing the animation
-    let animation_indices = AnimationIndices {
-        first: 0,
-        last: ANIMATION_FRAME_COUNT - 1,
-    };
-
-    // Create the layer sprites for every tile on the Map
-    for item in &map {
-        for layer in [Layer::Terrain, Layer::Feature, Layer::Special] {
-            if let Some(kind) = get_kind_of_tile_layer(item.1, &layer) {
-                create_layer_sprites(
-                    &mut commands,
-                    item.1.real_coordinates,
-                    &handle_map,
-                    &kind,
-                    &animation_indices,
-                    get_tiles_to_display(&item.1, &map, &item.0, layer),
-                );
-            }
-        }
-    }
-}
-
-#[derive(Component, Clone)]
-struct AnimationIndices {
-    first: usize,
-    last: usize,
-}
-
-// AnimationLayer for terrain and feature sprites
-#[derive(Component, Deref, DerefMut)]
-struct AnimationTimer(Timer);
-
-/// Retrieve the next tick sprite index.
-///
-/// Since every tileset is animated, we have to match each tile to its future
-/// counterpart in the next tileset. This way each tile will «cycle» through its
-/// animated frames.
-fn get_next_sprite_index(
-    current_index: usize,
-    indices: &AnimationIndices,
-    tileset_width: usize,
-    tileset_height: usize,
-) -> usize {
-    // We have to decompose the current sprite position into two parts:
-    // - The current animation frame tileset
-    let current_animation_index = current_index / (tileset_width * tileset_height);
-    // - The current current_index INSIDE the current animation tileset
-    let current_sprite = current_index % (tileset_width * tileset_height);
-    // Now we can determine what is the next animation frame tileset
-    let next_animation_index = if current_animation_index == indices.last {
-        indices.first
-    } else {
-        current_animation_index + 1
-    };
-    // and recompute the proper sprite position inside this animation frame
-    return next_animation_index * (tileset_width * tileset_height) + current_sprite;
-}
-
-fn animate_layer_sprite(
-    time: Res<Time>,
-    mut query: Query<(
-        &AnimationIndices,
-        &mut AnimationTimer,
-        &mut TextureAtlasSprite,
-    )>,
-) {
-    for (indices, mut timer, mut sprite) in &mut query {
-        timer.tick(time.delta());
-        if timer.just_finished() {
-            sprite.index =
-                get_next_sprite_index(sprite.index, indices, TILESET_WIDTH, TILESET_HEIGHT);
-        }
-    }
 }
