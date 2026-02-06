@@ -1,4 +1,4 @@
-use bevy::app::{App, Plugin, Startup};
+use bevy::app::{App, Plugin};
 use bevy::{asset::LoadedFolder, image::ImageSampler, prelude::*};
 
 use crate::state::AppState;
@@ -7,11 +7,16 @@ use crate::state::AppState;
 struct SpriteFolder(Handle<LoadedFolder>);
 
 /// Load all sprites of a folder
-fn load_textures(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn load_textures(
+    mut next_state: ResMut<NextState<AppState>>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
     commands.insert_resource(SpriteFolder(
         // Warning: "assets/" is implied !
         asset_server.load_folder("sprites"),
     ));
+    next_state.set(AppState::SpriteLoadInProgress)
 }
 
 /// Advance the `AppState` once all sprite handles have been loaded by the `AssetServer`
@@ -22,7 +27,7 @@ fn check_textures(
 ) {
     for event in events.read() {
         if event.is_loaded_with_dependencies(&sprite_folder.0) {
-            next_state.set(AppState::Finished);
+            next_state.set(AppState::SpriteLoadFinished);
         }
     }
 }
@@ -60,16 +65,16 @@ fn create_texture_atlas(
 fn setup(
     mut commands: Commands,
     sprite_handles: Res<SpriteFolder>,
-    asset_server: Res<AssetServer>,
+    _asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
     loaded_folders: Res<Assets<LoadedFolder>>,
     mut textures: ResMut<Assets<Image>>,
 ) {
     let loaded_folder = loaded_folders.get(&sprite_handles.0).unwrap();
 
-    let (texture_atlas, sources, texture) =
+    let (texture_atlas, _sources, texture) =
         create_texture_atlas(loaded_folder, Some(ImageSampler::nearest()), &mut textures);
-    let atlas_handle = texture_atlases.add(texture_atlas);
+    let _atlas_handle = texture_atlases.add(texture_atlas);
 
     commands.spawn((
         Sprite::from_image(texture.clone()),
@@ -85,8 +90,11 @@ pub struct SpriteDisplayPlugin;
 
 impl Plugin for SpriteDisplayPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::Setup), load_textures)
-            .add_systems(Update, check_textures.run_if(in_state(AppState::Setup)))
-            .add_systems(OnEnter(AppState::Finished), setup);
+        app.add_systems(OnEnter(AppState::SpriteLoadStart), load_textures)
+            .add_systems(
+                Update,
+                check_textures.run_if(in_state(AppState::SpriteLoadInProgress)),
+            )
+            .add_systems(OnEnter(AppState::SpriteLoadFinished), setup);
     }
 }
