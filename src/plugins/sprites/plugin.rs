@@ -9,6 +9,7 @@ struct SpriteFolder(Handle<LoadedFolder>);
 /// Load all sprites of a folder
 fn load_textures(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(SpriteFolder(
+        // Warning: "assets/" is implied !
         asset_server.load_folder("sprites"),
     ));
 }
@@ -69,8 +70,6 @@ fn setup(
     let (texture_atlas, sources, texture) =
         create_texture_atlas(loaded_folder, Some(ImageSampler::nearest()), &mut textures);
     let atlas_handle = texture_atlases.add(texture_atlas);
-
-    commands.spawn(Camera2d);
 
     commands.spawn((
         Sprite::from_image(texture.clone()),
