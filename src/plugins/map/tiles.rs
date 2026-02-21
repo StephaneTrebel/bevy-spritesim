@@ -25,23 +25,6 @@ pub enum Layer {
     Special,
 }
 
-/// Features are natural characteristics that add value to a tile
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum FeatureKind {
-    Forest,
-    Ocean,
-    Hill,
-}
-
-/// Special are particulary rich deposits that add even more value to a tile
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum SpecialKind {
-    Lumber,
-    Corn,
-    Fish,
-    Mountain,
-}
-
 /// This is a union of all sprites types. Used for using common sprite
 /// drawing functions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

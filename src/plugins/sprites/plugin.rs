@@ -7,6 +7,12 @@ use crate::state::AppState;
 #[derive(Resource, Default)]
 struct SpriteFolder(Handle<LoadedFolder>);
 
+macro_rules! sprite_path {
+    ($n1:expr) => {
+        concat!("sprites", $n1)
+    };
+}
+
 /// Load an image folder into the `AssetServer`
 fn load_sprite_folder(
     mut next_state: ResMut<NextState<AppState>>,
@@ -15,7 +21,7 @@ fn load_sprite_folder(
 ) {
     commands.insert_resource(SpriteFolder(
         // Warning: "assets/" is implied !
-        asset_server.load_folder("sprites"),
+        asset_server.load_folder(sprite_path!("")),
     ));
     next_state.set(AppState::SpriteLoadInProgress)
 }
@@ -66,20 +72,57 @@ fn create_texture_atlas(
 
 /// Terrain are the base layers of all tiles
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum SpriteTerrainType {
+pub enum SpriteType {
+    Corn,
+    Debug,
     Desert,
+    Fish,
+    Forest,
+    Hill,
+    Lumber,
+    Mountain,
+    Ocean,
     Plain,
+}
+
+impl SpriteType {
+    pub fn path(&self) -> &'static str {
+        match self {
+            // TODO: Move non-terrain sprites to their own directory
+            SpriteType::Corn => sprite_path!("/terrain/corn.png"),
+            SpriteType::Debug => sprite_path!("/terrain/debug.png"),
+            SpriteType::Desert => sprite_path!("/terrain/desert.png"),
+            SpriteType::Fish => sprite_path!("/terrain/fish.png"),
+            SpriteType::Forest => sprite_path!("/terrain/forest.png"),
+            SpriteType::Hill => sprite_path!("/terrain/hill.png"),
+            SpriteType::Lumber => sprite_path!("/terrain/lumber.png"),
+            SpriteType::Mountain => sprite_path!("/terrain/mountain.png"),
+            SpriteType::Ocean => sprite_path!("/terrain/ocean.png"),
+            SpriteType::Plain => sprite_path!("/terrain/plain.png"),
+        }
+    }
+
+    // Enumerate on all enum values (this is fine because those are empty variants)
+    // WARN: This does not check exhaustivity at compile-time !
+    // Use strum crate if you want to add that (but exhaustivity check is done in
+    // path() method anyway)
+    pub fn all() -> &'static [SpriteType] {
+        use SpriteType::*;
+        &[
+            Corn, Desert, Debug, Fish, Forest, Hill, Lumber, Mountain, Ocean, Plain,
+        ]
+    }
 }
 
 #[derive(Resource)]
 pub struct SpriteAtlas {
     pub texture: Handle<Image>,
     pub layout: Handle<TextureAtlasLayout>,
-    indices: HashMap<SpriteTerrainType, usize>,
+    indices: HashMap<SpriteType, usize>,
 }
 
 impl SpriteAtlas {
-    pub fn get(&self, sprite: SpriteTerrainType) -> TextureAtlas {
+    pub fn get(&self, sprite: SpriteType) -> TextureAtlas {
         TextureAtlas {
             layout: self.layout.clone(),
             index: *self
@@ -89,7 +132,7 @@ impl SpriteAtlas {
         }
     }
 
-    pub fn sprite(&self, sprite_type: SpriteTerrainType) -> Sprite {
+    pub fn sprite(&self, sprite_type: SpriteType) -> Sprite {
         Sprite::from_atlas_image(self.texture.clone(), self.get(sprite_type))
     }
 }
@@ -116,32 +159,16 @@ fn create_sprite_atlas(
     );
 
     // Create indices from loaded sprites handles (images)
-    let indices = HashMap::from([
-        (
-            SpriteTerrainType::Desert,
-            *texture_atlas_sources
+    let indices = SpriteType::all()
+        .iter()
+        .map(|&sprite_type| {
+            let index = *texture_atlas_sources
                 .texture_ids
-                .get(
-                    &asset_server
-                        .get_handle("sprites/terrain/desert.png")
-                        .unwrap()
-                        .id(),
-                )
-                .unwrap(),
-        ),
-        (
-            SpriteTerrainType::Plain,
-            *texture_atlas_sources
-                .texture_ids
-                .get(
-                    &asset_server
-                        .get_handle("sprites/terrain/plain.png")
-                        .unwrap()
-                        .id(),
-                )
-                .unwrap(),
-        ),
-    ]);
+                .get(&asset_server.get_handle(sprite_type.path()).unwrap().id())
+                .unwrap();
+            (sprite_type, index)
+        })
+        .collect::<HashMap<SpriteType, usize>>();
 
     commands.insert_resource(SpriteAtlas {
         texture: texture_atlas_image,
@@ -156,7 +183,7 @@ fn create_sprite_atlas(
 
 fn draw(mut commands: Commands, atlas: Res<SpriteAtlas>) {
     commands.spawn((
-        atlas.sprite(SpriteTerrainType::Desert),
+        atlas.sprite(SpriteType::Plain),
         Transform {
             translation: Vec3::new(0., 0., 0.),
             scale: Vec3::splat(1.),
