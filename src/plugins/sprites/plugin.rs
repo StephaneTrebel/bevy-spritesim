@@ -59,15 +59,19 @@ fn create_texture_atlas(
         texture_atlas_builder.add_texture(Some(id), image);
     }
 
-    let (texture_atlas_layout, texture_atlas_sources, texture) =
+    let (texture_atlas_layout, texture_atlas_sources, texture_atlas) =
         texture_atlas_builder.build().unwrap();
 
-    let texture = textures.add(texture);
+    let texture_atlas_handle = textures.add(texture_atlas);
 
-    let image = textures.get_mut(&texture).unwrap();
-    image.sampler = sampling.unwrap_or_default();
+    let texture_atlas_image = textures.get_mut(&texture_atlas_handle).unwrap();
+    texture_atlas_image.sampler = sampling.unwrap_or_default();
 
-    (texture_atlas_layout, texture_atlas_sources, texture)
+    (
+        texture_atlas_layout,
+        texture_atlas_sources,
+        texture_atlas_handle,
+    )
 }
 
 /// Terrain are the base layers of all tiles
@@ -149,11 +153,9 @@ fn create_sprite_atlas(
     mut texture_assets: ResMut<Assets<Image>>,
     mut next_state: ResMut<NextState<AppState>>,
 ) {
-    let loaded_folder = loaded_folder_assets.get(&sprite_handles.0).unwrap();
-
     // Build texture atlas that will contain all sprites from loaded folder
     let (texture_atlas_layout, texture_atlas_sources, texture_atlas_image) = create_texture_atlas(
-        loaded_folder,
+        loaded_folder_assets.get(&sprite_handles.0).unwrap(),
         Some(ImageSampler::nearest()),
         &mut texture_assets,
     );
@@ -181,17 +183,6 @@ fn create_sprite_atlas(
     next_state.set(AppState::ReadyToDraw)
 }
 
-fn draw(mut commands: Commands, atlas: Res<SpriteAtlas>) {
-    commands.spawn((
-        atlas.sprite(SpriteType::Plain),
-        Transform {
-            translation: Vec3::new(0., 0., 0.),
-            scale: Vec3::splat(1.),
-            ..default()
-        },
-    ));
-}
-
 pub struct SpritePlugin;
 
 impl Plugin for SpritePlugin {
@@ -201,7 +192,6 @@ impl Plugin for SpritePlugin {
                 Update,
                 check_sprite_folder_load.run_if(in_state(AppState::SpriteLoadInProgress)),
             )
-            .add_systems(OnEnter(AppState::CreateSpriteAtlas), create_sprite_atlas)
-            .add_systems(OnEnter(AppState::ReadyToDraw), draw);
+            .add_systems(OnEnter(AppState::CreateSpriteAtlas), create_sprite_atlas);
     }
 }

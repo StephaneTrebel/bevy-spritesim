@@ -3,10 +3,22 @@ use plugins::camera::CameraPlugin;
 use plugins::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH, WINDOW_SCALE_FACTOR};
 
 use crate::plugins::sprites::SpritePlugin;
+use crate::plugins::{SpriteAtlas, SpriteType};
 use crate::state::AppState;
 
 mod plugins;
 mod state;
+
+fn draw(mut commands: Commands, atlas: Res<SpriteAtlas>) {
+    commands.spawn((
+        atlas.sprite(SpriteType::Corn),
+        Transform {
+            translation: Vec3::new(0., 0., 0.),
+            scale: Vec3::splat(1.),
+            ..default()
+        },
+    ));
+}
 
 /// There we go !
 fn main() {
@@ -34,5 +46,6 @@ fn main() {
             CameraPlugin,
         ))
         .init_state::<AppState>()
+        .add_systems(OnEnter(AppState::ReadyToDraw), draw)
         .run();
 }
