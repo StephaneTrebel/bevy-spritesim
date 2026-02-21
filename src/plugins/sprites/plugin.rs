@@ -88,17 +88,17 @@ pub enum SpriteType {
 impl SpriteType {
     pub fn path(&self) -> &'static str {
         match self {
-            // TODO: Move non-terrain sprites to their own directory
-            SpriteType::Corn => sprite_path!("/terrain/corn.png"),
-            SpriteType::Debug => sprite_path!("/terrain/debug.png"),
-            SpriteType::Desert => sprite_path!("/terrain/desert.png"),
-            SpriteType::Fish => sprite_path!("/terrain/fish.png"),
-            SpriteType::Forest => sprite_path!("/terrain/forest.png"),
-            SpriteType::Hill => sprite_path!("/terrain/hill.png"),
-            SpriteType::Lumber => sprite_path!("/terrain/lumber.png"),
-            SpriteType::Mountain => sprite_path!("/terrain/mountain.png"),
-            SpriteType::Ocean => sprite_path!("/terrain/ocean.png"),
-            SpriteType::Plain => sprite_path!("/terrain/plain.png"),
+            // TODO: Move non-terrain sprites to their own directory and rename them
+            SpriteType::Corn => sprite_path!("/corn/sprite_terrain_corn_0_0.png"),
+            SpriteType::Debug => sprite_path!("/debug/sprite_terrain_debug_0_0.png"),
+            SpriteType::Desert => sprite_path!("/desert/sprite_terrain_desert_0_0.png"),
+            SpriteType::Fish => sprite_path!("/fish/sprite_terrain_fish_0_0.png"),
+            SpriteType::Forest => sprite_path!("/forest/sprite_terrain_forest_0_0.png"),
+            SpriteType::Hill => sprite_path!("/hill/sprite_terrain_hill_0_0.png"),
+            SpriteType::Lumber => sprite_path!("/lumber/sprite_terrain_lumber_0_0.png"),
+            SpriteType::Mountain => sprite_path!("/mountain/sprite_terrain_mountain_0_0.png"),
+            SpriteType::Ocean => sprite_path!("/ocean/sprite_terrain_ocean_0_0.png"),
+            SpriteType::Plain => sprite_path!("/plain/sprite_terrain_plain_0_0.png"),
         }
     }
 
