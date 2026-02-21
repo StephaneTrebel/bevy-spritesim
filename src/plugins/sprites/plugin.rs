@@ -90,22 +90,25 @@ fn setup(
     mut commands: Commands,
     sprite_handles: Res<SpriteFolder>,
     asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
-    loaded_folders: Res<Assets<LoadedFolder>>,
-    mut textures: ResMut<Assets<Image>>,
+    mut texture_atlases_layout_assets: ResMut<Assets<TextureAtlasLayout>>,
+    loaded_folder_assets: Res<Assets<LoadedFolder>>,
+    mut texture_assets: ResMut<Assets<Image>>,
 ) {
-    let loaded_folder = loaded_folders.get(&sprite_handles.0).unwrap();
+    let loaded_folder = loaded_folder_assets.get(&sprite_handles.0).unwrap();
 
-    let (texture_atlas_layout, atlas_sources, atlas_texture) =
-        create_texture_atlas(loaded_folder, Some(ImageSampler::nearest()), &mut textures);
-    let atlas_handle = texture_atlases.add(texture_atlas_layout);
+    let (texture_atlas_layout, texture_atlas_sources, atlas_texture) = create_texture_atlas(
+        loaded_folder,
+        Some(ImageSampler::nearest()),
+        &mut texture_assets,
+    );
+    let texture_atlas_layout_handle = texture_atlases_layout_assets.add(texture_atlas_layout);
 
     create_sprite_from_atlas(
         &mut commands,
         asset_server,
-        atlas_handle,
+        texture_atlas_layout_handle,
         atlas_texture,
-        atlas_sources,
+        texture_atlas_sources,
     );
 }
 
