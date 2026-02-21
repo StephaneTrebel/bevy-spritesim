@@ -5,5 +5,6 @@ pub enum AppState {
     #[default]
     SpriteLoadStart,
     SpriteLoadInProgress,
-    SpriteLoadFinished,
+    CreateSpriteAtlas,
+    ReadyToDraw,
 }

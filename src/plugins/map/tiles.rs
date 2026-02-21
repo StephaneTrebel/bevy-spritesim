@@ -25,13 +25,6 @@ pub enum Layer {
     Special,
 }
 
-/// Terrain are the base layers of all tiles
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum TerrainKind {
-    Desert,
-    Plain,
-}
-
 /// Features are natural characteristics that add value to a tile
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum FeatureKind {

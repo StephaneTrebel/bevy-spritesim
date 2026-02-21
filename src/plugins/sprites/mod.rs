@@ -1,2 +1,2 @@
 mod plugin;
-pub use plugin::SpriteDisplayPlugin;
+pub use plugin::SpritePlugin;
