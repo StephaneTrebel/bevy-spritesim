@@ -1,5 +1,6 @@
 pub mod camera;
 pub mod constants;
+pub use constants::*;
 pub mod map;
 pub mod sprites;
 pub use sprites::*;

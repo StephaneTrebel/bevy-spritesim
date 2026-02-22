@@ -2,23 +2,31 @@ use bevy::{prelude::*, window::*};
 use plugins::camera::CameraPlugin;
 use plugins::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH, WINDOW_SCALE_FACTOR};
 
-use crate::plugins::map::MapPlugin;
+use crate::plugins::map::{MapPlugin, MapResource};
 use crate::plugins::sprites::SpritePlugin;
-use crate::plugins::{SpriteAtlas, SpriteTerrainType};
+use crate::plugins::{SPRITE_SIZE, SpriteAtlas};
 use crate::state::AppState;
 
 mod plugins;
 mod state;
 
-fn draw(mut commands: Commands, atlas: Res<SpriteAtlas>) {
-    commands.spawn((
-        atlas.sprite(SpriteTerrainType::Debug),
-        Transform {
-            translation: Vec3::new(0., 0., 0.),
-            scale: Vec3::splat(1.),
-            ..default()
-        },
-    ));
+fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map: Res<MapResource>) {
+    for (&map_cooordinates, tile) in map.map.iter() {
+        for (_layer, &kind) in tile.layers.iter() {
+            commands.spawn((
+                atlas.sprite(&kind.get_sprite_type()),
+                Transform {
+                    translation: Vec3::new(
+                        f32::from(map_cooordinates.0 as u16) * SPRITE_SIZE,
+                        f32::from(map_cooordinates.1 as u16) * SPRITE_SIZE,
+                        0.,
+                    ),
+                    scale: Vec3::splat(1.),
+                    ..default()
+                },
+            ));
+        }
+    }
 }
 
 /// There we go !
@@ -48,6 +56,6 @@ fn main() {
             CameraPlugin,
         ))
         .init_state::<AppState>()
-        .add_systems(OnEnter(AppState::ReadyToDraw), draw)
+        .add_systems(OnEnter(AppState::ReadyToDraw), draw_map)
         .run();
 }

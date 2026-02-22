@@ -76,82 +76,39 @@ fn create_texture_atlas(
 
 /// Terrains are the base layers of all tiles
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum SpriteTerrainType {
+pub enum SpriteType {
+    Corn,
     Debug,
     Desert,
-    Ocean,
-    Plain,
-}
-
-impl SpriteTerrainType {
-    pub fn path(&self) -> &'static str {
-        match self {
-            // TODO: Move non-terrain sprites to their own directory and rename them
-            SpriteTerrainType::Debug => sprite_path!("/debug/sprite_terrain_debug_0_0.png"),
-            SpriteTerrainType::Desert => sprite_path!("/desert/sprite_terrain_desert_0_0.png"),
-            SpriteTerrainType::Ocean => sprite_path!("/ocean/sprite_terrain_ocean_0_0.png"),
-            SpriteTerrainType::Plain => sprite_path!("/plain/sprite_terrain_plain_0_0.png"),
-        }
-    }
-
-    // Enumerate on all enum values (this is fine because those are empty variants)
-    // WARN: This does not check exhaustivity at compile-time !
-    // Use strum crate if you want to add that (but exhaustivity check is done in
-    // path() method anyway)
-    pub fn all() -> &'static [SpriteTerrainType] {
-        use SpriteTerrainType::*;
-        &[Desert, Debug, Ocean, Plain]
-    }
-}
-
-/// Biomes are above terrain and characterize a place
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum SpriteBiomeType {
+    Fish,
     Forest,
     Hill,
-    Mountain,
-}
-
-impl SpriteBiomeType {
-    pub fn path(&self) -> &'static str {
-        match self {
-            // TODO: Move non-terrain sprites to their own directory and rename them
-            SpriteBiomeType::Forest => sprite_path!("/forest/sprite_terrain_forest_0_0.png"),
-            SpriteBiomeType::Hill => sprite_path!("/hill/sprite_terrain_hill_0_0.png"),
-            SpriteBiomeType::Mountain => {
-                sprite_path!("/mountain/sprite_terrain_mountain_0_0.png")
-            }
-        }
-    }
-
-    // Enumerate on all enum values (this is fine because those are empty variants)
-    // WARN: This does not check exhaustivity at compile-time !
-    // Use strum crate if you want to add that (but exhaustivity check is done in
-    // path() method anyway)
-    pub fn all() -> &'static [SpriteBiomeType] {
-        use SpriteBiomeType::*;
-        &[Forest, Hill, Mountain]
-    }
-}
-
-/// Terrain are the base layers of all tiles
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum SpriteSpecialType {
-    Corn,
-    Fish,
     Lumber,
+    Mountain,
+    Ocean,
     Ore,
+    Plain,
     Snow,
 }
 
-impl SpriteSpecialType {
+impl SpriteType {
     pub fn path(&self) -> &'static str {
         match self {
-            SpriteSpecialType::Corn => sprite_path!("/corn/sprite_terrain_corn_0_0.png"),
-            SpriteSpecialType::Fish => sprite_path!("/fish/sprite_terrain_fish_0_0.png"),
-            SpriteSpecialType::Lumber => sprite_path!("/lumber/sprite_terrain_lumber_0_0.png"),
-            SpriteSpecialType::Ore => sprite_path!("/lumber/sprite_terrain_ore_0_0.png"),
-            SpriteSpecialType::Snow => sprite_path!("/lumber/sprite_terrain_snow_0_0.png"),
+            // TODO: Move non-terrain sprites to their own directory and rename them
+            SpriteType::Corn => sprite_path!("/corn/sprite_terrain_corn_0_0.png"),
+            SpriteType::Debug => sprite_path!("/debug/sprite_terrain_debug_0_0.png"),
+            SpriteType::Desert => sprite_path!("/desert/sprite_terrain_desert_0_0.png"),
+            SpriteType::Fish => sprite_path!("/fish/sprite_terrain_fish_0_0.png"),
+            SpriteType::Forest => sprite_path!("/forest/sprite_terrain_forest_0_0.png"),
+            SpriteType::Hill => sprite_path!("/hill/sprite_terrain_hill_0_0.png"),
+            SpriteType::Lumber => sprite_path!("/lumber/sprite_terrain_lumber_0_0.png"),
+            SpriteType::Mountain => {
+                sprite_path!("/mountain/sprite_terrain_mountain_0_0.png")
+            }
+            SpriteType::Ocean => sprite_path!("/ocean/sprite_terrain_ocean_0_0.png"),
+            SpriteType::Ore => sprite_path!("/ore/sprite_terrain_ore_0_0.png"),
+            SpriteType::Plain => sprite_path!("/plain/sprite_terrain_plain_0_0.png"),
+            SpriteType::Snow => sprite_path!("/snow/sprite_terrain_snow_0_0.png"),
         }
     }
 
@@ -159,9 +116,11 @@ impl SpriteSpecialType {
     // WARN: This does not check exhaustivity at compile-time !
     // Use strum crate if you want to add that (but exhaustivity check is done in
     // path() method anyway)
-    pub fn all() -> &'static [SpriteSpecialType] {
-        use SpriteSpecialType::*;
-        &[Corn, Fish, Lumber]
+    pub fn all() -> &'static [SpriteType] {
+        use SpriteType::*;
+        &[
+            Corn, Debug, Desert, Fish, Forest, Hill, Lumber, Mountain, Ocean, Ore, Plain, Snow,
+        ]
     }
 }
 
@@ -169,21 +128,21 @@ impl SpriteSpecialType {
 pub struct SpriteAtlas {
     pub texture: Handle<Image>,
     pub layout: Handle<TextureAtlasLayout>,
-    indices: HashMap<SpriteTerrainType, usize>,
+    indices: HashMap<SpriteType, usize>,
 }
 
 impl SpriteAtlas {
-    pub fn get(&self, sprite: SpriteTerrainType) -> TextureAtlas {
+    pub fn get(&self, sprite: &SpriteType) -> TextureAtlas {
         TextureAtlas {
             layout: self.layout.clone(),
             index: *self
                 .indices
-                .get(&sprite)
+                .get(sprite)
                 .unwrap_or_else(|| panic!("Unknow sprite type {:?}", sprite)),
         }
     }
 
-    pub fn sprite(&self, sprite_type: SpriteTerrainType) -> Sprite {
+    pub fn sprite(&self, sprite_type: &SpriteType) -> Sprite {
         Sprite::from_atlas_image(self.texture.clone(), self.get(sprite_type))
     }
 }
@@ -208,16 +167,23 @@ fn create_sprite_atlas(
     );
 
     // Create indices from loaded sprites handles (images)
-    let indices = SpriteTerrainType::all()
+    let indices = SpriteType::all()
         .iter()
         .map(|&sprite_type| {
             let index = *texture_atlas_sources
                 .texture_ids
-                .get(&asset_server.get_handle(sprite_type.path()).unwrap().id())
+                .get(
+                    &asset_server
+                        .get_handle(sprite_type.path())
+                        .unwrap_or_else(|| {
+                            panic!("Cannot find sprite type with path {}", sprite_type.path())
+                        })
+                        .id(),
+                )
                 .unwrap();
             (sprite_type, index)
         })
-        .collect::<HashMap<SpriteTerrainType, usize>>();
+        .collect::<HashMap<SpriteType, usize>>();
 
     commands.insert_resource(SpriteAtlas {
         texture: texture_atlas_image,

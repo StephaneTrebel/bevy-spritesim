@@ -6,11 +6,10 @@ use rand::{Rng, rngs::StdRng};
 use std::ops::Range;
 
 use crate::plugins::map::{Kind, Layer, Map, Tile, TileLayers, get_layer_from_kind};
-use crate::plugins::{BiomeType, SpecialType, TerrainType};
+use crate::plugins::{BiomeType, SPRITE_SIZE, SpecialType, TerrainType};
 
 const MAP_HEIGHT: i32 = 200;
 const MAP_WIDTH: i32 = 200;
-const SPRITE_SIZE: f32 = 16.;
 
 /// Generates several terrain patches in one go.
 ///

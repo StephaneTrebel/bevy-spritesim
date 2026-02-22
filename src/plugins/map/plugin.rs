@@ -21,8 +21,8 @@ impl Plugin for MapPlugin {
 }
 
 #[derive(Resource)]
-struct MapResource {
-    map: Map,
+pub struct MapResource {
+    pub map: Map,
 }
 
 fn setup_map(mut commands: Commands, mut next_state: ResMut<NextState<AppState>>) {
