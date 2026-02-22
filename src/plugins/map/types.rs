@@ -62,7 +62,7 @@ pub fn get_layer_from_kind(kind: &Kind) -> Layer {
 }
 
 /// In-memory map for all layers of a Tile
-pub type TileLayers = HashMap<Layer, Kind>;
+pub type TileLayers = HashMap<Layer, (Kind, u8)>;
 
 /// A «Tile» is a superposition of several things that will compose the Map.
 #[derive(Debug, Clone)]

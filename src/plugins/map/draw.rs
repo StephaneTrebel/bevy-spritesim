@@ -5,7 +5,7 @@ use crate::plugins::{
 
 /// Retrieve the related layer of a Kind
 pub fn get_kind_of_tile_layer(tile: &Tile, layer: &Layer) -> Option<Kind> {
-    tile.layers.get(layer).copied()
+    tile.layers.get(layer).map(|l| l.0)
 }
 /// Retrieve the adequate tileset indices to properly display a tile.
 ///

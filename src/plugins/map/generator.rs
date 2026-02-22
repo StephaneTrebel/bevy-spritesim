@@ -71,8 +71,8 @@ fn generate_multiple_patches(
                 (height > height_threshold) &&
                 // Only replace tile when necessary (for instance, Forest tiles can only be placed on Plains)
                 ( kind != Kind::Biome(BiomeType::Forest)
-                  || ( layers.get(&Layer::Terrain).unwrap()
-                       == &Kind::Terrain(TerrainType::Plain) ) && layers.get(&Layer::Biome).is_none())
+                  || ( layers.get(&Layer::Terrain).unwrap().0
+                       == Kind::Terrain(TerrainType::Plain) ) && layers.get(&Layer::Biome).is_none())
                 {
                     let screen_coordinates = (
                         map_coordinates.0 as f32 * SPRITE_SIZE,
@@ -84,7 +84,8 @@ fn generate_multiple_patches(
                     existing_tile_layers.remove(&Layer::Biome);
 
                     map.insert(map_coordinates, {
-                        existing_tile_layers.insert(get_layer_from_kind(&kind), kind);
+                        // TODO: Handle variant accordingly (here it is forced to 0)
+                        existing_tile_layers.insert(get_layer_from_kind(&kind), (kind, 0));
                         Tile {
                             layers: existing_tile_layers,
                             _real_coordinates: screen_coordinates,
@@ -112,13 +113,16 @@ fn update_tile_in_map(
                     None => TileLayers::new(),
                 };
                 if let Some(kind) = terrain_kind {
-                    layers.insert(Layer::Terrain, Kind::Terrain(*kind));
+                    // TODO: Handle variant accordingly (here it is forced to 0)
+                    layers.insert(Layer::Terrain, (Kind::Terrain(*kind), 0));
                 };
                 if let Some(kind) = biome_kind {
-                    layers.insert(Layer::Biome, Kind::Biome(*kind));
+                    // TODO: Handle variant accordingly (here it is forced to 0)
+                    layers.insert(Layer::Biome, (Kind::Biome(*kind), 0));
                 };
                 if let Some(kind) = special_kind {
-                    layers.insert(Layer::Special, Kind::Special(*kind));
+                    // TODO: Handle variant accordingly (here it is forced to 0)
+                    layers.insert(Layer::Special, (Kind::Special(*kind), 0));
                 };
                 layers
             },
@@ -239,7 +243,7 @@ pub fn generate_map() -> Map {
             match (w, h) {
                 // Corn goes on feature-less plains
                 (w, h)
-                    if terrain_kind == &Kind::Terrain(TerrainType::Plain)
+                    if terrain_kind.0 == Kind::Terrain(TerrainType::Plain)
                         && feature_kind.is_none()
                         && pseudo_rng_instance.random_bool(0.01) =>
                 {
@@ -247,14 +251,14 @@ pub fn generate_map() -> Map {
                 }
                 // Lumber goes on forests
                 (w, h)
-                    if feature_kind == Some(&Kind::Biome(BiomeType::Forest))
+                    if feature_kind.is_some_and(|k| k.0 == Kind::Biome(BiomeType::Forest))
                         && pseudo_rng_instance.random_bool(0.05) =>
                 {
                     update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialType::Lumber))
                 }
                 // Fish goes on oceans
                 (w, h)
-                    if feature_kind == Some(&Kind::Biome(BiomeType::Ocean))
+                    if feature_kind.is_some_and(|k| k.0 == Kind::Biome(BiomeType::Ocean))
                         && pseudo_rng_instance.random_bool(0.01) =>
                 {
                     update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialType::Fish))

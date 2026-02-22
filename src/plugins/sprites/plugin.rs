@@ -2,6 +2,7 @@ use bevy::app::{App, Plugin};
 use bevy::platform::collections::HashMap;
 use bevy::{asset::LoadedFolder, image::ImageSampler, prelude::*};
 
+use crate::plugins::VARIANT_COUNT;
 use crate::state::AppState;
 
 #[derive(Resource, Default)]
@@ -133,26 +134,35 @@ impl SpriteType {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+struct SpriteTypeVariant {
+    sprite_type: SpriteType,
+    variant: u8,
+}
+
 #[derive(Resource)]
 pub struct SpriteAtlas {
     pub texture: Handle<Image>,
     pub layout: Handle<TextureAtlasLayout>,
-    indices: HashMap<SpriteType, usize>,
+    indices: HashMap<SpriteTypeVariant, usize>,
 }
 
 impl SpriteAtlas {
-    pub fn get(&self, sprite: &SpriteType) -> TextureAtlas {
+    pub fn get(&self, sprite_type: &SpriteType, variant: u8) -> TextureAtlas {
         TextureAtlas {
             layout: self.layout.clone(),
             index: *self
                 .indices
-                .get(sprite)
-                .unwrap_or_else(|| panic!("Unknow sprite type {:?}", sprite)),
+                .get(&SpriteTypeVariant {
+                    sprite_type: *sprite_type,
+                    variant,
+                })
+                .unwrap_or_else(|| panic!("Unknow sprite type {:?}", sprite_type)),
         }
     }
 
-    pub fn sprite(&self, sprite_type: &SpriteType) -> Sprite {
-        Sprite::from_atlas_image(self.texture.clone(), self.get(sprite_type))
+    pub fn sprite(&self, sprite_type: &SpriteType, variant: u8) -> Sprite {
+        Sprite::from_atlas_image(self.texture.clone(), self.get(sprite_type, variant))
     }
 }
 
@@ -178,24 +188,34 @@ fn create_sprite_atlas(
     // Create indices from loaded sprites handles (images)
     let indices = SpriteType::all()
         .iter()
-        .map(|&sprite_type| {
-            let index = *texture_atlas_sources
-                .texture_ids
-                .get(
-                    &asset_server
-                        .get_handle(sprite_type.path(0, 0))
-                        .unwrap_or_else(|| {
-                            panic!(
-                                "Cannot find sprite type with path {}",
-                                sprite_type.path(0, 0)
-                            )
-                        })
-                        .id(),
+        .flat_map(|&sprite_type| {
+            // Cloning before move-ing into inner closure
+            let asset_server = asset_server.clone();
+            let texture_ids = texture_atlas_sources.texture_ids.clone();
+            (0..VARIANT_COUNT).map(move |variant| {
+                let index = texture_ids
+                    .get(
+                        &asset_server
+                            .get_handle(sprite_type.path(0, 0))
+                            .unwrap_or_else(|| {
+                                panic!(
+                                    "Cannot find sprite type with path {}",
+                                    sprite_type.path(0, 0)
+                                )
+                            })
+                            .id(),
+                    )
+                    .unwrap();
+                (
+                    SpriteTypeVariant {
+                        sprite_type: sprite_type.clone(),
+                        variant,
+                    },
+                    *index,
                 )
-                .unwrap();
-            (sprite_type, index)
+            })
         })
-        .collect::<HashMap<SpriteType, usize>>();
+        .collect::<HashMap<SpriteTypeVariant, usize>>();
 
     commands.insert_resource(SpriteAtlas {
         texture: texture_atlas_image,

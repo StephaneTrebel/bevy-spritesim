@@ -12,9 +12,9 @@ mod state;
 
 fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map: Res<MapResource>) {
     for (&map_cooordinates, tile) in map.map.iter() {
-        for (_layer, &kind) in tile.layers.iter() {
+        for (_layer, &(kind, variant)) in tile.layers.iter() {
             commands.spawn((
-                atlas.sprite(&kind.get_sprite_type()),
+                atlas.sprite(&kind.get_sprite_type(), variant),
                 Transform {
                     translation: Vec3::new(
                         f32::from(map_cooordinates.0 as u16) * SPRITE_SIZE,
