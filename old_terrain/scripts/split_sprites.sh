@@ -2,7 +2,7 @@
 set -euo pipefail
 
 input=${1:-toto}
-OUTPUT_DIR="assets/sprites/"$input
+OUTPUT_DIR="./"$input
 SPRITE_W=16
 SPRITE_H=16
 COLS=7
@@ -19,7 +19,7 @@ for anim in $(seq 0 $((SECTIONS - 1))); do
       offset_x=$(( col * SPRITE_W ))
       offset_y=$(( anim * SECTION_H + row * SPRITE_H ))
 
-      convert "assets/sprites/terrain/$input.png" \
+      convert "./$input.png" \
         -crop "${SPRITE_W}x${SPRITE_H}+${offset_x}+${offset_y}" \
         +repage \
         "${OUTPUT_DIR}/sprite_terrain_${input}_${variante}_${anim}.png"
