@@ -7,11 +7,8 @@ use crate::state::AppState;
 #[derive(Resource, Default)]
 struct SpriteFolder(Handle<LoadedFolder>);
 
-macro_rules! sprite_path {
-    ($n1:expr) => {
-        concat!("sprites", $n1)
-    };
-}
+// Warning: "assets/" is implied !
+const SPRITE_DIRECTORY_NAME: &str = "sprites";
 
 /// Load an image folder into the `AssetServer`
 fn load_sprite_folder(
@@ -20,8 +17,7 @@ fn load_sprite_folder(
     asset_server: Res<AssetServer>,
 ) {
     commands.insert_resource(SpriteFolder(
-        // Warning: "assets/" is implied !
-        asset_server.load_folder(sprite_path!("")),
+        asset_server.load_folder(SPRITE_DIRECTORY_NAME),
     ));
     next_state.set(AppState::SpriteLoadInProgress)
 }
@@ -91,25 +87,38 @@ pub enum SpriteType {
     Snow,
 }
 
-impl SpriteType {
-    pub fn path(&self) -> &'static str {
-        match self {
-            // TODO: Move non-terrain sprites to their own directory and rename them
-            SpriteType::Corn => sprite_path!("/corn/sprite_terrain_corn_0_0.png"),
-            SpriteType::Debug => sprite_path!("/debug/sprite_terrain_debug_0_0.png"),
-            SpriteType::Desert => sprite_path!("/desert/sprite_terrain_desert_0_0.png"),
-            SpriteType::Fish => sprite_path!("/fish/sprite_terrain_fish_0_0.png"),
-            SpriteType::Forest => sprite_path!("/forest/sprite_terrain_forest_0_0.png"),
-            SpriteType::Hill => sprite_path!("/hill/sprite_terrain_hill_0_0.png"),
-            SpriteType::Lumber => sprite_path!("/lumber/sprite_terrain_lumber_0_0.png"),
-            SpriteType::Mountain => {
-                sprite_path!("/mountain/sprite_terrain_mountain_0_0.png")
+impl std::fmt::Display for SpriteType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                SpriteType::Corn => "corn",
+                SpriteType::Debug => "debug",
+                SpriteType::Desert => "desert",
+                SpriteType::Fish => "fish",
+                SpriteType::Forest => "forest",
+                SpriteType::Hill => "hill",
+                SpriteType::Lumber => "lumber",
+                SpriteType::Mountain => "mountain",
+                SpriteType::Ocean => "ocean",
+                SpriteType::Ore => "ore",
+                SpriteType::Plain => "plain",
+                SpriteType::Snow => "snow",
             }
-            SpriteType::Ocean => sprite_path!("/ocean/sprite_terrain_ocean_0_0.png"),
-            SpriteType::Ore => sprite_path!("/ore/sprite_terrain_ore_0_0.png"),
-            SpriteType::Plain => sprite_path!("/plain/sprite_terrain_plain_0_0.png"),
-            SpriteType::Snow => sprite_path!("/snow/sprite_terrain_snow_0_0.png"),
-        }
+        )?;
+        Ok(())
+    }
+}
+
+impl SpriteType {
+    pub fn path(&self, variant: u8, animation_index: u8) -> String {
+        let sprite_name = self.to_string();
+        let sprite_directory = format!(
+            "{SPRITE_DIRECTORY_NAME}/{}/sprite_terrain_{}_{}_{}.png",
+            sprite_name, sprite_name, variant, animation_index
+        );
+        sprite_directory
     }
 
     // Enumerate on all enum values (this is fine because those are empty variants)
@@ -174,9 +183,12 @@ fn create_sprite_atlas(
                 .texture_ids
                 .get(
                     &asset_server
-                        .get_handle(sprite_type.path())
+                        .get_handle(sprite_type.path(0, 0))
                         .unwrap_or_else(|| {
-                            panic!("Cannot find sprite type with path {}", sprite_type.path())
+                            panic!(
+                                "Cannot find sprite type with path {}",
+                                sprite_type.path(0, 0)
+                            )
                         })
                         .id(),
                 )
