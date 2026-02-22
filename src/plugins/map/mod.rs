@@ -1,5 +1,5 @@
 mod tiles;
 mod plugin;
-pub use plugin::*;
+pub use plugin::MapPlugin;
 mod constants;
-mod setup;
+mod generate;

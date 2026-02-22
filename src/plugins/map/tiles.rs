@@ -1,11 +1,12 @@
 use bevy::platform::collections::HashMap;
 use bevy::{math::vec2, prelude::*};
 use noisy_bevy::{fbm_simplex_2d, simplex_noise_2d_seeded};
+use rand::SeedableRng;
 use rand::{Rng, rngs::StdRng};
-use std::u64::MAX as MAX_u64;
-use std::{ops::Range, u32::MAX as MAX_u32};
+use std::ops::Range;
 
 use crate::plugins::map::constants::SPRITE_SIZE;
+use crate::plugins::{BiomeType, SpecialType, TerrainType};
 
 const MAP_WIDTH: i32 = 200;
 const MAP_HEIGHT: i32 = 200;
@@ -13,7 +14,7 @@ const MAP_HEIGHT: i32 = 200;
 /// A Tile is made of several layers, from bottom to top (only the first one is
 /// mandatory, the other are all optional):
 /// - A base Terrain (Plain, Desert, etc.)
-/// - a Feature (Forest, Hills, etc.)
+/// - a Biome (Forest, Hills, etc.)
 /// - a Special characteristic (Food, Ore, Silver, etc.)
 /// - a Development (Road, Farmland, etc.)
 /// - a Settlement (Village, Fort, etc.)
@@ -21,7 +22,7 @@ const MAP_HEIGHT: i32 = 200;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Layer {
     Terrain,
-    Feature,
+    Biome,
     Special,
 }
 
@@ -29,41 +30,41 @@ pub enum Layer {
 /// drawing functions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Kind {
-    TKind(TerrainKind),
-    FKind(FeatureKind),
-    SKind(SpecialKind),
+    Terrain(TerrainType),
+    Biome(BiomeType),
+    Special(SpecialType),
 }
 
 /// In-memory map for all layers of a Tile
 pub type TileLayers = HashMap<Layer, Kind>;
 
 /// A «Tile» is a superposition of several things that will compose the Map.
-#[derive(Debug)]
-struct Tile {
+#[derive(Debug, Clone)]
+pub struct Tile {
     layers: TileLayers,
 
     // These are called «real» coordinates because they are not the coordinates
     // in the map, but rather are the coordinates of where the sprite will be drawn
-    real_coordinates: (f32, f32),
+    _real_coordinates: (f32, f32),
 }
 
 /// Retrieve the related layer of a Kind
 pub fn get_kind_of_tile_layer(tile: &Tile, layer: &Layer) -> Option<Kind> {
-    return tile.layers.get(layer).map(|layer| layer.clone());
+    tile.layers.get(layer).copied()
 }
 
 /// Retrieve the concrete Kind of a tile on a given Layer
 fn get_layer_from_kind(kind: &Kind) -> Layer {
-    return match kind {
-        Kind::TKind(_) => Layer::Terrain,
-        Kind::FKind(_) => Layer::Feature,
-        Kind::SKind(_) => Layer::Special,
-    };
+    match kind {
+        Kind::Terrain(_) => Layer::Terrain,
+        Kind::Biome(_) => Layer::Biome,
+        Kind::Special(_) => Layer::Special,
+    }
 }
 
 /// In-memory map for all gameplay and render purposes.
 /// This is the heart of the game.
-type Map = HashMap<(i32, i32), Tile>;
+pub type Map = HashMap<(i32, i32), Tile>;
 
 /// Retrieve the adequate tileset indices to properly display a tile.
 ///
@@ -77,55 +78,55 @@ type Map = HashMap<(i32, i32), Tile>;
 pub fn get_tiles_to_display(
     tile: &Tile,
     map: &Map,
-    coordinates: &(i32, i32),
+    map_coordinates: &(i32, i32),
     layer: Layer,
 ) -> (usize, Option<Kind>) {
     let kind = get_kind_of_tile_layer(tile, &layer);
 
-    let default_tile = tile.clone();
+    let default_tile = (*tile).clone();
 
     match layer {
         l if l == Layer::Terrain
-            || l == Layer::Feature
-            || l == Layer::Special && kind == Some(Kind::SKind(SpecialKind::Mountain)) =>
+            || l == Layer::Biome
+            || l == Layer::Special && kind == Some(Kind::Special(SpecialType::Ore)) =>
         {
             let top_left = get_kind_of_tile_layer(
-                map.get(&(coordinates.0 - 1, coordinates.1 + 1))
+                map.get(&(map_coordinates.0 - 1, map_coordinates.1 + 1))
                     .unwrap_or(&default_tile),
                 &layer,
             );
             let top = get_kind_of_tile_layer(
-                map.get(&(coordinates.0, coordinates.1 + 1))
+                map.get(&(map_coordinates.0, map_coordinates.1 + 1))
                     .unwrap_or(&default_tile),
                 &layer,
             );
             let top_right = get_kind_of_tile_layer(
-                map.get(&(coordinates.0 + 1, coordinates.1 + 1))
+                map.get(&(map_coordinates.0 + 1, map_coordinates.1 + 1))
                     .unwrap_or(&default_tile),
                 &layer,
             );
             let left = get_kind_of_tile_layer(
-                map.get(&(coordinates.0 - 1, coordinates.1))
+                map.get(&(map_coordinates.0 - 1, map_coordinates.1))
                     .unwrap_or(&default_tile),
                 &layer,
             );
             let right = get_kind_of_tile_layer(
-                map.get(&(coordinates.0 + 1, coordinates.1))
+                map.get(&(map_coordinates.0 + 1, map_coordinates.1))
                     .unwrap_or(&default_tile),
                 &layer,
             );
             let bottom_left = get_kind_of_tile_layer(
-                map.get(&(coordinates.0 - 1, coordinates.1 - 1))
+                map.get(&(map_coordinates.0 - 1, map_coordinates.1 - 1))
                     .unwrap_or(&default_tile),
                 &layer,
             );
             let bottom = get_kind_of_tile_layer(
-                map.get(&(coordinates.0, coordinates.1 - 1))
+                map.get(&(map_coordinates.0, map_coordinates.1 - 1))
                     .unwrap_or(&default_tile),
                 &layer,
             );
             let bottom_right = get_kind_of_tile_layer(
-                map.get(&(coordinates.0 + 1, coordinates.1 - 1))
+                map.get(&(map_coordinates.0 + 1, map_coordinates.1 - 1))
                     .unwrap_or(&default_tile),
                 &layer,
             );
@@ -143,7 +144,7 @@ pub fn get_tiles_to_display(
             // A second value is returned, which is either None (for regular «full» tiles),
             // or Some(kind) which is the "background" tile on top of which a partial tile
             // will be applied (think an ocean shore on top of a plain to make a beach).
-            return match (
+            match (
                 top_left == kind,
                 top == kind,
                 top_right == kind,
@@ -223,11 +224,9 @@ pub fn get_tiles_to_display(
                 (true, true, true, true, true, true, true, true) => (8, top_left),
                 (false, true, false, true, true, false, true, false) => (40, top_left),
                 (_, _, _, _, _, _, _, _) => (24, top), // "top" is always false in the default case
-            };
+            }
         }
-        _ => {
-            return (0, None);
-        }
+        _ => (0, None),
     }
 }
 
@@ -252,10 +251,8 @@ fn generate_multiple_patches(
     for w in 1..count {
         for h in 1..count {
             patch_centers.push((
-                pseudo_rng_instance.random_range(-max_offset..=max_offset)
-                    + MAP_WIDTH as i32 * w / count,
-                pseudo_rng_instance.random_range(-max_offset..=max_offset)
-                    + MAP_HEIGHT as i32 * h / count,
+                pseudo_rng_instance.random_range(-max_offset..=max_offset) + MAP_WIDTH * w / count,
+                pseudo_rng_instance.random_range(-max_offset..=max_offset) + MAP_HEIGHT * h / count,
             ));
         }
     }
@@ -272,42 +269,44 @@ fn generate_multiple_patches(
                 // the patch will have)
                 let offset = simplex_noise_2d_seeded(
                     vec2(w as f32, h as f32) * frequency_scale,
-                    pseudo_rng_instance.random_range(0..MAX_u32) as f32,
+                    pseudo_rng_instance.random_range(0..u32::MAX) as f32,
                 ) * amplitude_scale;
 
                 // Height will serve, with a threshold cutoff, as sizing the resulting patch
                 let height = radius + offset - ((w * w + h * h) as f32).sqrt();
                 let height_threshold = 0.;
 
-                let key = (
+                let map_coordinates = (
                     // No sense in adding tiles outside of the map
                     (coordinates.0 + w).clamp(1, MAP_WIDTH - 1),
                     (coordinates.1 + h).clamp(1, MAP_HEIGHT - 1),
                 );
 
-                let layers = map.get(&key).unwrap().layers.clone();
+                let layers = map.get(&map_coordinates).unwrap().layers.clone();
 
                 // Here we go !
                 if
                 // Height threshold for size the shape
                 (height > height_threshold) &&
                 // Only replace tile when necessary (for instance, Forest tiles can only be placed on Plains)
-                ( kind != Kind::FKind(FeatureKind::Forest)
+                ( kind != Kind::Biome(BiomeType::Forest)
                   || ( layers.get(&Layer::Terrain).unwrap()
-                       == &Kind::TKind(TerrainKind::Plain) ) && layers.get(&Layer::Feature) == None)
+                       == &Kind::Terrain(TerrainType::Plain) ) && layers.get(&Layer::Biome).is_none())
                 {
-                    let screen_coordinates =
-                        (key.0 as f32 * SPRITE_SIZE, key.1 as f32 * SPRITE_SIZE);
+                    let screen_coordinates = (
+                        map_coordinates.0 as f32 * SPRITE_SIZE,
+                        map_coordinates.1 as f32 * SPRITE_SIZE,
+                    );
                     let mut existing_tile_layers = layers.clone();
 
                     // @TODO Hack for regular terrain generation, should be better handled
-                    existing_tile_layers.remove(&Layer::Feature);
+                    existing_tile_layers.remove(&Layer::Biome);
 
-                    map.insert(key, {
+                    map.insert(map_coordinates, {
                         existing_tile_layers.insert(get_layer_from_kind(&kind), kind);
                         Tile {
                             layers: existing_tile_layers,
-                            real_coordinates: screen_coordinates,
+                            _real_coordinates: screen_coordinates,
                         }
                     });
                 }
@@ -320,38 +319,29 @@ fn generate_multiple_patches(
 fn update_tile_in_map(
     map: &mut Map,
     coordinates: &(i32, i32),
-    terrain_kind: Option<&TerrainKind>,
-    feature_kind: Option<&FeatureKind>,
-    special_kind: Option<&SpecialKind>,
+    terrain_kind: Option<&TerrainType>,
+    biome_kind: Option<&BiomeType>,
+    special_kind: Option<&SpecialType>,
 ) {
-    map.insert(coordinates.clone(), {
+    map.insert(*coordinates, {
         Tile {
             layers: {
                 let mut layers = match map.get(coordinates) {
                     Some(tile) => tile.layers.clone(),
                     None => TileLayers::new(),
                 };
-                match terrain_kind {
-                    Some(kind) => {
-                        layers.insert(Layer::Terrain, Kind::TKind(kind.clone()));
-                    }
-                    _ => {}
+                if let Some(kind) = terrain_kind {
+                    layers.insert(Layer::Terrain, Kind::Terrain(*kind));
                 };
-                match feature_kind {
-                    Some(kind) => {
-                        layers.insert(Layer::Feature, Kind::FKind(kind.clone()));
-                    }
-                    _ => {}
+                if let Some(kind) = biome_kind {
+                    layers.insert(Layer::Biome, Kind::Biome(*kind));
                 };
-                match special_kind {
-                    Some(kind) => {
-                        layers.insert(Layer::Special, Kind::SKind(kind.clone()));
-                    }
-                    _ => {}
+                if let Some(kind) = special_kind {
+                    layers.insert(Layer::Special, Kind::Special(*kind));
                 };
                 layers
             },
-            real_coordinates: (
+            _real_coordinates: (
                 (coordinates.0 as f32) * SPRITE_SIZE,
                 (coordinates.1 as f32) * SPRITE_SIZE,
             ),
@@ -359,12 +349,13 @@ fn update_tile_in_map(
     });
 }
 
-/// Main map building function.
+/// Main map generation function.
 ///
 /// Size are hard-coded so the only need parameter is the PRNG instance to generate
 /// seeds for the different layers (patch groups) that are applied on the map.
-pub fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
-    let map_seed = pseudo_rng_instance.random_range(0..MAX_u64);
+pub fn generate_map() -> Map {
+    let mut pseudo_rng_instance = StdRng::from_rng(&mut rand::rng());
+    let map_seed = pseudo_rng_instance.random_range(0..u64::MAX);
     dbg!(map_seed);
     let mut map: Map = HashMap::new();
 
@@ -399,9 +390,9 @@ pub fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
                 if h > map_middle_h - desert_band_thickness - delta
                     && h < map_middle_h + desert_band_thickness + delta
                 {
-                    TerrainKind::Desert
+                    TerrainType::Desert
                 } else {
-                    TerrainKind::Plain
+                    TerrainType::Plain
                 }
             };
 
@@ -420,7 +411,7 @@ pub fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
                         &mut map,
                         &(w, h),
                         Some(&base_terrain),
-                        Some(&FeatureKind::Hill),
+                        Some(&BiomeType::Hill),
                         None,
                     );
                 }
@@ -429,8 +420,8 @@ pub fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
                         &mut map,
                         &(w, h),
                         Some(&base_terrain),
-                        Some(&FeatureKind::Hill),
-                        Some(&SpecialKind::Mountain),
+                        Some(&BiomeType::Hill),
+                        Some(&SpecialType::Ore),
                     );
                 }
                 _ => {
@@ -438,7 +429,7 @@ pub fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
                         &mut map,
                         &(w, h),
                         Some(&base_terrain),
-                        Some(&FeatureKind::Ocean),
+                        Some(&BiomeType::Ocean),
                         None,
                     );
                 }
@@ -450,7 +441,7 @@ pub fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
     generate_multiple_patches(
         &mut pseudo_rng_instance,
         &mut map,
-        Kind::FKind(FeatureKind::Forest),
+        Kind::Biome(BiomeType::Forest),
         15,
         1..3,
         0.05..1.0,
@@ -462,43 +453,43 @@ pub fn build_map(mut pseudo_rng_instance: &mut StdRng) -> Map {
         for h in 0..=MAP_HEIGHT {
             let tile = map.get(&(w, h)).unwrap();
             let terrain_kind = tile.layers.get(&Layer::Terrain).unwrap();
-            let feature_kind = tile.layers.get(&Layer::Feature);
+            let feature_kind = tile.layers.get(&Layer::Biome);
             // let special_kind = tile.layers.get(&Layer::Special);
             match (w, h) {
                 // Corn goes on feature-less plains
                 (w, h)
-                    if terrain_kind == &Kind::TKind(TerrainKind::Plain)
-                        && feature_kind == None
+                    if terrain_kind == &Kind::Terrain(TerrainType::Plain)
+                        && feature_kind.is_none()
                         && pseudo_rng_instance.random_bool(0.01) =>
                 {
-                    update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialKind::Corn))
+                    update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialType::Corn))
                 }
                 // Lumber goes on forests
                 (w, h)
-                    if feature_kind == Some(&Kind::FKind(FeatureKind::Forest))
+                    if feature_kind == Some(&Kind::Biome(BiomeType::Forest))
                         && pseudo_rng_instance.random_bool(0.05) =>
                 {
-                    update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialKind::Lumber))
+                    update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialType::Lumber))
                 }
                 // Fish goes on oceans
                 (w, h)
-                    if feature_kind == Some(&Kind::FKind(FeatureKind::Ocean))
+                    if feature_kind == Some(&Kind::Biome(BiomeType::Ocean))
                         && pseudo_rng_instance.random_bool(0.01) =>
                 {
-                    update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialKind::Fish))
+                    update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialType::Fish))
                 }
                 _ => {}
             }
         }
     }
 
-    return map;
+    map
 }
 
-pub fn get_zindex_from_kind(kind: &Kind) -> f32 {
-    return match kind {
-        Kind::TKind(_) => 1.,
-        Kind::FKind(_) => 2.,
-        Kind::SKind(_) => 3.,
-    };
-}
+// pub fn get_zindex_from_kind(kind: &Kind) -> f32 {
+    // return match kind {
+        // Kind::Terrain(_) => 1.,
+        // Kind::Biome(_) => 2.,
+        // Kind::Special(_) => 3.,
+    // };
+// }

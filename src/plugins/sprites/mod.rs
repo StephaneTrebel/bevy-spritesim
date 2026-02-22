@@ -1,2 +1,4 @@
 mod plugin;
-pub use plugin::{SpriteAtlas, SpritePlugin, SpriteType};
+pub use plugin::{
+    SpriteAtlas, SpritePlugin, SpriteTerrainType,
+};

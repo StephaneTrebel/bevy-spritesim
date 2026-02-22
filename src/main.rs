@@ -2,8 +2,9 @@ use bevy::{prelude::*, window::*};
 use plugins::camera::CameraPlugin;
 use plugins::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH, WINDOW_SCALE_FACTOR};
 
+use crate::plugins::map::MapPlugin;
 use crate::plugins::sprites::SpritePlugin;
-use crate::plugins::{SpriteAtlas, SpriteType};
+use crate::plugins::{SpriteAtlas, SpriteTerrainType};
 use crate::state::AppState;
 
 mod plugins;
@@ -11,7 +12,7 @@ mod state;
 
 fn draw(mut commands: Commands, atlas: Res<SpriteAtlas>) {
     commands.spawn((
-        atlas.sprite(SpriteType::Corn),
+        atlas.sprite(SpriteTerrainType::Debug),
         Transform {
             translation: Vec3::new(0., 0., 0.),
             scale: Vec3::splat(1.),
@@ -43,6 +44,7 @@ fn main() {
                 })
                 .set(ImagePlugin::default_nearest()),
             SpritePlugin,
+            MapPlugin,
             CameraPlugin,
         ))
         .init_state::<AppState>()

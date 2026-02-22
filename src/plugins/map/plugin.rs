@@ -1,11 +1,34 @@
-use bevy::app::{App, Plugin, Startup};
+use bevy::{
+    app::{App, Plugin},
+    ecs::{
+        resource::Resource,
+        system::{Commands, ResMut},
+    },
+    state::state::{NextState, OnEnter},
+};
 
-use crate::plugins::map::setup::setup;
+use crate::{
+    plugins::map::tiles::{Map, generate_map},
+    state::AppState,
+};
 
 pub struct MapPlugin;
 
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup);
+        app.add_systems(OnEnter(AppState::MapGenerationStart), setup_map);
     }
+}
+
+#[derive(Resource)]
+struct MapResource {
+    map: Map,
+}
+
+fn setup_map(mut commands: Commands, mut next_state: ResMut<NextState<AppState>>) {
+    commands.insert_resource(MapResource {
+        map: generate_map(),
+    });
+
+    next_state.set(AppState::ReadyToDraw);
 }
