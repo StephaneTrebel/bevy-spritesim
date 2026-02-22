@@ -8,7 +8,7 @@ use bevy::{
 };
 
 use crate::{
-    plugins::map::tiles::{Map, generate_map},
+    plugins::map::{Map, generator::generate_map},
     state::AppState,
 };
 
