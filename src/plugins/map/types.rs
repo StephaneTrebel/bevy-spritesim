@@ -71,7 +71,7 @@ pub struct Tile {
 
     // These are called «real» coordinates because they are not the coordinates
     // in the map, but rather are the coordinates of where the sprite will be drawn
-    pub _real_coordinates: (f32, f32),
+    pub real_coordinates: (f32, f32),
 }
 
 /// In-memory map for all gameplay and render purposes.

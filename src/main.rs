@@ -2,32 +2,12 @@ use bevy::{prelude::*, window::*};
 use plugins::camera::CameraPlugin;
 use plugins::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH, WINDOW_SCALE_FACTOR};
 
-use crate::plugins::map::{MapPlugin, MapResource};
+use crate::plugins::map::{MapPlugin, draw_map};
 use crate::plugins::sprites::SpritePlugin;
-use crate::plugins::{SPRITE_SIZE, SpriteAtlas};
 use crate::state::AppState;
 
 mod plugins;
 mod state;
-
-fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map: Res<MapResource>) {
-    for (&map_cooordinates, tile) in map.map.iter() {
-        for (_layer, &(kind, variant)) in tile.layers.iter() {
-            commands.spawn((
-                atlas.sprite(&kind.get_sprite_type(), variant),
-                Transform {
-                    translation: Vec3::new(
-                        f32::from(map_cooordinates.0 as u16) * SPRITE_SIZE,
-                        f32::from(map_cooordinates.1 as u16) * SPRITE_SIZE,
-                        0.,
-                    ),
-                    scale: Vec3::splat(1.),
-                    ..default()
-                },
-            ));
-        }
-    }
-}
 
 /// There we go !
 fn main() {
