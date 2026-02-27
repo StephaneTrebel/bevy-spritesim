@@ -327,9 +327,10 @@ pub fn get_tile_layer_variant(
 /// Size are hard-coded so the only need parameter is the PRNG instance to generate
 /// seeds for the different layers (patch groups) that are applied on the map.
 pub fn generate_map() -> Map {
+    info!("Generating map…");
     let mut pseudo_rng_instance = StdRng::from_rng(&mut rand::rng());
     let map_seed = pseudo_rng_instance.random_range(0..u64::MAX);
-    dbg!(map_seed);
+    info!("Map seed: {map_seed}");
     let mut map: Map = HashMap::new();
 
     // Noise map parameters
@@ -456,5 +457,6 @@ pub fn generate_map() -> Map {
         }
     }
 
+    info!("Done generating map.");
     map
 }

@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use crate::plugins::{SpriteAtlas, map::MapResource};
 
 pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map: Res<MapResource>) {
+    info!("Drawing map…");
     for (_map_coordinates, tile) in map.map.iter() {
         for (_layer, &(kind, variant)) in tile.layers.iter() {
             commands.spawn((

@@ -208,7 +208,7 @@ fn create_sprite_atlas(
                     .unwrap();
                 (
                     SpriteTypeVariant {
-                        sprite_type: sprite_type.clone(),
+                        sprite_type,
                         variant,
                     },
                     *index,

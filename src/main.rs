@@ -1,3 +1,4 @@
+use bevy::log::LogPlugin;
 use bevy::{prelude::*, window::*};
 use plugins::camera::CameraPlugin;
 use plugins::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH, WINDOW_SCALE_FACTOR};
@@ -31,7 +32,10 @@ fn main() {
                     }),
                     ..default()
                 })
-                .set(ImagePlugin::default_nearest()),
+                .set(ImagePlugin::default_nearest())
+                .set(LogPlugin {
+                    ..default()
+                }),
             SpritePlugin,
             MapPlugin,
             CameraPlugin,
