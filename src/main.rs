@@ -2,6 +2,7 @@ use bevy::{prelude::*, window::*};
 use plugins::camera::CameraPlugin;
 use plugins::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH, WINDOW_SCALE_FACTOR};
 
+use crate::plugins::CustomFpsOverlayPlugin;
 use crate::plugins::map::{MapPlugin, draw_map};
 use crate::plugins::sprites::SpritePlugin;
 use crate::state::AppState;
@@ -34,6 +35,7 @@ fn main() {
             SpritePlugin,
             MapPlugin,
             CameraPlugin,
+            CustomFpsOverlayPlugin
         ))
         .init_state::<AppState>()
         .add_systems(OnEnter(AppState::ReadyToDraw), draw_map)
