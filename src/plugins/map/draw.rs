@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::plugins::{
-    SpriteAtlas, TerrainLayer, ZoneLayer,
+    SpriteAtlas, TerrainLayer,
     map::{Map, MapResource, Tile},
 };
 
@@ -74,45 +74,19 @@ pub fn get_terrain_variant(
     map_coordinates: &(u16, u16),
 ) -> (u8, TerrainLayer) {
     let terrain = tile.terrain;
-    let default_terrain = TerrainLayer::Debug;
 
     // TODO Use _base_tile ? It was previously use for the underlying tile
     let (variant, base_tile) = {
-        let top_left = map
-            .get(&(map_coordinates.0.saturating_sub(1), map_coordinates.1 + 1))
-            .map(|tile| tile.terrain)
-            .unwrap_or(default_terrain);
-        let top = map
-            .get(&(map_coordinates.0, map_coordinates.1 + 1))
-            .map(|tile| tile.terrain)
-            .unwrap_or(default_terrain);
-        let top_right = map
-            .get(&(map_coordinates.0 + 1, map_coordinates.1 + 1))
-            .map(|tile| tile.terrain)
-            .unwrap_or(default_terrain);
-        let left = map
-            .get(&(map_coordinates.0.saturating_sub(1), map_coordinates.1))
-            .map(|tile| tile.terrain)
-            .unwrap_or(default_terrain);
-        let right = map
-            .get(&(map_coordinates.0 + 1, map_coordinates.1))
-            .map(|tile| tile.terrain)
-            .unwrap_or(default_terrain);
-        let bottom_left = map
-            .get(&(
-                map_coordinates.0.saturating_sub(1),
-                map_coordinates.1.saturating_sub(1),
-            ))
-            .map(|tile| tile.terrain)
-            .unwrap_or(default_terrain);
-        let bottom = map
-            .get(&(map_coordinates.0, map_coordinates.1.saturating_sub(1)))
-            .map(|tile| tile.terrain)
-            .unwrap_or(default_terrain);
-        let bottom_right = map
-            .get(&(map_coordinates.0 + 1, map_coordinates.1.saturating_sub(1)))
-            .map(|tile| tile.terrain)
-            .unwrap_or(default_terrain);
+        let Neighbours {
+            bottom,
+            bottom_left,
+            bottom_right,
+            left,
+            right,
+            top,
+            top_left,
+            top_right,
+        } = get_neighbours(map, map_coordinates);
 
         // The main algorithm relies on a truth table which determines a tileset index
         // to use based on the ones surrounding the current tile:
@@ -128,14 +102,14 @@ pub fn get_terrain_variant(
         // or Some(terrain) which is the "background" tile on top of which a partial tile
         // will be applied (think an ocean shore on top of a plain to make a beach).
         match (
-            top_left == terrain,
-            top == terrain,
-            top_right == terrain,
-            left == terrain,
-            right == terrain,
-            bottom_left == terrain,
-            bottom == terrain,
-            bottom_right == terrain,
+            top_left.terrain == terrain,
+            top.terrain == terrain,
+            top_right.terrain == terrain,
+            left.terrain == terrain,
+            right.terrain == terrain,
+            bottom_left.terrain == terrain,
+            bottom.terrain == terrain,
+            bottom_right.terrain == terrain,
         ) {
             // Regular corners
             (_, false, _, false, true, _, true, true) => (0, top),
@@ -210,7 +184,7 @@ pub fn get_terrain_variant(
         }
     };
 
-    (variant, base_tile)
+    (variant, base_tile.terrain)
 }
 
 pub fn get_zone_variant(
@@ -219,43 +193,19 @@ pub fn get_zone_variant(
     map_coordinates: &(u16, u16),
 ) -> (u8, TerrainLayer) {
     let zone = tile.zone;
-    let default_zone = ZoneLayer::Mountain;
-    let default_tile = &Tile {
-        feature: None,
-        zone: None,
-        terrain: TerrainLayer::Debug,
-        real_coordinates: (0., 0.),
-    };
 
     // TODO Use _base_tile ? It was previously use for the underlying tile
     let (variant, base_tile) = {
-        let top_left = map
-            .get(&(map_coordinates.0.saturating_sub(1), map_coordinates.1 + 1))
-            .unwrap_or(default_tile);
-        let top = map
-            .get(&(map_coordinates.0, map_coordinates.1 + 1))
-            .unwrap_or(default_tile);
-        let top_right = map
-            .get(&(map_coordinates.0 + 1, map_coordinates.1 + 1))
-            .unwrap_or(default_tile);
-        let left = map
-            .get(&(map_coordinates.0.saturating_sub(1), map_coordinates.1))
-            .unwrap_or(default_tile);
-        let right = map
-            .get(&(map_coordinates.0 + 1, map_coordinates.1))
-            .unwrap_or(default_tile);
-        let bottom_left = map
-            .get(&(
-                map_coordinates.0.saturating_sub(1),
-                map_coordinates.1.saturating_sub(1),
-            ))
-            .unwrap_or(default_tile);
-        let bottom = map
-            .get(&(map_coordinates.0, map_coordinates.1.saturating_sub(1)))
-            .unwrap_or(default_tile);
-        let bottom_right = map
-            .get(&(map_coordinates.0 + 1, map_coordinates.1.saturating_sub(1)))
-            .unwrap_or(default_tile);
+        let Neighbours {
+            bottom,
+            bottom_left,
+            bottom_right,
+            left,
+            right,
+            top,
+            top_left,
+            top_right,
+        } = get_neighbours(map, map_coordinates);
 
         // The main algorithm relies on a truth table which determines a tileset index
         // to use based on the ones surrounding the current tile:
@@ -354,4 +304,53 @@ pub fn get_zone_variant(
     };
 
     (variant, base_tile.terrain)
+}
+
+struct Neighbours<'a> {
+    bottom: &'a Tile,
+    bottom_left: &'a Tile,
+    bottom_right: &'a Tile,
+    left: &'a Tile,
+    right: &'a Tile,
+    top: &'a Tile,
+    top_left: &'a Tile,
+    top_right: &'a Tile,
+}
+
+fn get_neighbours<'a>(map: &'a Map, map_coordinates: &(u16, u16)) -> Neighbours<'a> {
+    let default_tile = &Tile {
+        feature: None,
+        zone: None,
+        terrain: TerrainLayer::Debug,
+        real_coordinates: (0., 0.),
+    };
+    Neighbours {
+        top_left: map
+            .get(&(map_coordinates.0.saturating_sub(1), map_coordinates.1 + 1))
+            .unwrap_or(default_tile),
+        top: map
+            .get(&(map_coordinates.0, map_coordinates.1 + 1))
+            .unwrap_or(default_tile),
+        top_right: map
+            .get(&(map_coordinates.0 + 1, map_coordinates.1 + 1))
+            .unwrap_or(default_tile),
+        left: map
+            .get(&(map_coordinates.0.saturating_sub(1), map_coordinates.1))
+            .unwrap_or(default_tile),
+        right: map
+            .get(&(map_coordinates.0 + 1, map_coordinates.1))
+            .unwrap_or(default_tile),
+        bottom_left: map
+            .get(&(
+                map_coordinates.0.saturating_sub(1),
+                map_coordinates.1.saturating_sub(1),
+            ))
+            .unwrap_or(default_tile),
+        bottom: map
+            .get(&(map_coordinates.0, map_coordinates.1.saturating_sub(1)))
+            .unwrap_or(default_tile),
+        bottom_right: map
+            .get(&(map_coordinates.0 + 1, map_coordinates.1.saturating_sub(1)))
+            .unwrap_or(default_tile),
+    }
 }
