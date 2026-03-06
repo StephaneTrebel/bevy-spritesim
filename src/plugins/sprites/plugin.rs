@@ -196,7 +196,7 @@ fn create_sprite_atlas(
                 let index = texture_ids
                     .get(
                         &asset_server
-                            .get_handle(sprite_type.path(0, 0))
+                            .get_handle(sprite_type.path(variant, 0))
                             .unwrap_or_else(|| {
                                 panic!(
                                     "Cannot find sprite type with path {}",

@@ -5,36 +5,41 @@ use rand::SeedableRng;
 use rand::{Rng, rngs::StdRng};
 use std::ops::Range;
 
-use crate::plugins::map::{Kind, Layer, Map, Tile, TileLayers, get_layer_from_kind};
-use crate::plugins::{BiomeType, SPRITE_SIZE, SpecialType, TerrainType};
+use crate::plugins::map::{Map, Tile};
+use crate::plugins::{FeatureLayer, SPRITE_SIZE, TerrainLayer, ZoneLayer};
 
-const MAP_HEIGHT: i32 = 200;
-const MAP_WIDTH: i32 = 200;
+const MAP_HEIGHT: u16 = 200;
+const MAP_WIDTH: u16 = 200;
+
+// Center map inside camera frustrum
+const X_OFFSET: f32 = SPRITE_SIZE * (MAP_WIDTH as f32) / 2.;
+const Y_OFFSET: f32 = SPRITE_SIZE * (MAP_HEIGHT as f32) / 2.;
 
 /// Generates several terrain patches in one go.
 ///
 /// Use this function to avoid having to place patches one by one.
 /// Patches are put in a kinda equidistant positions (based on their count), and
 /// every parameter is randomly adjusted to simulate realism and RNG
-fn generate_multiple_patches(
+fn generate_multiple_patches_for_a_zone(
     pseudo_rng_instance: &mut StdRng,
     map: &mut Map,
-    kind: Kind,
-    count: i32,
-    radius_range: Range<i32>,
+    zone: ZoneLayer,
+    count: u16,
+    radius_range: Range<u16>,
     frequency_range: Range<f32>,
     amplitude_range: Range<f32>,
 ) {
     // Positions patches centers on the map
     // (kinda equidistant, but with random variations)
-    let max_offset = 5;
-    let mut patch_centers: Vec<(i32, i32)> = Vec::new();
+    let max_offset: i16 = 5;
+    let mut patch_centers: Vec<(u16, u16)> = Vec::new();
     for w in 1..count {
         for h in 1..count {
-            patch_centers.push((
-                pseudo_rng_instance.random_range(-max_offset..=max_offset) + MAP_WIDTH * w / count,
-                pseudo_rng_instance.random_range(-max_offset..=max_offset) + MAP_HEIGHT * h / count,
-            ));
+            let px: i16 = pseudo_rng_instance.random_range(-max_offset..=max_offset);
+            let py: i16 = pseudo_rng_instance.random_range(-max_offset..=max_offset);
+            let x: u16 = ((px + MAP_WIDTH as i16) as u16) * w / count;
+            let y: u16 = ((py + MAP_HEIGHT as i16) as u16) * h / count;
+            patch_centers.push((x, y));
         }
     }
 
@@ -43,7 +48,7 @@ fn generate_multiple_patches(
         let radius = pseudo_rng_instance.random_range(radius_range.clone()) as f32;
         let frequency_scale = pseudo_rng_instance.random_range(frequency_range.clone());
         let amplitude_scale = pseudo_rng_instance.random_range(amplitude_range.clone());
-        let grid_half_size = radius as i32 + 1;
+        let grid_half_size: i16 = radius as i16 + 1;
         for w in -grid_half_size..=grid_half_size {
             for h in -grid_half_size..=grid_half_size {
                 // Compute noise offset (That will contribute to the "blob" shape
@@ -59,42 +64,24 @@ fn generate_multiple_patches(
 
                 let map_coordinates = (
                     // No sense in adding tiles outside of the map
-                    (coordinates.0 + w).clamp(1, MAP_WIDTH - 1),
-                    (coordinates.1 + h).clamp(1, MAP_HEIGHT - 1),
+                    ((coordinates.0 as i16 + w) as u16).clamp(1, MAP_WIDTH - 1),
+                    ((coordinates.1 as i16 + h) as u16).clamp(1, MAP_HEIGHT - 1),
                 );
 
-                let layers = map.get(&map_coordinates).unwrap().layers.clone();
+                // let layers = map.get(&map_coordinates).unwrap().layers.clone();
+                let tile = map.get(&map_coordinates).unwrap();
 
                 // Here we go !
-                if
+                //
                 // Height threshold for size the shape
-                (height > height_threshold) &&
+                if (height > height_threshold) &&
                 // Only replace tile when necessary (for instance, Forest tiles can only be placed on Plains)
-                ( kind != Kind::Biome(BiomeType::Forest)
-                  || ( layers.get(&Layer::Terrain).unwrap().0
-                       == Kind::Terrain(TerrainType::Plain) ) && layers.get(&Layer::Biome).is_none())
+                (zone != ZoneLayer::Forest || ( tile.terrain == TerrainLayer::Plain ))
                 {
-                    let screen_coordinates = (
-                        map_coordinates.0 as f32 * SPRITE_SIZE,
-                        map_coordinates.1 as f32 * SPRITE_SIZE,
-                    );
-                    let mut existing_tile_layers = layers.clone();
-
-                    // @TODO Hack for regular terrain generation, should be better handled
-                    existing_tile_layers.remove(&Layer::Biome);
-
-                    let layer = get_layer_from_kind(&kind);
                     map.insert(map_coordinates, {
-                        existing_tile_layers.insert(
-                            layer,
-                            (
-                                kind,
-                                get_tile_layer_variant(&Some(kind), map, &map_coordinates, layer),
-                            ),
-                        );
                         Tile {
-                            layers: existing_tile_layers,
-                            real_coordinates: screen_coordinates,
+                            zone: Some(zone),
+                            ..*tile
                         }
                     });
                 }
@@ -103,68 +90,32 @@ fn generate_multiple_patches(
     }
 }
 
-/// Only used in building the map
-fn update_tile_in_map(
+/// Only used while building the map
+fn upsert_tile_in_map(
     map: &mut Map,
-    map_coordinates: &(i32, i32),
-    terrain_kind: Option<&TerrainType>,
-    biome_kind: Option<&BiomeType>,
-    special_kind: Option<&SpecialType>,
+    map_coordinates: &(u16, u16),
+    terrain: Option<&TerrainLayer>,
+    zone: Option<&ZoneLayer>,
+    feature: Option<&FeatureLayer>,
 ) {
+    let existing_tile = map.get(map_coordinates);
+
     map.insert(*map_coordinates, {
         Tile {
-            layers: {
-                let mut layers = match map.get(map_coordinates) {
-                    Some(tile) => tile.layers.clone(),
-                    None => TileLayers::new(),
-                };
-                if let Some(kind) = terrain_kind {
-                    let layer = Layer::Terrain;
-                    let kind = Kind::Terrain(*kind);
-                    layers.insert(
-                        layer,
-                        (
-                            kind,
-                            get_tile_layer_variant(&Some(kind), map, map_coordinates, layer),
-                        ),
-                    );
-                };
-                if let Some(kind) = biome_kind {
-                    let layer = Layer::Biome;
-                    let kind = Kind::Biome(*kind);
-                    layers.insert(
-                        layer,
-                        (
-                            kind,
-                            get_tile_layer_variant(&Some(kind), map, map_coordinates, layer),
-                        ),
-                    );
-                };
-                if let Some(kind) = special_kind {
-                    let layer = Layer::Terrain;
-                    let kind = Kind::Special(*kind);
-                    layers.insert(
-                        layer,
-                        (
-                            kind,
-                            get_tile_layer_variant(&Some(kind), map, map_coordinates, layer),
-                        ),
-                    );
-                };
-                layers
+            terrain: match terrain {
+                Some(t) => *t,
+                None => existing_tile.expect("No terrain for new tile").terrain,
             },
+            zone: zone.copied(),
+            feature: feature.copied(),
             real_coordinates: (
-                (map_coordinates.0 as f32) * SPRITE_SIZE,
-                (map_coordinates.1 as f32) * SPRITE_SIZE,
+                (map_coordinates.0 as f32) * SPRITE_SIZE - X_OFFSET,
+                (map_coordinates.1 as f32) * SPRITE_SIZE - Y_OFFSET,
             ),
         }
     });
 }
 
-/// Retrieve the related layer of a Kind
-pub fn get_kind_of_tile_layer(tile: &Tile, layer: &Layer) -> Option<Kind> {
-    tile.layers.get(layer).map(|l| l.0)
-}
 /// Retrieve the adequate tileset indices to properly display a tile.
 ///
 /// Indeed, tiles can either be one in the center of a patch (hence the tileable
@@ -174,149 +125,147 @@ pub fn get_kind_of_tile_layer(tile: &Tile, layer: &Layer) -> Option<Kind> {
 /// Additionnaly if a «partial» tile (like a corner) is used, we have to add
 /// an underlying tile to serve as background so for instance a beach is composed of
 /// a plain (its shore) and the ocean (its beach) over it.
-pub fn get_tile_layer_variant(
-    kind: &Option<Kind>,
-    map: &Map,
-    map_coordinates: &(i32, i32),
-    layer: Layer,
-) -> u8 {
-    let default_kind = Kind::Terrain(TerrainType::Debug);
+pub fn get_terrain_variant(tile: Tile, map: &Map, map_coordinates: &(u16, u16)) -> u8 {
+    let terrain = tile.terrain;
+    let default_terrain = TerrainLayer::Debug;
 
     // TODO Use _base_tile ? It was previously use for the underlying tile
-    let (variant, _base_tile) = match layer {
-        l if l == Layer::Terrain
-            || l == Layer::Biome
-            || l == Layer::Special && *kind == Some(Kind::Special(SpecialType::Ore)) =>
-        {
-            let top_left = map
-                .get(&(map_coordinates.0 - 1, map_coordinates.1 + 1))
-                .and_then(|tile| get_kind_of_tile_layer(tile, &layer))
-                .or(Some(default_kind));
-            let top = map
-                .get(&(map_coordinates.0, map_coordinates.1 + 1))
-                .and_then(|tile| get_kind_of_tile_layer(tile, &layer))
-                .or(Some(default_kind));
-            let top_right = map
-                .get(&(map_coordinates.0 + 1, map_coordinates.1 + 1))
-                .and_then(|tile| get_kind_of_tile_layer(tile, &layer))
-                .or(Some(default_kind));
-            let left = map
-                .get(&(map_coordinates.0 - 1, map_coordinates.1))
-                .and_then(|tile| get_kind_of_tile_layer(tile, &layer))
-                .or(Some(default_kind));
-            let right = map
-                .get(&(map_coordinates.0 + 1, map_coordinates.1))
-                .and_then(|tile| get_kind_of_tile_layer(tile, &layer))
-                .or(Some(default_kind));
-            let bottom_left = map
-                .get(&(map_coordinates.0 - 1, map_coordinates.1 - 1))
-                .and_then(|tile| get_kind_of_tile_layer(tile, &layer))
-                .or(Some(default_kind));
-            let bottom = map
-                .get(&(map_coordinates.0, map_coordinates.1 - 1))
-                .and_then(|tile| get_kind_of_tile_layer(tile, &layer))
-                .or(Some(default_kind));
-            let bottom_right = map
-                .get(&(map_coordinates.0 + 1, map_coordinates.1 - 1))
-                .and_then(|tile| get_kind_of_tile_layer(tile, &layer))
-                .or(Some(default_kind));
+    let (variant, _base_tile) = {
+        let top_left = map
+            .get(&(map_coordinates.0 - 1, map_coordinates.1 + 1))
+            .and_then(|tile| Some(tile.terrain))
+            .or(Some(default_terrain))
+            .unwrap();
+        let top = map
+            .get(&(map_coordinates.0, map_coordinates.1 + 1))
+            .and_then(|tile| Some(tile.terrain))
+            .or(Some(default_terrain))
+            .unwrap();
+        let top_right = map
+            .get(&(map_coordinates.0 + 1, map_coordinates.1 + 1))
+            .and_then(|tile| Some(tile.terrain))
+            .or(Some(default_terrain))
+            .unwrap();
+        let left = map
+            .get(&(map_coordinates.0 - 1, map_coordinates.1))
+            .and_then(|tile| Some(tile.terrain))
+            .or(Some(default_terrain))
+            .unwrap();
+        let right = map
+            .get(&(map_coordinates.0 + 1, map_coordinates.1))
+            .and_then(|tile| Some(tile.terrain))
+            .or(Some(default_terrain))
+            .unwrap();
+        let bottom_left = map
+            .get(&(map_coordinates.0 - 1, map_coordinates.1 - 1))
+            .and_then(|tile| Some(tile.terrain))
+            .or(Some(default_terrain))
+            .unwrap();
+        let bottom = map
+            .get(&(map_coordinates.0, map_coordinates.1 - 1))
+            .and_then(|tile| Some(tile.terrain))
+            .or(Some(default_terrain))
+            .unwrap();
+        let bottom_right = map
+            .get(&(map_coordinates.0 + 1, map_coordinates.1 - 1))
+            .and_then(|tile| Some(tile.terrain))
+            .or(Some(default_terrain))
+            .unwrap();
 
-            // The main algorithm relies on a truth table which determines a tileset index
-            // to use based on the ones surrounding the current tile:
-            //
-            // top_left    | top      | top_right
-            // left        | OUR TILE | right
-            // bottom_left | bottom   | bottom_right
-            //
-            // Depending on the surround tile we use one of the 47 possible tiles which
-            // encompass all possible arrangements of corners, edgeds, internal corners, etc.
-            //
-            // A second value is returned, which is either None (for regular «full» tiles),
-            // or Some(kind) which is the "background" tile on top of which a partial tile
-            // will be applied (think an ocean shore on top of a plain to make a beach).
-            match (
-                top_left == *kind,
-                top == *kind,
-                top_right == *kind,
-                left == *kind,
-                right == *kind,
-                bottom_left == *kind,
-                bottom == *kind,
-                bottom_right == *kind,
-            ) {
-                // Regular corners
-                (_, false, _, false, true, _, true, true) => (0, top),
-                (_, false, _, true, false, true, true, _) => (2, top),
-                (_, true, true, false, true, _, false, _) => (14, left),
-                (true, true, _, true, false, _, false, _) => (16, right),
+        // The main algorithm relies on a truth table which determines a tileset index
+        // to use based on the ones surrounding the current tile:
+        //
+        // top_left    | top      | top_right
+        // left        | OUR TILE | right
+        // bottom_left | bottom   | bottom_right
+        //
+        // Depending on the surround tile we use one of the 47 possible tiles which
+        // encompass all possible arrangements of corners, edgeds, internal corners, etc.
+        //
+        // A second value is returned, which is either None (for regular «full» tiles),
+        // or Some(terrain) which is the "background" tile on top of which a partial tile
+        // will be applied (think an ocean shore on top of a plain to make a beach).
+        match (
+            top_left == terrain,
+            top == terrain,
+            top_right == terrain,
+            left == terrain,
+            right == terrain,
+            bottom_left == terrain,
+            bottom == terrain,
+            bottom_right == terrain,
+        ) {
+            // Regular corners
+            (_, false, _, false, true, _, true, true) => (0, top),
+            (_, false, _, true, false, true, true, _) => (2, top),
+            (_, true, true, false, true, _, false, _) => (14, left),
+            (true, true, _, true, false, _, false, _) => (16, right),
 
-                // Regular sides
-                (_, true, true, false, true, _, true, true) => (7, left),
-                (true, true, _, true, false, true, true, _) => (9, right),
-                (_, false, _, true, true, true, true, true) => (1, top),
-                (true, true, true, true, true, _, false, _) => (15, bottom),
+            // Regular sides
+            (_, true, true, false, true, _, true, true) => (7, left),
+            (true, true, _, true, false, true, true, _) => (9, right),
+            (_, false, _, true, true, true, true, true) => (1, top),
+            (true, true, true, true, true, _, false, _) => (15, bottom),
 
-                // 1-width tiles (with edges on either side)
-                // Vertical
-                (_, false, _, false, false, _, true, _) => (3, top),
-                (_, true, _, false, false, _, true, _) => (10, left),
-                (_, true, _, false, false, _, false, _) => (17, right),
-                // Horizontal
-                (_, false, _, false, true, _, false, _) => (21, top),
-                (_, false, _, true, true, _, false, _) => (22, top),
-                (_, false, _, true, false, _, false, _) => (23, top),
+            // 1-width tiles (with edges on either side)
+            // Vertical
+            (_, false, _, false, false, _, true, _) => (3, top),
+            (_, true, _, false, false, _, true, _) => (10, left),
+            (_, true, _, false, false, _, false, _) => (17, right),
+            // Horizontal
+            (_, false, _, false, true, _, false, _) => (21, top),
+            (_, false, _, true, true, _, false, _) => (22, top),
+            (_, false, _, true, false, _, false, _) => (23, top),
 
-                // Single internal corners (without edges)
-                (true, true, true, true, true, true, true, false) => (4, bottom_right),
-                (true, true, true, true, true, false, true, true) => (5, bottom_left),
-                (true, true, false, true, true, true, true, true) => (11, top_right),
-                (false, true, true, true, true, true, true, true) => (12, top_left),
+            // Single internal corners (without edges)
+            (true, true, true, true, true, true, true, false) => (4, bottom_right),
+            (true, true, true, true, true, false, true, true) => (5, bottom_left),
+            (true, true, false, true, true, true, true, true) => (11, top_right),
+            (false, true, true, true, true, true, true, true) => (12, top_left),
 
-                // Single internal corners (with vertical edges)
-                (_, true, true, false, true, _, true, false) => (28, left),
-                (true, true, _, true, false, false, true, _) => (29, right),
-                (_, true, false, false, true, _, true, true) => (35, top_right),
-                (false, true, _, true, false, true, true, _) => (36, top_left),
+            // Single internal corners (with vertical edges)
+            (_, true, true, false, true, _, true, false) => (28, left),
+            (true, true, _, true, false, false, true, _) => (29, right),
+            (_, true, false, false, true, _, true, true) => (35, top_right),
+            (false, true, _, true, false, true, true, _) => (36, top_left),
 
-                // Single internal corners (with horizontal edges)
-                (_, false, _, true, true, true, true, false) => (30, top),
-                (_, false, _, true, true, false, true, true) => (31, top),
-                (true, true, false, true, true, _, false, _) => (37, top_right),
-                (false, true, true, true, true, _, false, _) => (38, top_left),
+            // Single internal corners (with horizontal edges)
+            (_, false, _, true, true, true, true, false) => (30, top),
+            (_, false, _, true, true, false, true, true) => (31, top),
+            (true, true, false, true, true, _, false, _) => (37, top_right),
+            (false, true, true, true, true, _, false, _) => (38, top_left),
 
-                // Double internal corners (without edges)
-                (false, true, false, true, true, true, true, true) => (6, top_left),
-                (false, true, true, true, true, false, true, true) => (13, top_left),
-                (true, true, false, true, true, true, true, false) => (20, top_right),
-                (true, true, true, true, true, false, true, false) => (27, bottom_right),
-                (true, true, false, true, true, false, true, true) => (44, top_right),
-                (false, true, true, true, true, true, true, false) => (45, top_left),
+            // Double internal corners (without edges)
+            (false, true, false, true, true, true, true, true) => (6, top_left),
+            (false, true, true, true, true, false, true, true) => (13, top_left),
+            (true, true, false, true, true, true, true, false) => (20, top_right),
+            (true, true, true, true, true, false, true, false) => (27, bottom_right),
+            (true, true, false, true, true, false, true, true) => (44, top_right),
+            (false, true, true, true, true, true, true, false) => (45, top_left),
 
-                // Triple internal corners (without edges)
-                (false, true, false, true, true, true, true, false) => (18, top_left),
-                (false, true, true, true, true, false, true, false) => (19, top_left),
-                (true, true, false, true, true, false, true, false) => (25, top_right),
-                (false, true, false, true, true, false, true, true) => (26, top_left),
+            // Triple internal corners (without edges)
+            (false, true, false, true, true, true, true, false) => (18, top_left),
+            (false, true, true, true, true, false, true, false) => (19, top_left),
+            (true, true, false, true, true, false, true, false) => (25, top_right),
+            (false, true, false, true, true, false, true, true) => (26, top_left),
 
-                // Corners + opposite internal corners
-                (_, false, _, false, true, _, true, false) => (32, top),
-                (_, false, _, true, false, false, true, _) => (34, top),
-                (_, true, false, false, true, _, false, _) => (46, top_right),
-                (false, true, _, true, false, _, false, _) => (48, top_left),
+            // Corners + opposite internal corners
+            (_, false, _, false, true, _, true, false) => (32, top),
+            (_, false, _, true, false, false, true, _) => (34, top),
+            (_, true, false, false, true, _, false, _) => (46, top_right),
+            (false, true, _, true, false, _, false, _) => (48, top_left),
 
-                // Edges + opposite internal corners
-                (_, false, _, true, true, false, true, false) => (33, top),
-                (_, true, false, false, true, _, true, false) => (39, top_right),
-                (false, true, _, true, false, false, true, _) => (41, top_left),
-                (false, true, false, true, true, _, false, _) => (47, top_left),
+            // Edges + opposite internal corners
+            (_, false, _, true, true, false, true, false) => (33, top),
+            (_, true, false, false, true, _, true, false) => (39, top_right),
+            (false, true, _, true, false, false, true, _) => (41, top_left),
+            (false, true, false, true, true, _, false, _) => (47, top_left),
 
-                // Center tiles (either isolated, with or without full corners, etc.)
-                (true, true, true, true, true, true, true, true) => (8, top_left),
-                (false, true, false, true, true, false, true, false) => (40, top_left),
-                (_, _, _, _, _, _, _, _) => (24, top), // "top" is always false in the default case
-            }
+            // Center tiles (either isolated, with or without full corners, etc.)
+            (true, true, true, true, true, true, true, true) => (8, top_left),
+            (false, true, false, true, true, false, true, false) => (40, top_left),
+            (_, _, _, _, _, _, _, _) => (24, top), // "top" is always false in the default case
         }
-        _ => (0, None),
     };
 
     variant
@@ -364,9 +313,9 @@ pub fn generate_map() -> Map {
                 if h > map_middle_h - desert_band_thickness - delta
                     && h < map_middle_h + desert_band_thickness + delta
                 {
-                    TerrainType::Desert
+                    TerrainLayer::Desert
                 } else {
-                    TerrainType::Plain
+                    TerrainLayer::Plain
                 }
             };
 
@@ -378,44 +327,38 @@ pub fn generate_map() -> Map {
             // we will have either an Ocean tile or a regular terrain tile.
             match offset {
                 o if o >= plain_threshold && o < hill_threshold => {
-                    update_tile_in_map(&mut map, &(w, h), Some(&base_terrain), None, None);
+                    upsert_tile_in_map(&mut map, &(w, h), Some(&base_terrain), None, None);
                 }
                 o if o >= hill_threshold && o < mountain_threshold => {
-                    update_tile_in_map(
+                    upsert_tile_in_map(
                         &mut map,
                         &(w, h),
                         Some(&base_terrain),
-                        Some(&BiomeType::Hill),
+                        Some(&ZoneLayer::Hill),
                         None,
                     );
                 }
                 o if o >= mountain_threshold => {
-                    update_tile_in_map(
+                    upsert_tile_in_map(
                         &mut map,
                         &(w, h),
                         Some(&base_terrain),
-                        Some(&BiomeType::Hill),
-                        Some(&SpecialType::Ore),
+                        Some(&ZoneLayer::Hill),
+                        Some(&FeatureLayer::Ore),
                     );
                 }
                 _ => {
-                    update_tile_in_map(
-                        &mut map,
-                        &(w, h),
-                        Some(&base_terrain),
-                        Some(&BiomeType::Ocean),
-                        None,
-                    );
+                    upsert_tile_in_map(&mut map, &(w, h), Some(&TerrainLayer::Ocean), None, None);
                 }
             }
         }
     }
 
-    //    Generate random patches of Forests
-    generate_multiple_patches(
+    // Generate random patches of Forests
+    generate_multiple_patches_for_a_zone(
         &mut pseudo_rng_instance,
         &mut map,
-        Kind::Biome(BiomeType::Forest),
+        ZoneLayer::Forest,
         15,
         1..3,
         0.05..1.0,
@@ -426,31 +369,29 @@ pub fn generate_map() -> Map {
     for w in 0..=MAP_WIDTH {
         for h in 0..=MAP_HEIGHT {
             let tile = map.get(&(w, h)).unwrap();
-            let terrain_kind = tile.layers.get(&Layer::Terrain).unwrap();
-            let feature_kind = tile.layers.get(&Layer::Biome);
-            // let special_kind = tile.layers.get(&Layer::Special);
+            let terrain = tile.terrain;
+            let zone = tile.zone;
             match (w, h) {
                 // Corn goes on feature-less plains
                 (w, h)
-                    if terrain_kind.0 == Kind::Terrain(TerrainType::Plain)
-                        && feature_kind.is_none()
+                    if terrain == TerrainLayer::Plain
+                        && zone.is_none()
                         && pseudo_rng_instance.random_bool(0.01) =>
                 {
-                    update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialType::Corn))
+                    upsert_tile_in_map(&mut map, &(w, h), None, None, Some(&FeatureLayer::Corn))
                 }
                 // Lumber goes on forests
                 (w, h)
-                    if feature_kind.is_some_and(|k| k.0 == Kind::Biome(BiomeType::Forest))
+                    if zone.is_some_and(|k| k == ZoneLayer::Forest)
                         && pseudo_rng_instance.random_bool(0.05) =>
                 {
-                    update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialType::Lumber))
+                    upsert_tile_in_map(&mut map, &(w, h), None, None, Some(&FeatureLayer::Lumber))
                 }
                 // Fish goes on oceans
                 (w, h)
-                    if feature_kind.is_some_and(|k| k.0 == Kind::Biome(BiomeType::Ocean))
-                        && pseudo_rng_instance.random_bool(0.01) =>
+                    if terrain == TerrainLayer::Ocean && pseudo_rng_instance.random_bool(0.01) =>
                 {
-                    update_tile_in_map(&mut map, &(w, h), None, None, Some(&SpecialType::Fish))
+                    upsert_tile_in_map(&mut map, &(w, h), None, None, Some(&FeatureLayer::Fish))
                 }
                 _ => {}
             }
