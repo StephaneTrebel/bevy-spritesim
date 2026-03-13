@@ -68,7 +68,6 @@ fn generate_multiple_patches_for_a_zone(
                     ((coordinates.1 as i16 + h) as u16).clamp(1, MAP_HEIGHT - 1),
                 );
 
-                // let layers = map.get(&map_coordinates).unwrap().layers.clone();
                 let tile = map.get(&map_coordinates).unwrap();
 
                 // Here we go !
@@ -188,7 +187,7 @@ pub fn generate_map() -> Map {
                         &mut map,
                         &(w, h),
                         Some(&base_terrain),
-                        Some(&ZoneLayer::Hill),
+                        Some(&ZoneLayer::Mountain),
                         Some(&FeatureLayer::Ore),
                     );
                 }

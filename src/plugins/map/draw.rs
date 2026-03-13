@@ -321,7 +321,7 @@ fn get_neighbours<'a>(map: &'a Map, map_coordinates: &(u16, u16)) -> Neighbours<
     let default_tile = &Tile {
         feature: None,
         zone: None,
-        terrain: TerrainLayer::Debug,
+        terrain: TerrainLayer::Plain,
         real_coordinates: (0., 0.),
     };
     Neighbours {
