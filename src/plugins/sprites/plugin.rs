@@ -113,11 +113,11 @@ impl std::fmt::Display for SpriteType {
 }
 
 impl SpriteType {
-    pub fn path(&self, variant: u8, animation_index: u8) -> String {
+    pub fn path(&self, variant: u8) -> String {
         let sprite_name = self.to_string();
         let sprite_directory = format!(
-            "{SPRITE_DIRECTORY_NAME}/{}/sprite_terrain_{}_{}_{}.png",
-            sprite_name, sprite_name, variant, animation_index
+            "{SPRITE_DIRECTORY_NAME}/{}/sprite_terrain_{}_{}_0.png",
+            sprite_name, sprite_name, variant
         );
         sprite_directory
     }
@@ -196,11 +196,11 @@ fn create_sprite_atlas(
                 let index = texture_ids
                     .get(
                         &asset_server
-                            .get_handle(sprite_type.path(variant, 0))
+                            .get_handle(sprite_type.path(variant))
                             .unwrap_or_else(|| {
                                 panic!(
                                     "Cannot find sprite type with path {}",
-                                    sprite_type.path(0, 0)
+                                    sprite_type.path(0)
                                 )
                             })
                             .id(),

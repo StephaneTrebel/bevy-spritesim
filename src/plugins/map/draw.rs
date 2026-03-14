@@ -11,28 +11,46 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
     let full_tile_variant = 8;
     for (map_coordinates, tile) in map.iter() {
         let (variant, base_tile) = get_terrain_variant(tile, map, map_coordinates);
+    let mut z: f32 = match base_tile {
+        TerrainLayer::Debug => 0.,
+        TerrainLayer::Desert => 3.,
+        TerrainLayer::Plain => 2.,
+        TerrainLayer::Ocean => 4.,
+    };
         commands.spawn((
             atlas.sprite(&base_tile.get_sprite_type(), full_tile_variant),
             Transform {
-                translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 0.),
+                translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, z),
                 scale: Vec3::splat(1.),
                 ..default()
             },
         ));
+    let mut z: f32 = match tile.terrain {
+        TerrainLayer::Debug => 0.,
+        TerrainLayer::Desert => 3.,
+        TerrainLayer::Plain => 2.,
+        TerrainLayer::Ocean => 4.,
+    };
         commands.spawn((
             atlas.sprite(&tile.terrain.get_sprite_type(), variant),
             Transform {
-                translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 0.),
+                translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, z),
                 scale: Vec3::splat(1.),
                 ..default()
             },
         ));
         if let Some(zone) = tile.zone {
             let (variant, base_tile) = get_zone_variant(tile, map, map_coordinates);
+    let mut z: f32 = match base_tile {
+        TerrainLayer::Debug => 0.,
+        TerrainLayer::Desert => 3.,
+        TerrainLayer::Plain => 2.,
+        TerrainLayer::Ocean => 4.,
+    };
             commands.spawn((
                 atlas.sprite(&base_tile.get_sprite_type(), full_tile_variant),
                 Transform {
-                    translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 0.),
+                    translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, z),
                     scale: Vec3::splat(1.),
                     ..default()
                 },
@@ -40,7 +58,7 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
             commands.spawn((
                 atlas.sprite(&zone.get_sprite_type(), variant),
                 Transform {
-                    translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 1.),
+                    translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 5.),
                     scale: Vec3::splat(1.),
                     ..default()
                 },
@@ -50,7 +68,7 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
             commands.spawn((
                 atlas.sprite(&feature.get_sprite_type(), variant),
                 Transform {
-                    translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 2.),
+                    translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 6.),
                     scale: Vec3::splat(1.),
                     ..default()
                 },
@@ -184,7 +202,7 @@ pub fn get_terrain_variant(
         }
     };
 
-    (variant, base_tile.terrain)
+    (variant, TerrainLayer::Debug)
 }
 
 pub fn get_zone_variant(
@@ -303,7 +321,7 @@ pub fn get_zone_variant(
         }
     };
 
-    (variant, base_tile.terrain)
+    (variant, TerrainLayer::Debug)
 }
 
 struct Neighbours<'a> {
