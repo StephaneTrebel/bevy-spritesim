@@ -15,40 +15,15 @@ const TILE_SCALE: f32 = 1.001;
 pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: Res<MapResource>) {
     info!("Drawing map…");
     let map = &map_resource.map;
-    let full_tile_variant = 8;
+    let full_tile_variant: u8 = 8;
     let tile_scale = Vec3::splat(TILE_SCALE);
     for (map_coordinates, tile) in map.iter() {
-        let (variant, base_tile) = get_terrain_variant(tile, map, map_coordinates);
-        let z: f32 = match base_tile {
-            TerrainLayer::Debug => 0.,
-            TerrainLayer::Desert => 3.,
-            TerrainLayer::Plain => 2.,
-            TerrainLayer::Ocean => 4.,
-        };
-        commands.spawn((
-            atlas.sprite(&base_tile.get_sprite_type(), full_tile_variant),
-            Transform {
-                translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, z),
-                scale: tile_scale,
-                ..default()
-            },
-        ));
-        let z: f32 = match tile.terrain {
-            TerrainLayer::Debug => 0.,
-            TerrainLayer::Desert => 3.,
-            TerrainLayer::Plain => 2.,
-            TerrainLayer::Ocean => 4.,
-        };
-        commands.spawn((
-            atlas.sprite(&tile.terrain.get_sprite_type(), variant),
-            Transform {
-                translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, z),
-                scale: tile_scale,
-                ..default()
-            },
-        ));
-        if let Some(zone) = tile.zone {
-            let (variant, base_tile) = get_zone_variant(tile, map, map_coordinates);
+        let (terrain_variant, base_tile) = get_terrain_variant(tile, map, map_coordinates);
+
+        // Only spawn the terrain underlay when the overlay is a partial tile
+        // (variant != 8).  When variant == 8 the overlay is a full opaque tile
+        // that completely covers the underlay, so drawing both is pure overdraw.
+        if terrain_variant != full_tile_variant {
             let z: f32 = match base_tile {
                 TerrainLayer::Debug => 0.,
                 TerrainLayer::Desert => 3.,
@@ -63,8 +38,46 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
                     ..default()
                 },
             ));
+        }
+
+        let z: f32 = match tile.terrain {
+            TerrainLayer::Debug => 0.,
+            TerrainLayer::Desert => 3.,
+            TerrainLayer::Plain => 2.,
+            TerrainLayer::Ocean => 4.,
+        };
+        commands.spawn((
+            atlas.sprite(&tile.terrain.get_sprite_type(), terrain_variant),
+            Transform {
+                translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, z),
+                scale: tile_scale,
+                ..default()
+            },
+        ));
+
+        if let Some(zone) = tile.zone {
+            let (zone_variant, base_tile) = get_zone_variant(tile, map, map_coordinates);
+
+            // Same optimisation for zone underlays.
+            if zone_variant != full_tile_variant {
+                let z: f32 = match base_tile {
+                    TerrainLayer::Debug => 0.,
+                    TerrainLayer::Desert => 3.,
+                    TerrainLayer::Plain => 2.,
+                    TerrainLayer::Ocean => 4.,
+                };
+                commands.spawn((
+                    atlas.sprite(&base_tile.get_sprite_type(), full_tile_variant),
+                    Transform {
+                        translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, z),
+                        scale: tile_scale,
+                        ..default()
+                    },
+                ));
+            }
+
             commands.spawn((
-                atlas.sprite(&zone.get_sprite_type(), variant),
+                atlas.sprite(&zone.get_sprite_type(), zone_variant),
                 Transform {
                     translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 5.),
                     scale: tile_scale,
@@ -72,9 +85,10 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
                 },
             ));
         }
+
         if let Some(feature) = tile.feature {
             commands.spawn((
-                atlas.sprite(&feature.get_sprite_type(), variant),
+                atlas.sprite(&feature.get_sprite_type(), terrain_variant),
                 Transform {
                     translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 6.),
                     scale: tile_scale,
