@@ -198,10 +198,7 @@ fn create_sprite_atlas(
                         &asset_server
                             .get_handle(sprite_type.path(variant))
                             .unwrap_or_else(|| {
-                                panic!(
-                                    "Cannot find sprite type with path {}",
-                                    sprite_type.path(0)
-                                )
+                                panic!("Cannot find sprite type with path {}", sprite_type.path(0))
                             })
                             .id(),
                     )

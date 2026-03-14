@@ -1,57 +1,65 @@
 use bevy::prelude::*;
 
 use crate::plugins::{
-    SpriteAtlas, TerrainLayer,
     map::{Map, MapResource, Tile},
+    SpriteAtlas, TerrainLayer,
 };
+
+/// Tiny scale factor applied to every tile sprite so that adjacent quads
+/// overlap by a sub-pixel amount.  Without this, GPU rasterisation rounding
+/// at tile boundaries can leave single-pixel gaps (the classic "tile seam"
+/// artifact).  The value is small enough to be invisible but large enough
+/// to guarantee coverage at any zoom level.
+const TILE_SCALE: f32 = 1.001;
 
 pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: Res<MapResource>) {
     info!("Drawing map…");
     let map = &map_resource.map;
     let full_tile_variant = 8;
+    let tile_scale = Vec3::splat(TILE_SCALE);
     for (map_coordinates, tile) in map.iter() {
         let (variant, base_tile) = get_terrain_variant(tile, map, map_coordinates);
-    let mut z: f32 = match base_tile {
-        TerrainLayer::Debug => 0.,
-        TerrainLayer::Desert => 3.,
-        TerrainLayer::Plain => 2.,
-        TerrainLayer::Ocean => 4.,
-    };
+        let z: f32 = match base_tile {
+            TerrainLayer::Debug => 0.,
+            TerrainLayer::Desert => 3.,
+            TerrainLayer::Plain => 2.,
+            TerrainLayer::Ocean => 4.,
+        };
         commands.spawn((
             atlas.sprite(&base_tile.get_sprite_type(), full_tile_variant),
             Transform {
                 translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, z),
-                scale: Vec3::splat(1.),
+                scale: tile_scale,
                 ..default()
             },
         ));
-    let mut z: f32 = match tile.terrain {
-        TerrainLayer::Debug => 0.,
-        TerrainLayer::Desert => 3.,
-        TerrainLayer::Plain => 2.,
-        TerrainLayer::Ocean => 4.,
-    };
+        let z: f32 = match tile.terrain {
+            TerrainLayer::Debug => 0.,
+            TerrainLayer::Desert => 3.,
+            TerrainLayer::Plain => 2.,
+            TerrainLayer::Ocean => 4.,
+        };
         commands.spawn((
             atlas.sprite(&tile.terrain.get_sprite_type(), variant),
             Transform {
                 translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, z),
-                scale: Vec3::splat(1.),
+                scale: tile_scale,
                 ..default()
             },
         ));
         if let Some(zone) = tile.zone {
             let (variant, base_tile) = get_zone_variant(tile, map, map_coordinates);
-    let mut z: f32 = match base_tile {
-        TerrainLayer::Debug => 0.,
-        TerrainLayer::Desert => 3.,
-        TerrainLayer::Plain => 2.,
-        TerrainLayer::Ocean => 4.,
-    };
+            let z: f32 = match base_tile {
+                TerrainLayer::Debug => 0.,
+                TerrainLayer::Desert => 3.,
+                TerrainLayer::Plain => 2.,
+                TerrainLayer::Ocean => 4.,
+            };
             commands.spawn((
                 atlas.sprite(&base_tile.get_sprite_type(), full_tile_variant),
                 Transform {
                     translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, z),
-                    scale: Vec3::splat(1.),
+                    scale: tile_scale,
                     ..default()
                 },
             ));
@@ -59,7 +67,7 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
                 atlas.sprite(&zone.get_sprite_type(), variant),
                 Transform {
                     translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 5.),
-                    scale: Vec3::splat(1.),
+                    scale: tile_scale,
                     ..default()
                 },
             ));
@@ -69,7 +77,7 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
                 atlas.sprite(&feature.get_sprite_type(), variant),
                 Transform {
                     translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 6.),
-                    scale: Vec3::splat(1.),
+                    scale: tile_scale,
                     ..default()
                 },
             ));
