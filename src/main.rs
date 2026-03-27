@@ -33,13 +33,12 @@ fn main() {
                     ..default()
                 })
                 .set(ImagePlugin::default_nearest())
-                .set(LogPlugin {
-                    ..default()
-                }),
+                .set(LogPlugin { ..default() }),
             SpritePlugin,
             MapPlugin,
             CameraPlugin,
-            CustomFpsOverlayPlugin
+            CustomFpsOverlayPlugin,
+            bevy_framepace::FramepacePlugin,
         ))
         .init_state::<AppState>()
         .add_systems(OnEnter(AppState::ReadyToDraw), draw_map)
