@@ -19,6 +19,21 @@ impl TerrainLayer {
     }
 }
 
+impl std::fmt::Display for TerrainLayer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                TerrainLayer::Debug => "DEBUG",
+                TerrainLayer::Desert => "DESERT",
+                TerrainLayer::Plain => "PLAIN",
+                TerrainLayer::Ocean => "OCEAN",
+            }
+        )
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ZoneLayer {
     Forest,
@@ -33,6 +48,20 @@ impl ZoneLayer {
             ZoneLayer::Hill => SpriteType::Hill,
             ZoneLayer::Mountain => SpriteType::Mountain,
         }
+    }
+}
+
+impl std::fmt::Display for ZoneLayer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                ZoneLayer::Forest => "FOREST",
+                ZoneLayer::Hill => "HILL",
+                ZoneLayer::Mountain => "MOUNTAIN",
+            }
+        )
     }
 }
 
@@ -56,3 +85,20 @@ impl FeatureLayer {
         }
     }
 }
+
+impl std::fmt::Display for FeatureLayer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                FeatureLayer::Corn => "CORN",
+                FeatureLayer::Fish => "FISH",
+                FeatureLayer::Lumber => "LUMBER",
+                FeatureLayer::Ore => "ORE",
+                FeatureLayer::Snow => "SNOW",
+            }
+        )
+    }
+}
+

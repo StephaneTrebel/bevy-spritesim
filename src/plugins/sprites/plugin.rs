@@ -115,11 +115,31 @@ impl std::fmt::Display for SpriteType {
 impl SpriteType {
     pub fn path(&self, variant: u8) -> String {
         let sprite_name = self.to_string();
-        let sprite_directory = format!(
-            "{SPRITE_DIRECTORY_NAME}/{}/sprite_terrain_{}_{}_0.png",
-            sprite_name, sprite_name, variant
-        );
-        sprite_directory
+
+        match self {
+            SpriteType::Debug
+            | SpriteType::Desert
+            | SpriteType::Forest
+            | SpriteType::Hill
+            | SpriteType::Mountain
+            | SpriteType::Ocean
+            | SpriteType::Plain => {
+                format!(
+                    "{SPRITE_DIRECTORY_NAME}/{}/sprite_terrain_{}_{}_0.png",
+                    sprite_name, sprite_name, variant
+                )
+            }
+            SpriteType::Corn
+            | SpriteType::Fish
+            | SpriteType::Lumber
+            | SpriteType::Ore
+            | SpriteType::Snow => {
+                format!(
+                    "{SPRITE_DIRECTORY_NAME}/{}/sprite_terrain_{}_0_0.png",
+                    sprite_name, sprite_name
+                )
+            }
+        }
     }
 
     // Enumerate on all enum values (this is fine because those are empty variants)

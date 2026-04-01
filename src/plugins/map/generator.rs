@@ -77,12 +77,7 @@ fn generate_multiple_patches_for_a_zone(
                 // Only replace tile when necessary (for instance, Forest tiles can only be placed on Plains)
                 (zone != ZoneLayer::Forest || ( tile.terrain == TerrainLayer::Plain ))
                 {
-                    map.insert(map_coordinates, {
-                        Tile {
-                            zone: Some(zone),
-                            ..*tile
-                        }
-                    });
+                    upsert_tile_in_map(map, &map_coordinates, None, Some(&zone), None);
                 }
             }
         }
@@ -103,10 +98,24 @@ fn upsert_tile_in_map(
         Tile {
             terrain: match terrain {
                 Some(t) => *t,
-                None => existing_tile.expect("No terrain for new tile").terrain,
+                None => existing_tile.expect("No existing tile").terrain,
             },
-            zone: zone.copied(),
-            feature: feature.copied(),
+            zone: if zone.is_some() {
+                zone.copied()
+            } else {
+                match existing_tile {
+                    Some(tile) => tile.zone,
+                    None => None,
+                }
+            },
+            feature: if feature.is_some() {
+                feature.copied()
+            } else {
+                match existing_tile {
+                    Some(tile) => tile.feature,
+                    None => None,
+                }
+            },
             real_coordinates: (
                 (map_coordinates.0 as f32) * SPRITE_DISPLAY_SIZE - W_OFFSET,
                 (map_coordinates.1 as f32) * SPRITE_DISPLAY_SIZE - H_OFFSET,
@@ -188,7 +197,7 @@ pub fn generate_map() -> Map {
                         &(w, h),
                         Some(&base_terrain),
                         Some(&ZoneLayer::Mountain),
-                        Some(&FeatureLayer::Ore),
+                        None,
                     );
                 }
                 _ => {
@@ -215,18 +224,20 @@ pub fn generate_map() -> Map {
             let tile = map.get(&(w, h)).unwrap();
             let terrain = tile.terrain;
             let zone = tile.zone;
-            // FIXME: pseudo_rng_instance.random_bool(0.01)
-            let toto = true;
+            let probability = pseudo_rng_instance.random_bool(0.01);
             // Corn goes on feature-less plains
-            if terrain == TerrainLayer::Plain && zone.is_none() && toto {
+            if terrain == TerrainLayer::Plain && zone.is_none() && probability {
+                println!("[{}] Putting Corn at {:?}", terrain, &(w, h));
                 upsert_tile_in_map(&mut map, &(w, h), None, None, Some(&FeatureLayer::Corn))
             }
             // Lumber goes on forests
-            else if zone.is_some_and(|k| k == ZoneLayer::Forest) && toto {
+            else if zone.is_some_and(|k| k == ZoneLayer::Forest) && probability {
+                println!("[{}] Putting Lumber at {:?}", terrain, &(w, h));
                 upsert_tile_in_map(&mut map, &(w, h), None, None, Some(&FeatureLayer::Lumber))
             }
             // Fish goes on oceans
-            else if terrain == TerrainLayer::Ocean && toto {
+            else if terrain == TerrainLayer::Ocean && probability {
+                println!("[{}] Putting Fish at {:?}", terrain, &(w, h));
                 upsert_tile_in_map(&mut map, &(w, h), None, None, Some(&FeatureLayer::Fish))
             }
         }
