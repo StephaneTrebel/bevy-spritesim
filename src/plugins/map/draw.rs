@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
 use crate::plugins::{
-    map::{Map, MapResource, Tile},
     SpriteAtlas, TerrainLayer,
+    map::{Map, MapResource, Tile},
 };
 
 /// Tiny scale factor applied to every tile sprite so that adjacent quads
@@ -15,31 +15,9 @@ const TILE_SCALE: f32 = 1.001;
 pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: Res<MapResource>) {
     info!("Drawing map…");
     let map = &map_resource.map;
-    let full_tile_variant: u8 = 8;
     let tile_scale = Vec3::splat(TILE_SCALE);
     for (map_coordinates, tile) in map.iter() {
-        let (terrain_variant, base_tile) = get_terrain_variant(tile, map, map_coordinates);
-
-        // Only spawn the terrain underlay when the overlay is a partial tile
-        // (variant != 8).  When variant == 8 the overlay is a full opaque tile
-        // that completely covers the underlay, so drawing both is pure overdraw.
-        if terrain_variant != full_tile_variant {
-            let z: f32 = match base_tile {
-                TerrainLayer::Debug => 0.,
-                TerrainLayer::Desert => 3.,
-                TerrainLayer::Plain => 2.,
-                TerrainLayer::Ocean => 4.,
-            };
-            commands.spawn((
-                atlas.sprite(&base_tile.get_sprite_type(), full_tile_variant),
-                Transform {
-                    translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, z),
-                    scale: tile_scale,
-                    ..default()
-                },
-            ));
-        }
-
+        let terrain_variant = get_terrain_variant(tile, map, map_coordinates);
         let z: f32 = match tile.terrain {
             TerrainLayer::Debug => 0.,
             TerrainLayer::Desert => 3.,
@@ -56,25 +34,7 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
         ));
 
         if let Some(zone) = tile.zone {
-            let (zone_variant, base_tile) = get_zone_variant(tile, map, map_coordinates);
-
-            // Same optimisation for zone underlays.
-            if zone_variant != full_tile_variant {
-                let z: f32 = match base_tile {
-                    TerrainLayer::Debug => 0.,
-                    TerrainLayer::Desert => 3.,
-                    TerrainLayer::Plain => 2.,
-                    TerrainLayer::Ocean => 4.,
-                };
-                commands.spawn((
-                    atlas.sprite(&base_tile.get_sprite_type(), full_tile_variant),
-                    Transform {
-                        translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, z),
-                        scale: tile_scale,
-                        ..default()
-                    },
-                ));
-            }
+            let zone_variant = get_zone_variant(tile, map, map_coordinates);
 
             commands.spawn((
                 atlas.sprite(&zone.get_sprite_type(), zone_variant),
@@ -108,242 +68,223 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
 /// Additionnaly if a «partial» tile (like a corner) is used, we have to add
 /// an underlying tile to serve as background so for instance a beach is composed of
 /// a plain (its shore) and the ocean (its beach) over it.
-pub fn get_terrain_variant(
-    tile: &Tile,
-    map: &Map,
-    map_coordinates: &(u16, u16),
-) -> (u8, TerrainLayer) {
+pub fn get_terrain_variant(tile: &Tile, map: &Map, map_coordinates: &(u16, u16)) -> u8 {
     let terrain = tile.terrain;
+    let Neighbours {
+        bottom,
+        bottom_left,
+        bottom_right,
+        left,
+        right,
+        top,
+        top_left,
+        top_right,
+    } = get_neighbours(map, map_coordinates);
 
-    // TODO Use _base_tile ? It was previously use for the underlying tile
-    let (variant, base_tile) = {
-        let Neighbours {
-            bottom,
-            bottom_left,
-            bottom_right,
-            left,
-            right,
-            top,
-            top_left,
-            top_right,
-        } = get_neighbours(map, map_coordinates);
+    // The main algorithm relies on a truth table which determines a tileset index
+    // to use based on the ones surrounding the current tile:
+    //
+    // top_left    | top      | top_right
+    // left        | OUR TILE | right
+    // bottom_left | bottom   | bottom_right
+    //
+    // Depending on the surround tile we use one of the 47 possible tiles which
+    // encompass all possible arrangements of corners, edgeds, internal corners, etc.
+    //
+    // A second value is returned, which is either None (for regular «full» tiles),
+    // or Some(terrain) which is the "background" tile on top of which a partial tile
+    // will be applied (think an ocean shore on top of a plain to make a beach).
+    match (
+        top_left.terrain == terrain,
+        top.terrain == terrain,
+        top_right.terrain == terrain,
+        left.terrain == terrain,
+        right.terrain == terrain,
+        bottom_left.terrain == terrain,
+        bottom.terrain == terrain,
+        bottom_right.terrain == terrain,
+    ) {
+        // Regular corners
+        (_, false, _, false, true, _, true, true) => 0,
+        (_, false, _, true, false, true, true, _) => 2,
+        (_, true, true, false, true, _, false, _) => 14,
+        (true, true, _, true, false, _, false, _) => 16,
 
-        // The main algorithm relies on a truth table which determines a tileset index
-        // to use based on the ones surrounding the current tile:
-        //
-        // top_left    | top      | top_right
-        // left        | OUR TILE | right
-        // bottom_left | bottom   | bottom_right
-        //
-        // Depending on the surround tile we use one of the 47 possible tiles which
-        // encompass all possible arrangements of corners, edgeds, internal corners, etc.
-        //
-        // A second value is returned, which is either None (for regular «full» tiles),
-        // or Some(terrain) which is the "background" tile on top of which a partial tile
-        // will be applied (think an ocean shore on top of a plain to make a beach).
-        match (
-            top_left.terrain == terrain,
-            top.terrain == terrain,
-            top_right.terrain == terrain,
-            left.terrain == terrain,
-            right.terrain == terrain,
-            bottom_left.terrain == terrain,
-            bottom.terrain == terrain,
-            bottom_right.terrain == terrain,
-        ) {
-            // Regular corners
-            (_, false, _, false, true, _, true, true) => (0, top),
-            (_, false, _, true, false, true, true, _) => (2, top),
-            (_, true, true, false, true, _, false, _) => (14, left),
-            (true, true, _, true, false, _, false, _) => (16, right),
+        // Regular sides
+        (_, true, true, false, true, _, true, true) => 7,
+        (true, true, _, true, false, true, true, _) => 9,
+        (_, false, _, true, true, true, true, true) => 1,
+        (true, true, true, true, true, _, false, _) => 15,
 
-            // Regular sides
-            (_, true, true, false, true, _, true, true) => (7, left),
-            (true, true, _, true, false, true, true, _) => (9, right),
-            (_, false, _, true, true, true, true, true) => (1, top),
-            (true, true, true, true, true, _, false, _) => (15, bottom),
+        // 1-width tiles (with edges on either side)
+        // Vertical
+        (_, false, _, false, false, _, true, _) => 3,
+        (_, true, _, false, false, _, true, _) => 10,
+        (_, true, _, false, false, _, false, _) => 17,
+        // Horizontal
+        (_, false, _, false, true, _, false, _) => 21,
+        (_, false, _, true, true, _, false, _) => 22,
+        (_, false, _, true, false, _, false, _) => 23,
 
-            // 1-width tiles (with edges on either side)
-            // Vertical
-            (_, false, _, false, false, _, true, _) => (3, top),
-            (_, true, _, false, false, _, true, _) => (10, left),
-            (_, true, _, false, false, _, false, _) => (17, right),
-            // Horizontal
-            (_, false, _, false, true, _, false, _) => (21, top),
-            (_, false, _, true, true, _, false, _) => (22, top),
-            (_, false, _, true, false, _, false, _) => (23, top),
+        // Single internal corners (without edges)
+        (true, true, true, true, true, true, true, false) => 4,
+        (true, true, true, true, true, false, true, true) => 5,
+        (true, true, false, true, true, true, true, true) => 11,
+        (false, true, true, true, true, true, true, true) => 12,
 
-            // Single internal corners (without edges)
-            (true, true, true, true, true, true, true, false) => (4, bottom_right),
-            (true, true, true, true, true, false, true, true) => (5, bottom_left),
-            (true, true, false, true, true, true, true, true) => (11, top_right),
-            (false, true, true, true, true, true, true, true) => (12, top_left),
+        // Single internal corners (with vertical edges)
+        (_, true, true, false, true, _, true, false) => 28,
+        (true, true, _, true, false, false, true, _) => 29,
+        (_, true, false, false, true, _, true, true) => 35,
+        (false, true, _, true, false, true, true, _) => 36,
 
-            // Single internal corners (with vertical edges)
-            (_, true, true, false, true, _, true, false) => (28, left),
-            (true, true, _, true, false, false, true, _) => (29, right),
-            (_, true, false, false, true, _, true, true) => (35, top_right),
-            (false, true, _, true, false, true, true, _) => (36, top_left),
+        // Single internal corners (with horizontal edges)
+        (_, false, _, true, true, true, true, false) => 30,
+        (_, false, _, true, true, false, true, true) => 31,
+        (true, true, false, true, true, _, false, _) => 37,
+        (false, true, true, true, true, _, false, _) => 38,
 
-            // Single internal corners (with horizontal edges)
-            (_, false, _, true, true, true, true, false) => (30, top),
-            (_, false, _, true, true, false, true, true) => (31, top),
-            (true, true, false, true, true, _, false, _) => (37, top_right),
-            (false, true, true, true, true, _, false, _) => (38, top_left),
+        // Double internal corners (without edges)
+        (false, true, false, true, true, true, true, true) => 6,
+        (false, true, true, true, true, false, true, true) => 13,
+        (true, true, false, true, true, true, true, false) => 20,
+        (true, true, true, true, true, false, true, false) => 27,
+        (true, true, false, true, true, false, true, true) => 44,
+        (false, true, true, true, true, true, true, false) => 45,
 
-            // Double internal corners (without edges)
-            (false, true, false, true, true, true, true, true) => (6, top_left),
-            (false, true, true, true, true, false, true, true) => (13, top_left),
-            (true, true, false, true, true, true, true, false) => (20, top_right),
-            (true, true, true, true, true, false, true, false) => (27, bottom_right),
-            (true, true, false, true, true, false, true, true) => (44, top_right),
-            (false, true, true, true, true, true, true, false) => (45, top_left),
+        // Triple internal corners (without edges)
+        (false, true, false, true, true, true, true, false) => 18,
+        (false, true, true, true, true, false, true, false) => 19,
+        (true, true, false, true, true, false, true, false) => 25,
+        (false, true, false, true, true, false, true, true) => 26,
 
-            // Triple internal corners (without edges)
-            (false, true, false, true, true, true, true, false) => (18, top_left),
-            (false, true, true, true, true, false, true, false) => (19, top_left),
-            (true, true, false, true, true, false, true, false) => (25, top_right),
-            (false, true, false, true, true, false, true, true) => (26, top_left),
+        // Corners + opposite internal corners
+        (_, false, _, false, true, _, true, false) => 32,
+        (_, false, _, true, false, false, true, _) => 34,
+        (_, true, false, false, true, _, false, _) => 46,
+        (false, true, _, true, false, _, false, _) => 48,
 
-            // Corners + opposite internal corners
-            (_, false, _, false, true, _, true, false) => (32, top),
-            (_, false, _, true, false, false, true, _) => (34, top),
-            (_, true, false, false, true, _, false, _) => (46, top_right),
-            (false, true, _, true, false, _, false, _) => (48, top_left),
+        // Edges + opposite internal corners
+        (_, false, _, true, true, false, true, false) => 33,
+        (_, true, false, false, true, _, true, false) => 39,
+        (false, true, _, true, false, false, true, _) => 41,
+        (false, true, false, true, true, _, false, _) => 47,
 
-            // Edges + opposite internal corners
-            (_, false, _, true, true, false, true, false) => (33, top),
-            (_, true, false, false, true, _, true, false) => (39, top_right),
-            (false, true, _, true, false, false, true, _) => (41, top_left),
-            (false, true, false, true, true, _, false, _) => (47, top_left),
-
-            // Center tiles (either isolated, with or without full corners, etc.)
-            (true, true, true, true, true, true, true, true) => (8, top_left),
-            (false, true, false, true, true, false, true, false) => (40, top_left),
-            (_, _, _, _, _, _, _, _) => (24, top), // "top" is always false in the default case
-        }
-    };
-
-    (variant, TerrainLayer::Debug)
+        // Center tiles (either isolated, with or without full corners, etc.)
+        (true, true, true, true, true, true, true, true) => 8,
+        (false, true, false, true, true, false, true, false) => 40,
+        (_, _, _, _, _, _, _, _) => 24,
+    }
 }
 
-pub fn get_zone_variant(
-    tile: &Tile,
-    map: &Map,
-    map_coordinates: &(u16, u16),
-) -> (u8, TerrainLayer) {
+pub fn get_zone_variant(tile: &Tile, map: &Map, map_coordinates: &(u16, u16)) -> u8 {
     let zone = tile.zone;
 
-    // TODO Use _base_tile ? It was previously use for the underlying tile
-    let (variant, base_tile) = {
-        let Neighbours {
-            bottom,
-            bottom_left,
-            bottom_right,
-            left,
-            right,
-            top,
-            top_left,
-            top_right,
-        } = get_neighbours(map, map_coordinates);
+    let Neighbours {
+        bottom,
+        bottom_left,
+        bottom_right,
+        left,
+        right,
+        top,
+        top_left,
+        top_right,
+    } = get_neighbours(map, map_coordinates);
 
-        // The main algorithm relies on a truth table which determines a tileset index
-        // to use based on the ones surrounding the current tile:
-        //
-        // top_left    | top      | top_right
-        // left        | OUR TILE | right
-        // bottom_left | bottom   | bottom_right
-        //
-        // Depending on the surround tile we use one of the 47 possible tiles which
-        // encompass all possible arrangements of corners, edgeds, internal corners, etc.
-        //
-        // A second value is returned, which is either None (for regular «full» tiles),
-        // or Some(zone) which is the "background" tile on top of which a partial tile
-        // will be applied (think an ocean shore on top of a plain to make a beach).
-        match (
-            top_left.zone == zone,
-            top.zone == zone,
-            top_right.zone == zone,
-            left.zone == zone,
-            right.zone == zone,
-            bottom_left.zone == zone,
-            bottom.zone == zone,
-            bottom_right.zone == zone,
-        ) {
-            // Regular corners
-            (_, false, _, false, true, _, true, true) => (0, top),
-            (_, false, _, true, false, true, true, _) => (2, top),
-            (_, true, true, false, true, _, false, _) => (14, left),
-            (true, true, _, true, false, _, false, _) => (16, right),
+    // The main algorithm relies on a truth table which determines a tileset index
+    // to use based on the ones surrounding the current tile:
+    //
+    // top_left    | top      | top_right
+    // left        | OUR TILE | right
+    // bottom_left | bottom   | bottom_right
+    //
+    // Depending on the surround tile we use one of the 47 possible tiles which
+    // encompass all possible arrangements of corners, edgeds, internal corners, etc.
+    //
+    // A second value is returned, which is either None (for regular «full» tiles),
+    // or Some(zone) which is the "background" tile on top of which a partial tile
+    // will be applied (think an ocean shore on top of a plain to make a beach).
+    match (
+        top_left.zone == zone,
+        top.zone == zone,
+        top_right.zone == zone,
+        left.zone == zone,
+        right.zone == zone,
+        bottom_left.zone == zone,
+        bottom.zone == zone,
+        bottom_right.zone == zone,
+    ) {
+        // Regular corners
+        (_, false, _, false, true, _, true, true) => 0,
+        (_, false, _, true, false, true, true, _) => 2,
+        (_, true, true, false, true, _, false, _) => 14,
+        (true, true, _, true, false, _, false, _) => 16,
 
-            // Regular sides
-            (_, true, true, false, true, _, true, true) => (7, left),
-            (true, true, _, true, false, true, true, _) => (9, right),
-            (_, false, _, true, true, true, true, true) => (1, top),
-            (true, true, true, true, true, _, false, _) => (15, bottom),
+        // Regular sides
+        (_, true, true, false, true, _, true, true) => 7,
+        (true, true, _, true, false, true, true, _) => 9,
+        (_, false, _, true, true, true, true, true) => 1,
+        (true, true, true, true, true, _, false, _) => 15,
 
-            // 1-width tiles (with edges on either side)
-            // Vertical
-            (_, false, _, false, false, _, true, _) => (3, top),
-            (_, true, _, false, false, _, true, _) => (10, left),
-            (_, true, _, false, false, _, false, _) => (17, right),
-            // Horizontal
-            (_, false, _, false, true, _, false, _) => (21, top),
-            (_, false, _, true, true, _, false, _) => (22, top),
-            (_, false, _, true, false, _, false, _) => (23, top),
+        // 1-width tiles (with edges on either side)
+        // Vertical
+        (_, false, _, false, false, _, true, _) => 3,
+        (_, true, _, false, false, _, true, _) => 10,
+        (_, true, _, false, false, _, false, _) => 17,
+        // Horizontal
+        (_, false, _, false, true, _, false, _) => 21,
+        (_, false, _, true, true, _, false, _) => 22,
+        (_, false, _, true, false, _, false, _) => 23,
 
-            // Single internal corners (without edges)
-            (true, true, true, true, true, true, true, false) => (4, bottom_right),
-            (true, true, true, true, true, false, true, true) => (5, bottom_left),
-            (true, true, false, true, true, true, true, true) => (11, top_right),
-            (false, true, true, true, true, true, true, true) => (12, top_left),
+        // Single internal corners (without edges)
+        (true, true, true, true, true, true, true, false) => 4,
+        (true, true, true, true, true, false, true, true) => 5,
+        (true, true, false, true, true, true, true, true) => 11,
+        (false, true, true, true, true, true, true, true) => 12,
 
-            // Single internal corners (with vertical edges)
-            (_, true, true, false, true, _, true, false) => (28, left),
-            (true, true, _, true, false, false, true, _) => (29, right),
-            (_, true, false, false, true, _, true, true) => (35, top_right),
-            (false, true, _, true, false, true, true, _) => (36, top_left),
+        // Single internal corners (with vertical edges)
+        (_, true, true, false, true, _, true, false) => 28,
+        (true, true, _, true, false, false, true, _) => 29,
+        (_, true, false, false, true, _, true, true) => 35,
+        (false, true, _, true, false, true, true, _) => 36,
 
-            // Single internal corners (with horizontal edges)
-            (_, false, _, true, true, true, true, false) => (30, top),
-            (_, false, _, true, true, false, true, true) => (31, top),
-            (true, true, false, true, true, _, false, _) => (37, top_right),
-            (false, true, true, true, true, _, false, _) => (38, top_left),
+        // Single internal corners (with horizontal edges)
+        (_, false, _, true, true, true, true, false) => 30,
+        (_, false, _, true, true, false, true, true) => 31,
+        (true, true, false, true, true, _, false, _) => 37,
+        (false, true, true, true, true, _, false, _) => 38,
 
-            // Double internal corners (without edges)
-            (false, true, false, true, true, true, true, true) => (6, top_left),
-            (false, true, true, true, true, false, true, true) => (13, top_left),
-            (true, true, false, true, true, true, true, false) => (20, top_right),
-            (true, true, true, true, true, false, true, false) => (27, bottom_right),
-            (true, true, false, true, true, false, true, true) => (44, top_right),
-            (false, true, true, true, true, true, true, false) => (45, top_left),
+        // Double internal corners (without edges)
+        (false, true, false, true, true, true, true, true) => 6,
+        (false, true, true, true, true, false, true, true) => 13,
+        (true, true, false, true, true, true, true, false) => 20,
+        (true, true, true, true, true, false, true, false) => 27,
+        (true, true, false, true, true, false, true, true) => 44,
+        (false, true, true, true, true, true, true, false) => 45,
 
-            // Triple internal corners (without edges)
-            (false, true, false, true, true, true, true, false) => (18, top_left),
-            (false, true, true, true, true, false, true, false) => (19, top_left),
-            (true, true, false, true, true, false, true, false) => (25, top_right),
-            (false, true, false, true, true, false, true, true) => (26, top_left),
+        // Triple internal corners (without edges)
+        (false, true, false, true, true, true, true, false) => 18,
+        (false, true, true, true, true, false, true, false) => 19,
+        (true, true, false, true, true, false, true, false) => 25,
+        (false, true, false, true, true, false, true, true) => 26,
 
-            // Corners + opposite internal corners
-            (_, false, _, false, true, _, true, false) => (32, top),
-            (_, false, _, true, false, false, true, _) => (34, top),
-            (_, true, false, false, true, _, false, _) => (46, top_right),
-            (false, true, _, true, false, _, false, _) => (48, top_left),
+        // Corners + opposite internal corners
+        (_, false, _, false, true, _, true, false) => 32,
+        (_, false, _, true, false, false, true, _) => 34,
+        (_, true, false, false, true, _, false, _) => 46,
+        (false, true, _, true, false, _, false, _) => 48,
 
-            // Edges + opposite internal corners
-            (_, false, _, true, true, false, true, false) => (33, top),
-            (_, true, false, false, true, _, true, false) => (39, top_right),
-            (false, true, _, true, false, false, true, _) => (41, top_left),
-            (false, true, false, true, true, _, false, _) => (47, top_left),
+        // Edges + opposite internal corners
+        (_, false, _, true, true, false, true, false) => 33,
+        (_, true, false, false, true, _, true, false) => 39,
+        (false, true, _, true, false, false, true, _) => 41,
+        (false, true, false, true, true, _, false, _) => 47,
 
-            // Center tiles (either isolated, with or without full corners, etc.)
-            (true, true, true, true, true, true, true, true) => (8, top_left),
-            (false, true, false, true, true, false, true, false) => (40, top_left),
-            (_, _, _, _, _, _, _, _) => (24, top), // "top" is always false in the default case
-        }
-    };
-
-    (variant, TerrainLayer::Debug)
+        // Center tiles (either isolated, with or without full corners, etc.)
+        (true, true, true, true, true, true, true, true) => 8,
+        (false, true, false, true, true, false, true, false) => 40,
+        (_, _, _, _, _, _, _, _) => 24,
+    }
 }
 
 struct Neighbours<'a> {

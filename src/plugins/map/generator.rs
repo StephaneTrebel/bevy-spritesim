@@ -12,8 +12,8 @@ const MAP_HEIGHT: u16 = 200;
 const MAP_WIDTH: u16 = 200;
 
 // Center map inside camera frustrum
-const X_OFFSET: f32 = SPRITE_DISPLAY_SIZE * (MAP_WIDTH as f32) / 2.;
-const Y_OFFSET: f32 = SPRITE_DISPLAY_SIZE * (MAP_HEIGHT as f32) / 2.;
+const W_OFFSET: f32 = SPRITE_DISPLAY_SIZE * (MAP_WIDTH as f32) / 2.;
+const H_OFFSET: f32 = SPRITE_DISPLAY_SIZE * (MAP_HEIGHT as f32) / 2.;
 
 /// Generates several terrain patches in one go.
 ///
@@ -35,10 +35,10 @@ fn generate_multiple_patches_for_a_zone(
     let mut patch_centers: Vec<(u16, u16)> = Vec::new();
     for w in 1..count {
         for h in 1..count {
-            let px: i16 = pseudo_rng_instance.random_range(-max_offset..=max_offset);
-            let py: i16 = pseudo_rng_instance.random_range(-max_offset..=max_offset);
-            let x: u16 = ((px + MAP_WIDTH as i16) as u16) * w / count;
-            let y: u16 = ((py + MAP_HEIGHT as i16) as u16) * h / count;
+            let pw: i16 = pseudo_rng_instance.random_range(-max_offset..=max_offset);
+            let ph: i16 = pseudo_rng_instance.random_range(-max_offset..=max_offset);
+            let x: u16 = ((pw + MAP_WIDTH as i16) as u16) * w / count;
+            let y: u16 = ((ph + MAP_HEIGHT as i16) as u16) * h / count;
             patch_centers.push((x, y));
         }
     }
@@ -108,8 +108,8 @@ fn upsert_tile_in_map(
             zone: zone.copied(),
             feature: feature.copied(),
             real_coordinates: (
-                (map_coordinates.0 as f32) * SPRITE_DISPLAY_SIZE - X_OFFSET,
-                (map_coordinates.1 as f32) * SPRITE_DISPLAY_SIZE - Y_OFFSET,
+                (map_coordinates.0 as f32) * SPRITE_DISPLAY_SIZE - W_OFFSET,
+                (map_coordinates.1 as f32) * SPRITE_DISPLAY_SIZE - H_OFFSET,
             ),
         }
     });
@@ -215,29 +215,19 @@ pub fn generate_map() -> Map {
             let tile = map.get(&(w, h)).unwrap();
             let terrain = tile.terrain;
             let zone = tile.zone;
-            match (w, h) {
-                // Corn goes on feature-less plains
-                (w, h)
-                    if terrain == TerrainLayer::Plain
-                        && zone.is_none()
-                        && pseudo_rng_instance.random_bool(0.01) =>
-                {
-                    upsert_tile_in_map(&mut map, &(w, h), None, None, Some(&FeatureLayer::Corn))
-                }
-                // Lumber goes on forests
-                (w, h)
-                    if zone.is_some_and(|k| k == ZoneLayer::Forest)
-                        && pseudo_rng_instance.random_bool(0.05) =>
-                {
-                    upsert_tile_in_map(&mut map, &(w, h), None, None, Some(&FeatureLayer::Lumber))
-                }
-                // Fish goes on oceans
-                (w, h)
-                    if terrain == TerrainLayer::Ocean && pseudo_rng_instance.random_bool(0.01) =>
-                {
-                    upsert_tile_in_map(&mut map, &(w, h), None, None, Some(&FeatureLayer::Fish))
-                }
-                _ => {}
+            // FIXME: pseudo_rng_instance.random_bool(0.01)
+            let toto = true;
+            // Corn goes on feature-less plains
+            if terrain == TerrainLayer::Plain && zone.is_none() && toto {
+                upsert_tile_in_map(&mut map, &(w, h), None, None, Some(&FeatureLayer::Corn))
+            }
+            // Lumber goes on forests
+            else if zone.is_some_and(|k| k == ZoneLayer::Forest) && toto {
+                upsert_tile_in_map(&mut map, &(w, h), None, None, Some(&FeatureLayer::Lumber))
+            }
+            // Fish goes on oceans
+            else if terrain == TerrainLayer::Ocean && toto {
+                upsert_tile_in_map(&mut map, &(w, h), None, None, Some(&FeatureLayer::Fish))
             }
         }
     }
