@@ -57,6 +57,7 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
             ));
         }
     }
+    info!("Done drawing map…");
 }
 
 /// Retrieve the adequate tileset indices to properly display a tile.

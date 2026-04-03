@@ -1,4 +1,5 @@
 use bevy::log::LogPlugin;
+use bevy::winit::WinitSettings;
 use bevy::{prelude::*, window::*};
 use plugins::camera::CameraPlugin;
 use plugins::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH, WINDOW_SCALE_FACTOR};
@@ -25,8 +26,7 @@ fn main() {
                             WINDOW_PHYSICAL_HEIGHT,
                         )
                         .with_scale_factor_override(WINDOW_SCALE_FACTOR),
-                        present_mode: PresentMode::AutoVsync,
-                        window_theme: Some(WindowTheme::Dark),
+                        present_mode: PresentMode::AutoNoVsync,
                         window_level: WindowLevel::AlwaysOnTop,
                         ..default()
                     }),
@@ -40,6 +40,10 @@ fn main() {
             CustomFpsOverlayPlugin,
             bevy_framepace::FramepacePlugin,
         ))
+        .insert_resource(
+            // Update as fast as possible (no downgrade when losing focus)
+            WinitSettings::continuous(),
+        )
         .init_state::<AppState>()
         .add_systems(OnEnter(AppState::ReadyToDraw), draw_map)
         .run();

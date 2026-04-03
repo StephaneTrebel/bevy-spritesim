@@ -6,7 +6,7 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.18.0", features = ["dynamic_linking", "debug", "bevy_dev_tools"] }
+bevy = { version = "0.18.0", features = ["dynamic_linking", "debug", "bevy_dev_tools", "trace"] }
 bevy_pancam = "0.20.0"
 bevy_framepace = "0.21"
 noisy_bevy = "0.13.0"
@@ -19,3 +19,10 @@ opt-level = 1
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]
 opt-level = 3
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1
+incremental = false
+debug = false
