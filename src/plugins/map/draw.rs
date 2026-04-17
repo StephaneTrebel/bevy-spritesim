@@ -24,14 +24,20 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
             TerrainLayer::Plain => 2.,
             TerrainLayer::Ocean => 4.,
         };
-        commands.spawn((
-            atlas.sprite(&tile.terrain.get_sprite_type(), terrain_variant),
-            Transform {
-                translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, z),
-                scale: tile_scale,
-                ..default()
-            },
-        ));
+        let coords = *map_coordinates;
+        commands
+            .spawn((
+                atlas.sprite(&tile.terrain.get_sprite_type(), terrain_variant),
+                Transform {
+                    translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, z),
+                    scale: tile_scale,
+                    ..default()
+                },
+                Pickable::default(),
+            ))
+            .observe(move |_click: On<Pointer<Click>>| {
+                info!("Clicked on {coords:?}");
+            });
 
         if let Some(zone) = tile.zone {
             let zone_variant = get_zone_variant(tile, map, map_coordinates);
@@ -43,6 +49,7 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
                     scale: tile_scale,
                     ..default()
                 },
+                Pickable::default(),
             ));
         }
 
@@ -54,6 +61,7 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
                     scale: tile_scale,
                     ..default()
                 },
+                Pickable::default(),
             ));
         }
     }

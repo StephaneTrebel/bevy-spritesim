@@ -1,3 +1,4 @@
+use bevy::dev_tools::picking_debug::{DebugPickingMode, DebugPickingPlugin};
 use bevy::log::LogPlugin;
 use bevy::winit::WinitSettings;
 use bevy::{prelude::*, window::*};
@@ -33,13 +34,15 @@ fn main() {
                     ..default()
                 })
                 .set(ImagePlugin::default_nearest())
-                .set(LogPlugin { ..default() }),
+                .set(LogPlugin {..default()}),
             SpritePlugin,
             MapPlugin,
             CameraPlugin,
             CustomFpsOverlayPlugin,
             bevy_framepace::FramepacePlugin,
         ))
+        .add_plugins(DebugPickingPlugin)
+        .insert_resource(DebugPickingMode::Normal)
         .insert_resource(
             // Update as fast as possible (no downgrade when losing focus)
             WinitSettings::continuous(),
