@@ -6,7 +6,7 @@ use plugins::camera::CameraPlugin;
 use plugins::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH, WINDOW_SCALE_FACTOR};
 
 use crate::plugins::CustomFpsOverlayPlugin;
-use crate::plugins::map::{MapPlugin, draw_map};
+use crate::plugins::map::{MapPlugin, draw_map, select_tile};
 use crate::plugins::sprites::SpritePlugin;
 use crate::state::AppState;
 
@@ -34,7 +34,7 @@ fn main() {
                     ..default()
                 })
                 .set(ImagePlugin::default_nearest())
-                .set(LogPlugin {..default()}),
+                .set(LogPlugin { ..default() }),
             SpritePlugin,
             MapPlugin,
             CameraPlugin,
@@ -49,5 +49,6 @@ fn main() {
         )
         .init_state::<AppState>()
         .add_systems(OnEnter(AppState::ReadyToDraw), draw_map)
+        .add_systems(PreUpdate, select_tile)
         .run();
 }

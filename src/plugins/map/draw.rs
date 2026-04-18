@@ -5,6 +5,23 @@ use crate::plugins::{
     map::{Map, MapResource, Tile},
 };
 
+#[derive(Component)]
+pub struct RealCoordinates {
+    x: f32,
+    y: f32,
+}
+
+// #[derive(EntityEvent)]
+// pub struct Select {
+// entity: Entity,
+// }
+
+#[derive(Component)]
+pub struct SelectEntity;
+
+#[derive(Component)]
+pub struct Selector;
+
 /// Tiny scale factor applied to every tile sprite so that adjacent quads
 /// overlap by a sub-pixel amount.  Without this, GPU rasterisation rounding
 /// at tile boundaries can leave single-pixel gaps (the classic "tile seam"
@@ -12,8 +29,33 @@ use crate::plugins::{
 /// to guarantee coverage at any zoom level.
 const TILE_SCALE: f32 = 1.001;
 
+pub fn select_tile(
+    selected: Single<(Entity, &SelectEntity, &RealCoordinates)>,
+    mut selector: Single<(&mut Visibility, &mut Transform), With<Selector>>,
+    mut commands: Commands,
+) {
+    info!("Entity ({},{}) selected !", selected.2.x, selected.2.y);
+    *selector.0 = Visibility::Visible;
+    selector.1.translation = Vec3 {
+        x: selected.2.x,
+        y: selected.2.y,
+        z: 100.,
+    };
+    commands.entity(selected.0).remove::<SelectEntity>();
+}
+
 pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: Res<MapResource>) {
     info!("Drawing map…");
+
+    info!("Drawing selector");
+    commands.spawn((
+        atlas.sprite(&crate::plugins::SpriteType::Selector, 0),
+        Transform::from_xyz(0., 0., 0.0),
+        Visibility::Hidden,
+        Pickable::IGNORE,
+        Selector,
+    ));
+
     let map = &map_resource.map;
     let tile_scale = Vec3::splat(TILE_SCALE);
     for (map_coordinates, tile) in map.iter() {
@@ -24,7 +66,6 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
             TerrainLayer::Plain => 2.,
             TerrainLayer::Ocean => 4.,
         };
-        let coords = *map_coordinates;
         commands
             .spawn((
                 atlas.sprite(&tile.terrain.get_sprite_type(), terrain_variant),
@@ -33,10 +74,14 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
                     scale: tile_scale,
                     ..default()
                 },
+                RealCoordinates {
+                    x: tile.real_coordinates.0,
+                    y: tile.real_coordinates.1,
+                },
                 Pickable::default(),
             ))
-            .observe(move |_click: On<Pointer<Click>>| {
-                info!("Clicked on {coords:?}");
+            .observe(|click: On<Pointer<Click>>, mut obs_commands: Commands| {
+                obs_commands.entity(click.entity).insert(SelectEntity);
             });
 
         if let Some(zone) = tile.zone {

@@ -74,6 +74,7 @@ fn create_texture_atlas(
 /// Terrains are the base layers of all tiles
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SpriteType {
+    Selector,
     Corn,
     Debug,
     Desert,
@@ -94,6 +95,7 @@ impl std::fmt::Display for SpriteType {
             f,
             "{}",
             match self {
+                SpriteType::Selector => "selector",
                 SpriteType::Corn => "corn",
                 SpriteType::Debug => "debug",
                 SpriteType::Desert => "desert",
@@ -117,6 +119,13 @@ impl SpriteType {
         let sprite_name = self.to_string();
 
         match self {
+            SpriteType::Selector => {
+                format!(
+                    "{SPRITE_DIRECTORY_NAME}/{}/{}_0.png",
+                    sprite_name, sprite_name
+                )
+            }
+
             SpriteType::Debug
             | SpriteType::Desert
             | SpriteType::Forest
@@ -129,6 +138,7 @@ impl SpriteType {
                     sprite_name, sprite_name, variant
                 )
             }
+
             SpriteType::Corn
             | SpriteType::Fish
             | SpriteType::Lumber
@@ -149,7 +159,8 @@ impl SpriteType {
     pub fn all() -> &'static [SpriteType] {
         use SpriteType::*;
         &[
-            Corn, Debug, Desert, Fish, Forest, Hill, Lumber, Mountain, Ocean, Ore, Plain, Snow,
+            Selector, Corn, Debug, Desert, Fish, Forest, Hill, Lumber, Mountain, Ocean, Ore, Plain,
+            Snow,
         ]
     }
 }
@@ -209,6 +220,7 @@ fn create_sprite_atlas(
     let indices = SpriteType::all()
         .iter()
         .flat_map(|&sprite_type| {
+            info!("Loading {sprite_type}");
             // Cloning before move-ing into inner closure
             let asset_server = asset_server.clone();
             let texture_ids = texture_atlas_sources.texture_ids.clone();
