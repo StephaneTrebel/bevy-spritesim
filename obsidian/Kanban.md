@@ -6,16 +6,36 @@ kanban-plugin: board
 
 ## ToDo
 
-- [ ] Revoir les différents "hacks" -> Remettre à plat la hiérarchie Terrain <- Biome <-> Special (qui doivent dépendre)
+- [ ] Define Terrain Layer Hierarchy (base terrain, features, zones, biomes, specials, etc.)
+	#phase0
+- [ ] Add a Village sprite:
+	- Displayed on the map when created
+	#phase1
+- [ ] Add a Winning screen:
+	- Triggered when a village is built by the player
+	- "Yay !"
+	- And then exit
+	#phase1
 
 
 ## InProgress
 
+- [ ] Add a playable "unit":
+	- Can be selected
+	- Can be moved (not on oceans)
+	- Can "act" (create a village)
+	#phase1
 
 
 ## Done
 
 **Complete**
+- [x] Generate Map
+	#phase0
+- [x] Display Map
+	#phase0
+- [x] Display Selector on tiles
+	#phase0
 
 
 ***
