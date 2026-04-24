@@ -75,6 +75,7 @@ fn create_texture_atlas(
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SpriteType {
     Selector,
+
     Corn,
     Debug,
     Desert,
@@ -87,6 +88,8 @@ pub enum SpriteType {
     Ore,
     Plain,
     Snow,
+
+    Settler,
 }
 
 impl std::fmt::Display for SpriteType {
@@ -96,6 +99,7 @@ impl std::fmt::Display for SpriteType {
             "{}",
             match self {
                 SpriteType::Selector => "selector",
+
                 SpriteType::Corn => "corn",
                 SpriteType::Debug => "debug",
                 SpriteType::Desert => "desert",
@@ -108,6 +112,8 @@ impl std::fmt::Display for SpriteType {
                 SpriteType::Ore => "ore",
                 SpriteType::Plain => "plain",
                 SpriteType::Snow => "snow",
+
+                SpriteType::Settler => "settler",
             }
         )?;
         Ok(())
@@ -149,6 +155,13 @@ impl SpriteType {
                     sprite_name, sprite_name
                 )
             }
+
+            SpriteType::Settler => {
+                format!(
+                    "{SPRITE_DIRECTORY_NAME}/units/{}/{}_0_0.png",
+                    sprite_name, sprite_name
+                )
+            }
         }
     }
 
@@ -160,7 +173,7 @@ impl SpriteType {
         use SpriteType::*;
         &[
             Selector, Corn, Debug, Desert, Fish, Forest, Hill, Lumber, Mountain, Ocean, Ore, Plain,
-            Snow,
+            Snow, Settler,
         ]
     }
 }

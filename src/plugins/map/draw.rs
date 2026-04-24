@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::plugins::{
-    SpriteAtlas, TerrainLayer,
+    SPRITE_DISPLAY_SIZE, SpriteAtlas, TerrainLayer,
     map::{Map, MapResource, Tile},
 };
 
@@ -20,6 +20,9 @@ pub struct RealCoordinates {
 pub struct SelectEntity;
 
 #[derive(Component)]
+pub struct Settler;
+
+#[derive(Component)]
 pub struct Selector;
 
 /// Tiny scale factor applied to every tile sprite so that adjacent quads
@@ -28,6 +31,27 @@ pub struct Selector;
 /// artifact).  The value is small enough to be invisible but large enough
 /// to guarantee coverage at any zoom level.
 const TILE_SCALE: f32 = 1.001;
+
+pub fn set_transform_for_real_coordinates(
+    mut entity: Single<(Entity, &Settler, &RealCoordinates, &mut Transform)>,
+) {
+    entity.3.translation = Vec3 {
+        x: entity.2.x,
+        y: entity.2.y,
+        z: 90.,
+    };
+}
+
+pub fn anchor_camera_to_settler(
+    settler: Single<(Entity, &Settler, &RealCoordinates)>,
+    mut camera: Single<&mut Transform, With<Camera2d>>,
+) {
+    camera.translation = Vec3 {
+        x: settler.2.x,
+        y: settler.2.y,
+        z: 100.,
+    };
+}
 
 pub fn select_tile(
     selected: Single<(Entity, &SelectEntity, &RealCoordinates)>,
@@ -114,6 +138,19 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
             ));
         }
     }
+
+    // Spawn our first settler !
+    // His name is "Michel"
+    commands.spawn((
+        atlas.sprite(&crate::plugins::SpriteType::Settler, 0),
+        RealCoordinates {
+            x: -50. * SPRITE_DISPLAY_SIZE,
+            y: -50. * SPRITE_DISPLAY_SIZE,
+        },
+        Pickable::default(),
+        Settler,
+    ));
+
     info!("Done drawing map…");
 }
 

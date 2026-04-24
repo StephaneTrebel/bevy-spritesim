@@ -6,7 +6,9 @@ use plugins::camera::CameraPlugin;
 use plugins::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH, WINDOW_SCALE_FACTOR};
 
 use crate::plugins::CustomFpsOverlayPlugin;
-use crate::plugins::map::{MapPlugin, draw_map, select_tile};
+use crate::plugins::map::{
+    MapPlugin, anchor_camera_to_settler, draw_map, select_tile, set_transform_for_real_coordinates,
+};
 use crate::plugins::sprites::SpritePlugin;
 use crate::state::AppState;
 
@@ -51,5 +53,7 @@ fn main() {
         .init_state::<AppState>()
         .add_systems(OnEnter(AppState::ReadyToDraw), draw_map)
         .add_systems(PreUpdate, select_tile)
+        .add_systems(PreUpdate, anchor_camera_to_settler)
+        .add_systems(PreUpdate, set_transform_for_real_coordinates)
         .run();
 }
