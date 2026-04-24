@@ -42,7 +42,8 @@ fn main() {
             bevy_framepace::FramepacePlugin,
         ))
         .add_plugins(DebugPickingPlugin)
-        .insert_resource(DebugPickingMode::Normal)
+        // Switch to show Debug overlay
+        .insert_resource(DebugPickingMode::Disabled)
         .insert_resource(
             // Update as fast as possible (no downgrade when losing focus)
             WinitSettings::continuous(),
