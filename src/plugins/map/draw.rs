@@ -58,19 +58,23 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
 
     let map = &map_resource.map;
     let tile_scale = Vec3::splat(TILE_SCALE);
-    for (map_coordinates, tile) in map.iter() {
+    for (index, (map_coordinates, tile)) in map.iter().enumerate() {
         let terrain_variant = get_terrain_variant(tile, map, map_coordinates);
         let z: f32 = match tile.terrain {
             TerrainLayer::Debug => 0.,
-            TerrainLayer::Desert => 3.,
+            TerrainLayer::Desert => 1.,
             TerrainLayer::Plain => 2.,
-            TerrainLayer::Ocean => 4.,
+            TerrainLayer::Ocean => 3.,
         };
         commands
             .spawn((
                 atlas.sprite(&tile.terrain.get_sprite_type(), terrain_variant),
                 Transform {
-                    translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, z),
+                    translation: Vec3::new(
+                        tile.real_coordinates.0,
+                        tile.real_coordinates.1,
+                        z + (index as f32 / 10000.),
+                    ),
                     scale: tile_scale,
                     ..default()
                 },
@@ -87,37 +91,27 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
         if let Some(zone) = tile.zone {
             let zone_variant = get_zone_variant(tile, map, map_coordinates);
 
-            commands
-                .spawn((
-                    atlas.sprite(&zone.get_sprite_type(), zone_variant),
-                    Transform {
-                        translation: Vec3::new(
-                            tile.real_coordinates.0,
-                            tile.real_coordinates.1,
-                            5.,
-                        ),
-                        scale: tile_scale,
-                        ..default()
-                    },
-                    Pickable::IGNORE
-                ));
+            commands.spawn((
+                atlas.sprite(&zone.get_sprite_type(), zone_variant),
+                Transform {
+                    translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 10.),
+                    scale: tile_scale,
+                    ..default()
+                },
+                Pickable::IGNORE,
+            ));
         }
 
         if let Some(feature) = tile.feature {
-            commands
-                .spawn((
-                    atlas.sprite(&feature.get_sprite_type(), terrain_variant),
-                    Transform {
-                        translation: Vec3::new(
-                            tile.real_coordinates.0,
-                            tile.real_coordinates.1,
-                            6.,
-                        ),
-                        scale: tile_scale,
-                        ..default()
-                    },
-                    Pickable::IGNORE
-                ));
+            commands.spawn((
+                atlas.sprite(&feature.get_sprite_type(), terrain_variant),
+                Transform {
+                    translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 20.),
+                    scale: tile_scale,
+                    ..default()
+                },
+                Pickable::IGNORE,
+            ));
         }
     }
     info!("Done drawing map…");
