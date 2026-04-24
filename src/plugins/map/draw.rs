@@ -87,27 +87,37 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
         if let Some(zone) = tile.zone {
             let zone_variant = get_zone_variant(tile, map, map_coordinates);
 
-            commands.spawn((
-                atlas.sprite(&zone.get_sprite_type(), zone_variant),
-                Transform {
-                    translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 5.),
-                    scale: tile_scale,
-                    ..default()
-                },
-                Pickable::default(),
-            ));
+            commands
+                .spawn((
+                    atlas.sprite(&zone.get_sprite_type(), zone_variant),
+                    Transform {
+                        translation: Vec3::new(
+                            tile.real_coordinates.0,
+                            tile.real_coordinates.1,
+                            5.,
+                        ),
+                        scale: tile_scale,
+                        ..default()
+                    },
+                    Pickable::IGNORE
+                ));
         }
 
         if let Some(feature) = tile.feature {
-            commands.spawn((
-                atlas.sprite(&feature.get_sprite_type(), terrain_variant),
-                Transform {
-                    translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 6.),
-                    scale: tile_scale,
-                    ..default()
-                },
-                Pickable::default(),
-            ));
+            commands
+                .spawn((
+                    atlas.sprite(&feature.get_sprite_type(), terrain_variant),
+                    Transform {
+                        translation: Vec3::new(
+                            tile.real_coordinates.0,
+                            tile.real_coordinates.1,
+                            6.,
+                        ),
+                        scale: tile_scale,
+                        ..default()
+                    },
+                    Pickable::IGNORE
+                ));
         }
     }
     info!("Done drawing map…");
