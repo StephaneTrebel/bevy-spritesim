@@ -8,9 +8,6 @@ kanban-plugin: board
 
 - [ ] Define Terrain Layer Hierarchy (base terrain, features, zones, biomes, specials, etc.)
 	#phase0
-- [ ] Add a Village sprite:
-	- Displayed on the map when created
-	#phase1
 - [ ] Add a Winning screen:
 	- Triggered when a village is built by the player
 	- "Yay !"
@@ -22,18 +19,22 @@ kanban-plugin: board
 	#phase1
 - [ ] WASM Build
 	#other
+- [ ] Handle BÉPO (and other non-QWERTY layouts 😅)
 
 
 ## InProgress
 
-- [ ] Add a playable "unit":
-	- Can "act" (create a village)
-	#phase1
 
 
 ## Done
 
 **Complete**
+- [x] Add a Village sprite:
+	- Displayed on the map when created
+	#phase1
+- [x] Add a playable "unit":
+	- Can "act" (create a village)
+	#phase1
 - [x] Generate Map
 	#phase0
 - [x] Display Map

@@ -90,6 +90,8 @@ pub enum SpriteType {
     Snow,
 
     Settler,
+
+    Village,
 }
 
 impl std::fmt::Display for SpriteType {
@@ -114,6 +116,8 @@ impl std::fmt::Display for SpriteType {
                 SpriteType::Snow => "snow",
 
                 SpriteType::Settler => "settler",
+
+                SpriteType::Village => "village",
             }
         )?;
         Ok(())
@@ -162,6 +166,13 @@ impl SpriteType {
                     sprite_name, sprite_name
                 )
             }
+
+            SpriteType::Village => {
+                format!(
+                    "{SPRITE_DIRECTORY_NAME}/structures/{}/{}_0_0.png",
+                    sprite_name, sprite_name
+                )
+            }
         }
     }
 
@@ -173,7 +184,7 @@ impl SpriteType {
         use SpriteType::*;
         &[
             Selector, Corn, Debug, Desert, Fish, Forest, Hill, Lumber, Mountain, Ocean, Ore, Plain,
-            Snow, Settler,
+            Snow, Settler, Village
         ]
     }
 }
