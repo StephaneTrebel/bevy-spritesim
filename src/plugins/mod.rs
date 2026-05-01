@@ -8,8 +8,12 @@ pub use fps_overlay::*;
 
 pub mod map;
 
+pub mod selection;
+pub use selection::*;
+
 pub mod sprites;
 pub use sprites::*;
 
 pub mod shared;
 pub use shared::*;
+

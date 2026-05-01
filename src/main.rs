@@ -5,11 +5,11 @@ use bevy::{prelude::*, window::*};
 use plugins::camera::CameraPlugin;
 use plugins::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH, WINDOW_SCALE_FACTOR};
 
-use crate::plugins::CustomFpsOverlayPlugin;
 use crate::plugins::map::{
-    MapPlugin, anchor_camera_to_settler, draw_map, select_tile, set_transform_for_real_coordinates,
+    MapPlugin, anchor_camera_to_settler, draw_map, set_transform_for_real_coordinates,
 };
 use crate::plugins::sprites::SpritePlugin;
+use crate::plugins::{CustomFpsOverlayPlugin, SelectionPlugin};
 use crate::state::AppState;
 
 mod plugins;
@@ -42,8 +42,9 @@ fn main() {
             CameraPlugin,
             CustomFpsOverlayPlugin,
             bevy_framepace::FramepacePlugin,
+            SelectionPlugin,
+            DebugPickingPlugin,
         ))
-        .add_plugins(DebugPickingPlugin)
         // Switch to show Debug overlay
         .insert_resource(DebugPickingMode::Disabled)
         .insert_resource(
@@ -52,7 +53,6 @@ fn main() {
         )
         .init_state::<AppState>()
         .add_systems(OnEnter(AppState::ReadyToDraw), draw_map)
-        .add_systems(PreUpdate, select_tile)
         .add_systems(PreUpdate, anchor_camera_to_settler)
         .add_systems(PreUpdate, set_transform_for_real_coordinates)
         .run();
