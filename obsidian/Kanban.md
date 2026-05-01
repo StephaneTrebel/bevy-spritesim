@@ -16,13 +16,17 @@ kanban-plugin: board
 	- "Yay !"
 	- And then exit
 	#phase1
+- [ ] Move Settler:
+	- Can be selected
+	- Can be moved (not on oceans)
+	#phase1
+- [ ] WASM Build
+	#other
 
 
 ## InProgress
 
 - [ ] Add a playable "unit":
-	- Can be selected
-	- Can be moved (not on oceans)
 	- Can "act" (create a village)
 	#phase1
 
@@ -48,6 +52,6 @@ kanban-plugin: board
 
 %% kanban:settings
 ```
-{"kanban-plugin":"board","list-collapse":[false,false,false]}
+{"kanban-plugin":"board","list-collapse":[false,false,true]}
 ```
 %%
