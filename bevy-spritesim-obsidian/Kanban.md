@@ -8,11 +8,6 @@ kanban-plugin: board
 
 - [ ] Define Terrain Layer Hierarchy (base terrain, features, zones, biomes, specials, etc.)
 	#phase0
-- [ ] Add a Winning screen:
-	- Triggered when a village is built by the player
-	- "Yay !"
-	- And then exit
-	#phase1
 - [ ] Move Settler:
 	- Can be selected
 	- Can be moved (not on oceans)
@@ -24,6 +19,11 @@ kanban-plugin: board
 
 ## InProgress
 
+- [ ] Add a Winning screen:
+	- Triggered when a village is built by the player
+	- "Yay !"
+	- And then exit
+	#phase1
 
 
 ## Done
