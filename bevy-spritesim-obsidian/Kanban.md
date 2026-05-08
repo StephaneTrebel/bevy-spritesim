@@ -6,40 +6,36 @@ kanban-plugin: board
 
 ## ToDo
 
-- [ ] Define Terrain Layer Hierarchy (base terrain, features, zones, biomes, specials, etc.)
-	#phase0
-- [ ] Move Settler:
-	- Can be selected
-	- Can be moved (not on oceans)
-	#phase1
-- [ ] WASM Build
-	#other
-- [ ] Handle BÉPO (and other non-QWERTY layouts 😅)
+- [ ] [[Define Terrain Layer Hierarchy]]
+- [ ] [[WASM Build]]
+- [ ] [[Handle BÉPO (and other non-QWERTY layouts 😅)]]
+- [ ] [[Add terrain constraints]]
 
 
 ## InProgress
 
-- [ ] Add a Winning screen:
-	- Triggered when a village is built by the player
-	- "Yay !"
-	- And then exit
-	#phase1
+- [ ] [[Move Settler]]
 
 
 ## Done
 
 **Complete**
-- [x] Add a Village sprite:
+- [ ] [[Add a Winning screen]]
+	- Triggered when a village is built by the player
+	- "Yay !"
+	- And then exit (errocode=0)
+	#phase1
+- [x] [[Add a Village sprite]]
 	- Displayed on the map when created
 	#phase1
-- [x] Add a playable "unit":
+- [x] [[Add a playable unit]]
 	- Can "act" (create a village)
 	#phase1
-- [x] Generate Map
+- [x] [[Generate Map]]
 	#phase0
-- [x] Display Map
+- [x] [[Display Map]]
 	#phase0
-- [x] Display Selector on tiles
+- [x] [[Display Selector on tiles]]
 	#phase0
 
 
