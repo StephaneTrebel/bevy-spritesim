@@ -1,5 +1,8 @@
 pub mod camera;
 
+pub mod buttons;
+pub use buttons::*;
+
 pub mod constants;
 pub use constants::*;
 

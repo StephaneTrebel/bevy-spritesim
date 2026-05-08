@@ -9,7 +9,7 @@ use crate::plugins::map::{
     MapPlugin, anchor_camera_to_settler, draw_map, set_transform_for_real_coordinates,
 };
 use crate::plugins::sprites::SpritePlugin;
-use crate::plugins::{CustomFpsOverlayPlugin, KeyboardPlugin, SelectionPlugin};
+use crate::plugins::{CustomFpsOverlayPlugin, KeyboardPlugin, SelectionPlugin, ButtonsPlugin};
 use crate::state::AppState;
 
 mod plugins;
@@ -44,6 +44,7 @@ fn main() {
             bevy_framepace::FramepacePlugin,
             SelectionPlugin,
             KeyboardPlugin,
+            ButtonsPlugin,
             DebugPickingPlugin,
         ))
         // Switch to show Debug overlay

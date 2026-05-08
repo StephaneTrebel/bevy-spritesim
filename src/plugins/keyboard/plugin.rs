@@ -8,11 +8,10 @@ use crate::{
     state::AppState,
 };
 
-pub struct KeyboardPlugin;
-
 #[derive(Component)]
 pub struct Village;
 
+pub struct KeyboardPlugin;
 impl Plugin for KeyboardPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(PreUpdate, handle_input)
