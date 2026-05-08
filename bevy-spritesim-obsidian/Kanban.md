@@ -10,6 +10,7 @@ kanban-plugin: board
 - [ ] [[WASM Build]]
 - [ ] [[Handle BÉPO (and other non-QWERTY layouts 😅)]]
 - [ ] [[Add terrain constraints]]
+- [ ] [[Decide what to do with the camera]]
 
 
 ## InProgress
@@ -49,6 +50,6 @@ kanban-plugin: board
 
 %% kanban:settings
 ```
-{"kanban-plugin":"board","list-collapse":[false,false,true]}
+{"kanban-plugin":"board","list-collapse":[false,false,true],"metadata-keys":[{"metadataKey":"description","label":"Description","shouldHideLabel":false,"containsMarkdown":false},{"metadataKey":"phase","label":"Phase","shouldHideLabel":false,"containsMarkdown":false}],"move-tags":true,"tag-action":"kanban","tag-colors":[{"tagKey":"#phase","color":"rgba(236, 250, 137, 1)","backgroundColor":""}]}
 ```
 %%
