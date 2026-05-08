@@ -35,6 +35,7 @@ fn handle_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     settler: Single<(Entity, &RealCoordinates), With<Settler>>,
     mut village: Single<(&mut Visibility, &mut Transform), With<Village>>,
+    mut next_state: ResMut<NextState<AppState>>,
 ) {
     // B for "build village"
     if keyboard_input.just_pressed(KeyCode::KeyQ) {
@@ -47,5 +48,8 @@ fn handle_input(
             z: 90.,
         };
         commands.entity(settler.0.entity()).despawn();
+
+        // Show "you win" Button
+        next_state.set(AppState::WinConditionAchieved);
     }
 }

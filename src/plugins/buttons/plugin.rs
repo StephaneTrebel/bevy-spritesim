@@ -20,6 +20,7 @@ fn button(assets: &AssetServer) -> impl Bundle {
         Node {
             width: percent(100),
             height: percent(100),
+            top: percent(-15) ,
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             ..default()
