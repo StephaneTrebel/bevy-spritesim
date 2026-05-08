@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 
 use crate::plugins::{
-    SPRITE_DISPLAY_SIZE, SelectEntity, SpriteAtlas, TerrainLayer, map::{Map, MapResource, Tile}
+    SPRITE_DISPLAY_SIZE, SpriteAtlas, TerrainLayer,
+    map::{Map, MapResource, Tile},
+    select_on_click,
 };
 
 #[derive(Component)]
@@ -72,48 +74,68 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
                 },
                 Pickable::default(),
             ))
-            .observe(|click: On<Pointer<Click>>, mut obs_commands: Commands| {
-                obs_commands.entity(click.entity).insert(SelectEntity);
-            });
+            .observe(select_on_click);
 
         if let Some(zone) = tile.zone {
             let zone_variant = get_zone_variant(tile, map, map_coordinates);
 
-            commands.spawn((
-                atlas.sprite(&zone.get_sprite_type(), zone_variant),
-                Transform {
-                    translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 10.),
-                    scale: tile_scale,
-                    ..default()
-                },
-                Pickable::IGNORE,
-            ));
+            commands
+                .spawn((
+                    atlas.sprite(&zone.get_sprite_type(), zone_variant),
+                    Transform {
+                        translation: Vec3::new(
+                            tile.real_coordinates.0,
+                            tile.real_coordinates.1,
+                            10.,
+                        ),
+                        scale: tile_scale,
+                        ..default()
+                    },
+                    RealCoordinates {
+                        x: tile.real_coordinates.0,
+                        y: tile.real_coordinates.1,
+                    },
+                    Pickable::default(),
+                ))
+                .observe(select_on_click);
         }
 
         if let Some(feature) = tile.feature {
-            commands.spawn((
-                atlas.sprite(&feature.get_sprite_type(), terrain_variant),
-                Transform {
-                    translation: Vec3::new(tile.real_coordinates.0, tile.real_coordinates.1, 20.),
-                    scale: tile_scale,
-                    ..default()
-                },
-                Pickable::IGNORE,
-            ));
+            commands
+                .spawn((
+                    atlas.sprite(&feature.get_sprite_type(), terrain_variant),
+                    Transform {
+                        translation: Vec3::new(
+                            tile.real_coordinates.0,
+                            tile.real_coordinates.1,
+                            20.,
+                        ),
+                        scale: tile_scale,
+                        ..default()
+                    },
+                    RealCoordinates {
+                        x: tile.real_coordinates.0,
+                        y: tile.real_coordinates.1,
+                    },
+                    Pickable::default(),
+                ))
+                .observe(select_on_click);
         }
     }
 
     // Spawn our first settler !
     // His name is "Michel"
-    commands.spawn((
-        atlas.sprite(&crate::plugins::SpriteType::Settler, 0),
-        RealCoordinates {
-            x: -50. * SPRITE_DISPLAY_SIZE,
-            y: -50. * SPRITE_DISPLAY_SIZE,
-        },
-        Pickable::default(),
-        Settler,
-    ));
+    commands
+        .spawn((
+            atlas.sprite(&crate::plugins::SpriteType::Settler, 0),
+            RealCoordinates {
+                x: -50. * SPRITE_DISPLAY_SIZE,
+                y: -50. * SPRITE_DISPLAY_SIZE,
+            },
+            Pickable::default(),
+            Settler,
+        ))
+        .observe(select_on_click);
 
     info!("Done drawing map…");
 }
