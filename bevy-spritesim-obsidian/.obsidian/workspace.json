@@ -4,30 +4,25 @@
     "type": "split",
     "children": [
       {
-        "id": "a42505c09eaeb1ae",
+        "id": "c80f09a36d0980a3",
         "type": "tabs",
         "children": [
           {
-            "id": "6c5d41e2b6a9e16a",
+            "id": "ad847192f941cd7f",
             "type": "leaf",
             "state": {
-              "type": "kanban",
+              "type": "markdown",
               "state": {
-                "file": "Kanban.md",
-                "kanbanViewState": {
-                  "kanban-plugin": "board",
-                  "list-collapse": [
-                    false,
-                    false,
-                    true
-                  ]
-                }
+                "file": "kanban_notes/Refactor RealCoordinates.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-trello",
-              "title": "Kanban"
+              "icon": "lucide-file",
+              "title": "Refactor RealCoordinates"
             }
           }
-        ]
+        ],
+        "stacked": true
       }
     ],
     "direction": "vertical"
@@ -100,7 +95,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Kanban.md",
+                "file": "kanban_notes/Refactor RealCoordinates.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -110,7 +105,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Rétrolien pour Kanban"
+              "title": "Rétrolien pour Refactor RealCoordinates"
             }
           },
           {
@@ -119,12 +114,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "TODO.md",
+                "file": "kanban_notes/Refactor RealCoordinates.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Liens sortants de TODO"
+              "title": "Liens sortants de Refactor RealCoordinates"
             }
           },
           {
@@ -190,21 +185,22 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "TODO.md",
+                "file": "kanban_notes/Refactor RealCoordinates.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Plan de TODO"
+              "title": "Plan de Refactor RealCoordinates"
             }
           }
         ],
-        "currentTab": 4
+        "currentTab": 2
       }
     ],
     "direction": "horizontal",
-    "width": 444.5
+    "width": 514.5,
+    "collapsed": true
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -219,21 +215,23 @@
       "obsidian-kanban:Create new board": false
     }
   },
-  "active": "6c5d41e2b6a9e16a",
+  "active": "ad847192f941cd7f",
   "lastOpenFiles": [
-    "kanban_notes/Decide what to do with the camera.md",
     "Kanban.md",
+    "Roadmap.md",
     "kanban_notes/Move Settler.md",
-    "Templates/Kanban Note.md",
-    "kanban_notes/Add terrain constraints.md",
     "kanban_notes/Display Selector on tiles.md",
+    "kanban_notes/Turn-by-turn system.md",
+    "Templates/Kanban Note.md",
+    "kanban_notes/Refactor RealCoordinates.md",
+    "kanban_notes/Decide what to do with the camera.md",
+    "kanban_notes/Add terrain constraints.md",
     "kanban_notes/Display Map.md",
     "kanban_notes/Generate Map.md",
     "kanban_notes/Add a playable unit.md",
     "kanban_notes/Add a Village sprite.md",
     "kanban_notes/Add a Winning screen.md",
     "kanban_notes/Define Terrain Layer Hierarchy.md",
-    "Roadmap.md",
     "kanban_notes/Handle BÉPO (and other non-QWERTY layouts 😅).md",
     "kanban_notes/WASM Build.md",
     "kanban_notes/test.md",

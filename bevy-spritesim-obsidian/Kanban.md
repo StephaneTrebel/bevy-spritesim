@@ -8,22 +8,23 @@ kanban-plugin: board
 ## ToDo
 
 - [ ] [[Define Terrain Layer Hierarchy]]
-- [ ] [[WASM Build]]
-- [ ] [[Handle BÉPO (and other non-QWERTY layouts 😅)]]
-- [ ] [[Add terrain constraints]]
+- [ ] [[Add terrain movement constraints]]
 - [ ] [[Decide what to do with the camera]]
-- [ ]  Turn-by-turn system
+- [ ] [[Turn-by-turn system]]
+- [ ] [[Define a keyboard layout]]
+- [ ] [[WASM Build]]
 
 
 ## InProgress
 
-- [ ] [[Move Settler]]
+- [ ] [[Refactor RealCoordinates]]
 
 
 ## Done
 
 **Complete**
-- [ ] [[Add a Winning screen]]
+- [x] [[Move Settler]]
+- [x] [[Add a Winning screen]]
 	- Triggered when a village is built by the player
 	- "Yay !"
 	- And then exit (errocode=0)

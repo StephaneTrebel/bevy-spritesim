@@ -1,13 +1,16 @@
 ---
-id: note_id
+id: decide_what_to_do_with_the_camera
 aliases: []
 tags:
   - phaseX
-description: to_be_defined
-title: to_be_defined
+description: Define how the 2D camera should behave
+title: Decide what to do with the camera
 ---
-## Theme1
+
+## Camera initialization
+
 - Initial Zoom ?
-- How to use ?
-- etc.
-- 
+
+## Camera movement
+ 
+- How should it move ? Freely ? Based on a selected tile ?
