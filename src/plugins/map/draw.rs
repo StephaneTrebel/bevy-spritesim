@@ -58,7 +58,7 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
         };
         commands
             .spawn((
-                atlas.sprite(&tile.terrain.get_sprite_type(), terrain_variant),
+                atlas.sprite(&tile.terrain.get_sprite_type(), terrain_variant, None),
                 Transform {
                     translation: Vec3::new(
                         tile.real_coordinates.0,
@@ -81,7 +81,7 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
 
             commands
                 .spawn((
-                    atlas.sprite(&zone.get_sprite_type(), zone_variant),
+                    atlas.sprite(&zone.get_sprite_type(), zone_variant, None),
                     Transform {
                         translation: Vec3::new(
                             tile.real_coordinates.0,
@@ -103,7 +103,7 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
         if let Some(feature) = tile.feature {
             commands
                 .spawn((
-                    atlas.sprite(&feature.get_sprite_type(), terrain_variant),
+                    atlas.sprite(&feature.get_sprite_type(), terrain_variant, None),
                     Transform {
                         translation: Vec3::new(
                             tile.real_coordinates.0,
@@ -127,7 +127,7 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
     // His name is "Michel"
     commands
         .spawn((
-            atlas.sprite(&crate::plugins::SpriteType::Settler, 0),
+            atlas.sprite(&crate::plugins::SpriteType::Settler, 0, None),
             RealCoordinates {
                 x: -50. * SPRITE_DISPLAY_SIZE,
                 y: -50. * SPRITE_DISPLAY_SIZE,

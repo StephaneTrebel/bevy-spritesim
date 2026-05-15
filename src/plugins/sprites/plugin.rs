@@ -184,7 +184,7 @@ impl SpriteType {
         use SpriteType::*;
         &[
             Selector, Corn, Debug, Desert, Fish, Forest, Hill, Lumber, Mountain, Ocean, Ore, Plain,
-            Snow, Settler, Village
+            Snow, Settler, Village,
         ]
     }
 }
@@ -216,8 +216,14 @@ impl SpriteAtlas {
         }
     }
 
-    pub fn sprite(&self, sprite_type: &SpriteType, variant: u8) -> Sprite {
-        Sprite::from_atlas_image(self.texture.clone(), self.get(sprite_type, variant))
+    pub fn sprite(&self, sprite_type: &SpriteType, variant: u8, color: Option<Color>) -> Sprite {
+        let mut sprite =
+            Sprite::from_atlas_image(self.texture.clone(), self.get(sprite_type, variant));
+
+        if let Some(c) = color {
+            sprite.color = c;
+        }
+        sprite
     }
 }
 

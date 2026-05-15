@@ -6,14 +6,10 @@ use rand::{Rng, rngs::StdRng};
 use std::ops::Range;
 
 use crate::plugins::map::{Map, Tile};
-use crate::plugins::{FeatureLayer, SPRITE_DISPLAY_SIZE, TerrainLayer, ZoneLayer};
-
-const MAP_HEIGHT: u16 = 200;
-const MAP_WIDTH: u16 = 200;
-
-// Center map inside camera frustrum
-const W_OFFSET: f32 = SPRITE_DISPLAY_SIZE * (MAP_WIDTH as f32) / 2.;
-const H_OFFSET: f32 = SPRITE_DISPLAY_SIZE * (MAP_HEIGHT as f32) / 2.;
+use crate::plugins::{
+    FeatureLayer, H_OFFSET, MAP_HEIGHT, MAP_WIDTH, SPRITE_DISPLAY_SIZE, TerrainLayer, W_OFFSET,
+    ZoneLayer,
+};
 
 /// Generates several terrain patches in one go.
 ///

@@ -22,7 +22,7 @@ impl Plugin for KeyboardPlugin {
 pub fn draw_village(mut commands: Commands, atlas: Res<SpriteAtlas>) {
     info!("Drawing village sprite");
     commands.spawn((
-        atlas.sprite(&crate::plugins::SpriteType::Village, 0),
+        atlas.sprite(&crate::plugins::SpriteType::Village, 0, None),
         Transform::from_xyz(0., 0., 0.0),
         Visibility::Hidden,
         Pickable::IGNORE,

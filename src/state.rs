@@ -8,5 +8,10 @@ pub enum AppState {
     CreateSpriteAtlas,
     MapGenerationStart,
     ReadyToDraw,
-    WinConditionAchieved
+
+    MainGame,
+
+    WinConditionAchieved,
+
+    UnitReadyToMove 
 }

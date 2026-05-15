@@ -1,7 +1,8 @@
 ---
-
+id: Kanban
+aliases: []
+tags: []
 kanban-plugin: board
-
 ---
 
 ## ToDo
@@ -11,6 +12,7 @@ kanban-plugin: board
 - [ ] [[Handle BÉPO (and other non-QWERTY layouts 😅)]]
 - [ ] [[Add terrain constraints]]
 - [ ] [[Decide what to do with the camera]]
+- [ ]  Turn-by-turn system
 
 
 ## InProgress
