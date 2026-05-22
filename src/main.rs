@@ -5,11 +5,9 @@ use bevy::{prelude::*, window::*};
 use plugins::camera::CameraPlugin;
 use plugins::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH, WINDOW_SCALE_FACTOR};
 
-use crate::plugins::map::{
-    MapPlugin, anchor_camera_to_settler, draw_map, set_transform_for_real_coordinates,
-};
+use crate::plugins::map::{MapPlugin, anchor_camera_to_settler, draw_map};
 use crate::plugins::sprites::SpritePlugin;
-use crate::plugins::{CustomFpsOverlayPlugin, KeyboardPlugin, SelectionPlugin, ButtonsPlugin};
+use crate::plugins::{ButtonsPlugin, CustomFpsOverlayPlugin, KeyboardPlugin, SelectionPlugin};
 use crate::state::AppState;
 
 mod plugins;
@@ -56,6 +54,5 @@ fn main() {
         .init_state::<AppState>()
         .add_systems(OnEnter(AppState::ReadyToDraw), draw_map)
         .add_systems(PreUpdate, anchor_camera_to_settler)
-        .add_systems(PreUpdate, set_transform_for_real_coordinates)
         .run();
 }

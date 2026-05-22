@@ -4,10 +4,7 @@ use bevy::{
 };
 
 use crate::{
-    plugins::{
-        H_OFFSET, SPRITE_DISPLAY_SIZE, SpriteAtlas, W_OFFSET,
-        map::{RealCoordinates, Settler},
-    },
+    plugins::{SPRITE_DISPLAY_SIZE, SpriteAtlas, map::Unit},
     state::AppState,
 };
 
@@ -55,6 +52,7 @@ fn draw_selector(
         Selector,
     ));
     next_state.set(AppState::MainGame);
+    info!("Done Drawing selector");
 }
 
 pub fn select_on_click(click: On<Pointer<Click>>, mut commands: Commands) {
@@ -62,30 +60,33 @@ pub fn select_on_click(click: On<Pointer<Click>>, mut commands: Commands) {
 }
 
 fn select_tile(
-    selected: Single<(Entity, &RealCoordinates), With<SelectEntity>>,
     mut selector: Single<(&mut Visibility, &mut Transform), With<Selector>>,
+    selected: Single<(Entity, &Transform), (With<SelectEntity>, With<Unit>, Without<Selector>)>,
     mut commands: Commands,
 ) {
-    info!("Entity ({},{}) selected !", selected.1.x, selected.1.y);
+    let (entity, transform) = *selected;
+    info!(
+        "Entity ({},{}) selected !",
+        transform.translation.x, transform.translation.y
+    );
     *selector.0 = Visibility::Visible;
     selector.1.translation = Vec3 {
-        x: selected.1.x,
-        y: selected.1.y,
+        x: transform.translation.x,
+        y: transform.translation.y,
         z: 100.,
     };
-    commands.entity(selected.0).remove::<SelectEntity>();
-    commands.entity(selected.0).insert(SelectedEntity);
+    commands.entity(entity).remove::<SelectEntity>();
+    commands.entity(entity).insert(SelectedEntity);
 }
 
 fn select_unit(
-    settler: Single<(Entity, &RealCoordinates, &Settler), With<SelectedEntity>>,
+    settler: Single<(Entity, &Transform), (With<SelectedEntity>, With<Unit>)>,
     mut commands: Commands,
     atlas: Res<SpriteAtlas>,
-
-    mut next_state: ResMut<NextState<AppState>>,
+    // mut next_state: ResMut<NextState<AppState>>,
 ) {
+    let (entity, transform) = *settler;
     info!("Selecting unit");
-    let real_coordinates = settler.1;
 
     for (x, y) in [
         (-1., -1.),
@@ -104,8 +105,8 @@ fn select_unit(
                 Some(MOVE_SELECTOR_COLOR_TINT),
             ),
             Transform::from_xyz(
-                real_coordinates.x + x * SPRITE_DISPLAY_SIZE,
-                real_coordinates.y + y * SPRITE_DISPLAY_SIZE,
+                transform.translation.x + x * SPRITE_DISPLAY_SIZE,
+                transform.translation.y + y * SPRITE_DISPLAY_SIZE,
                 90.,
             ),
             Pickable::IGNORE,
@@ -113,23 +114,23 @@ fn select_unit(
         ));
     }
 
-    commands.entity(settler.0).remove::<SelectedEntity>();
-    commands.entity(settler.0).insert(MovingEntity);
+    commands.entity(entity).remove::<SelectedEntity>();
+    commands.entity(entity).insert(MovingEntity);
     // next_state.set(AppState::UnitReadyToMove);
 }
 
 fn move_unit(
-    mut settler: Single<(Entity, &mut RealCoordinates, &Settler), With<MovingEntity>>,
+    mut selected: Single<(Entity, &mut Transform), (With<MovingEntity>, With<Unit>)>,
     mut commands: Commands,
     // mut next_state: ResMut<NextState<AppState>>,
     buttons: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
     move_selectors: Query<Entity, With<MoveSelector>>,
-    mut selector: Single<(&mut Visibility, &mut Transform), With<Selector>>,
 ) {
-    info!("Moving entity !");
-    // let real_coordinates = settler.1;
+    debug!("Moving entity !");
+    let entity = selected.0;
+    let transform = &mut selected.1;
 
     if buttons.just_pressed(MouseButton::Left) {
         info!("Button pressed !");
@@ -150,10 +151,10 @@ fn move_unit(
 
                 // Méthode cracrapourlinstant: on met directement à jour la
                 // position de l'unité dans la fenêtre :D
-                settler.1.x = world_position.x;
-                settler.1.y = world_position.y;
+                transform.translation.x = world_position.x;
+                transform.translation.y = world_position.y;
 
-                commands.entity(settler.0).remove::<MovingEntity>();
+                commands.entity(entity).remove::<MovingEntity>();
             }
 
             // next_state.set(AppState::UnitReadyToMove);
@@ -161,8 +162,8 @@ fn move_unit(
         info!("Removing move_selector tiles");
         move_selectors
             .iter()
-            .for_each(|selector| commands.entity(selector).despawn());
-        *selector.0 = Visibility::Hidden;
+            .for_each(|move_selector| commands.entity(move_selector).despawn());
+        // *selector.0 = Visibility::Hidden;
     }
 }
 

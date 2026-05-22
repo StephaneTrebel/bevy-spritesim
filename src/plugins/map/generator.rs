@@ -1,15 +1,11 @@
-use bevy::platform::collections::HashMap;
 use bevy::{math::vec2, prelude::*};
 use noisy_bevy::{fbm_simplex_2d, simplex_noise_2d_seeded};
 use rand::SeedableRng;
 use rand::{Rng, rngs::StdRng};
 use std::ops::Range;
 
-use crate::plugins::map::{Map, Tile};
-use crate::plugins::{
-    FeatureLayer, H_OFFSET, MAP_HEIGHT, MAP_WIDTH, SPRITE_DISPLAY_SIZE, TerrainLayer, W_OFFSET,
-    ZoneLayer,
-};
+use crate::plugins::map::{Map, MapCoordinates, Tile};
+use crate::plugins::{FeatureLayer, MAP_HEIGHT, MAP_WIDTH, TerrainLayer, ZoneLayer};
 
 /// Generates several terrain patches in one go.
 ///
@@ -58,7 +54,7 @@ fn generate_multiple_patches_for_a_zone(
                 let height = radius + offset - ((w * w + h * h) as f32).sqrt();
                 let height_threshold = 0.;
 
-                let map_coordinates = (
+                let map_coordinates = MapCoordinates(
                     // No sense in adding tiles outside of the map
                     ((coordinates.0 as i16 + w) as u16).clamp(1, MAP_WIDTH - 1),
                     ((coordinates.1 as i16 + h) as u16).clamp(1, MAP_HEIGHT - 1),
@@ -83,14 +79,15 @@ fn generate_multiple_patches_for_a_zone(
 /// Only used while building the map
 fn upsert_tile_in_map(
     map: &mut Map,
-    map_coordinates: &(u16, u16),
+    map_coordinates: &MapCoordinates,
     terrain: Option<&TerrainLayer>,
     zone: Option<&ZoneLayer>,
     feature: Option<&FeatureLayer>,
 ) {
+    debug!("Upserting tile in map at {map_coordinates:?}");
     let existing_tile = map.get(map_coordinates);
 
-    map.insert(*map_coordinates, {
+    map.set(map_coordinates, {
         Tile {
             terrain: match terrain {
                 Some(t) => *t,
@@ -112,10 +109,6 @@ fn upsert_tile_in_map(
                     None => None,
                 }
             },
-            real_coordinates: (
-                (map_coordinates.0 as f32) * SPRITE_DISPLAY_SIZE - W_OFFSET,
-                (map_coordinates.1 as f32) * SPRITE_DISPLAY_SIZE - H_OFFSET,
-            ),
         }
     });
 }
@@ -129,7 +122,7 @@ pub fn generate_map() -> Map {
     let mut pseudo_rng_instance = StdRng::from_rng(&mut rand::rng());
     let map_seed = pseudo_rng_instance.random_range(0..u64::MAX);
     info!("Map seed: {map_seed}");
-    let mut map: Map = HashMap::new();
+    let mut map: Map = Map::new();
 
     // Noise map parameters
     let frequency_scale: f32 = pseudo_rng_instance.random_range(0.03..0.06);
@@ -176,12 +169,18 @@ pub fn generate_map() -> Map {
             // we will have either an Ocean tile or a regular terrain tile.
             match offset {
                 o if o >= plain_threshold && o < hill_threshold => {
-                    upsert_tile_in_map(&mut map, &(w, h), Some(&base_terrain), None, None);
+                    upsert_tile_in_map(
+                        &mut map,
+                        &MapCoordinates(w, h),
+                        Some(&base_terrain),
+                        None,
+                        None,
+                    );
                 }
                 o if o >= hill_threshold && o < mountain_threshold => {
                     upsert_tile_in_map(
                         &mut map,
-                        &(w, h),
+                        &MapCoordinates(w, h),
                         Some(&base_terrain),
                         Some(&ZoneLayer::Hill),
                         None,
@@ -190,14 +189,20 @@ pub fn generate_map() -> Map {
                 o if o >= mountain_threshold => {
                     upsert_tile_in_map(
                         &mut map,
-                        &(w, h),
+                        &MapCoordinates(w, h),
                         Some(&base_terrain),
                         Some(&ZoneLayer::Mountain),
                         None,
                     );
                 }
                 _ => {
-                    upsert_tile_in_map(&mut map, &(w, h), Some(&TerrainLayer::Ocean), None, None);
+                    upsert_tile_in_map(
+                        &mut map,
+                        &MapCoordinates(w, h),
+                        Some(&TerrainLayer::Ocean),
+                        None,
+                        None,
+                    );
                 }
             }
         }
@@ -217,24 +222,42 @@ pub fn generate_map() -> Map {
     // Place specials
     for w in 0..=MAP_WIDTH {
         for h in 0..=MAP_HEIGHT {
-            let tile = map.get(&(w, h)).unwrap();
+            let tile = map.get(&MapCoordinates(w, h)).unwrap();
             let terrain = tile.terrain;
             let zone = tile.zone;
             let probability = pseudo_rng_instance.random_bool(0.01);
             // Corn goes on feature-less plains
             if terrain == TerrainLayer::Plain && zone.is_none() && probability {
-                println!("[{}] Putting Corn at {:?}", terrain, &(w, h));
-                upsert_tile_in_map(&mut map, &(w, h), None, None, Some(&FeatureLayer::Corn))
+                println!("[{}] Putting Corn at {:?}", terrain, &MapCoordinates(w, h));
+                upsert_tile_in_map(
+                    &mut map,
+                    &MapCoordinates(w, h),
+                    None,
+                    None,
+                    Some(&FeatureLayer::Corn),
+                )
             }
             // Lumber goes on forests
             else if zone.is_some_and(|k| k == ZoneLayer::Forest) && probability {
                 println!("[{}] Putting Lumber at {:?}", terrain, &(w, h));
-                upsert_tile_in_map(&mut map, &(w, h), None, None, Some(&FeatureLayer::Lumber))
+                upsert_tile_in_map(
+                    &mut map,
+                    &MapCoordinates(w, h),
+                    None,
+                    None,
+                    Some(&FeatureLayer::Lumber),
+                )
             }
             // Fish goes on oceans
             else if terrain == TerrainLayer::Ocean && probability {
                 println!("[{}] Putting Fish at {:?}", terrain, &(w, h));
-                upsert_tile_in_map(&mut map, &(w, h), None, None, Some(&FeatureLayer::Fish))
+                upsert_tile_in_map(
+                    &mut map,
+                    &MapCoordinates(w, h),
+                    None,
+                    None,
+                    Some(&FeatureLayer::Fish),
+                )
             }
         }
     }

@@ -1,16 +1,13 @@
 use bevy::prelude::*;
 
 use crate::plugins::{
-    SPRITE_DISPLAY_SIZE, SpriteAtlas, TerrainLayer,
-    map::{Map, MapResource, Tile},
+    H_OFFSET, MAP_WIDTH, SPRITE_DISPLAY_SIZE, SpriteAtlas, TerrainLayer, W_OFFSET,
+    map::{Map, MapCoordinates, MapResource, Tile},
     select_on_click,
 };
 
 #[derive(Component)]
-pub struct RealCoordinates {
-    pub(crate) x: f32,
-    pub(crate) y: f32,
-}
+pub struct Unit;
 
 #[derive(Component)]
 pub struct Settler;
@@ -22,25 +19,11 @@ pub struct Settler;
 /// to guarantee coverage at any zoom level.
 const TILE_SCALE: f32 = 1.001;
 
-pub fn set_transform_for_real_coordinates(
-    mut entity: Single<(Entity, &Settler, &RealCoordinates, &mut Transform)>,
-) {
-    entity.3.translation = Vec3 {
-        x: entity.2.x,
-        y: entity.2.y,
-        z: 90.,
-    };
-}
-
 pub fn anchor_camera_to_settler(
-    settler: Single<(Entity, &Settler, &RealCoordinates)>,
+    settler: Single<&Transform, (With<Settler>, Without<Camera2d>)>,
     mut camera: Single<&mut Transform, With<Camera2d>>,
 ) {
-    camera.translation = Vec3 {
-        x: settler.2.x,
-        y: settler.2.y,
-        z: 100.,
-    };
+    camera.translation = settler.translation;
 }
 
 pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: Res<MapResource>) {
@@ -48,8 +31,15 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
 
     let map = &map_resource.map;
     let tile_scale = Vec3::splat(TILE_SCALE);
-    for (index, (map_coordinates, tile)) in map.iter().enumerate() {
-        let terrain_variant = get_terrain_variant(tile, map, map_coordinates);
+    for (index, tile) in map.iter().enumerate() {
+        let w = (index as u16) % MAP_WIDTH;
+        let h = (index as u16) / MAP_WIDTH;
+        let x = (w as f32) * SPRITE_DISPLAY_SIZE - W_OFFSET;
+        let y = (h as f32) * SPRITE_DISPLAY_SIZE - H_OFFSET;
+        debug!("Map index: {index}");
+        let map_coordinates = MapCoordinates(w, h);
+
+        let terrain_variant = get_terrain_variant(tile, map, &map_coordinates);
         let z: f32 = match tile.terrain {
             TerrainLayer::Debug => 0.,
             TerrainLayer::Desert => 1.,
@@ -60,40 +50,24 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
             .spawn((
                 atlas.sprite(&tile.terrain.get_sprite_type(), terrain_variant, None),
                 Transform {
-                    translation: Vec3::new(
-                        tile.real_coordinates.0,
-                        tile.real_coordinates.1,
-                        z + (index as f32 / 10000.),
-                    ),
+                    translation: Vec3::new(x, y, z + (index as f32 / 10000.)),
                     scale: tile_scale,
                     ..default()
-                },
-                RealCoordinates {
-                    x: tile.real_coordinates.0,
-                    y: tile.real_coordinates.1,
                 },
                 Pickable::default(),
             ))
             .observe(select_on_click);
 
         if let Some(zone) = tile.zone {
-            let zone_variant = get_zone_variant(tile, map, map_coordinates);
+            let zone_variant = get_zone_variant(tile, map, &map_coordinates);
 
             commands
                 .spawn((
                     atlas.sprite(&zone.get_sprite_type(), zone_variant, None),
                     Transform {
-                        translation: Vec3::new(
-                            tile.real_coordinates.0,
-                            tile.real_coordinates.1,
-                            10.,
-                        ),
+                        translation: Vec3::new(x, y, 10.),
                         scale: tile_scale,
                         ..default()
-                    },
-                    RealCoordinates {
-                        x: tile.real_coordinates.0,
-                        y: tile.real_coordinates.1,
                     },
                     Pickable::default(),
                 ))
@@ -105,17 +79,9 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
                 .spawn((
                     atlas.sprite(&feature.get_sprite_type(), terrain_variant, None),
                     Transform {
-                        translation: Vec3::new(
-                            tile.real_coordinates.0,
-                            tile.real_coordinates.1,
-                            20.,
-                        ),
+                        translation: Vec3::new(x, y, 20.),
                         scale: tile_scale,
                         ..default()
-                    },
-                    RealCoordinates {
-                        x: tile.real_coordinates.0,
-                        y: tile.real_coordinates.1,
                     },
                     Pickable::default(),
                 ))
@@ -128,11 +94,13 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
     commands
         .spawn((
             atlas.sprite(&crate::plugins::SpriteType::Settler, 0, None),
-            RealCoordinates {
-                x: -50. * SPRITE_DISPLAY_SIZE,
-                y: -50. * SPRITE_DISPLAY_SIZE,
+            Transform {
+                translation: Vec3::new(0., 0., 20.),
+                scale: tile_scale,
+                ..default()
             },
             Pickable::default(),
+            Unit,
             Settler,
         ))
         .observe(select_on_click);
@@ -149,7 +117,7 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
 /// Additionnaly if a «partial» tile (like a corner) is used, we have to add
 /// an underlying tile to serve as background so for instance a beach is composed of
 /// a plain (its shore) and the ocean (its beach) over it.
-pub fn get_terrain_variant(tile: &Tile, map: &Map, map_coordinates: &(u16, u16)) -> u8 {
+pub fn get_terrain_variant(tile: &Tile, map: &Map, map_coordinates: &MapCoordinates) -> u8 {
     let terrain = tile.terrain;
     let Neighbours {
         bottom,
@@ -258,7 +226,7 @@ pub fn get_terrain_variant(tile: &Tile, map: &Map, map_coordinates: &(u16, u16))
     }
 }
 
-pub fn get_zone_variant(tile: &Tile, map: &Map, map_coordinates: &(u16, u16)) -> u8 {
+pub fn get_zone_variant(tile: &Tile, map: &Map, map_coordinates: &MapCoordinates) -> u8 {
     let zone = tile.zone;
 
     let Neighbours {
@@ -379,40 +347,39 @@ struct Neighbours<'a> {
     top_right: &'a Tile,
 }
 
-fn get_neighbours<'a>(map: &'a Map, map_coordinates: &(u16, u16)) -> Neighbours<'a> {
+fn get_neighbours<'a>(map: &'a Map, &MapCoordinates(w, h): &MapCoordinates) -> Neighbours<'a> {
     let default_tile = &Tile {
         feature: None,
         zone: None,
         terrain: TerrainLayer::Plain,
-        real_coordinates: (0., 0.),
     };
-    Neighbours {
+    debug!("Getting Neighbours, {}, {}", w, h);
+    let neighbours = Neighbours {
         top_left: map
-            .get(&(map_coordinates.0.saturating_sub(1), map_coordinates.1 + 1))
+            .get(&MapCoordinates(w.saturating_sub(1), h.saturating_add(1)))
             .unwrap_or(default_tile),
         top: map
-            .get(&(map_coordinates.0, map_coordinates.1 + 1))
+            .get(&MapCoordinates(w, h.saturating_add(1)))
             .unwrap_or(default_tile),
         top_right: map
-            .get(&(map_coordinates.0 + 1, map_coordinates.1 + 1))
+            .get(&MapCoordinates(w.saturating_add(1), h.saturating_add(1)))
             .unwrap_or(default_tile),
         left: map
-            .get(&(map_coordinates.0.saturating_sub(1), map_coordinates.1))
+            .get(&MapCoordinates(w.saturating_sub(1), h))
             .unwrap_or(default_tile),
         right: map
-            .get(&(map_coordinates.0 + 1, map_coordinates.1))
+            .get(&MapCoordinates(w.saturating_add(1), h))
             .unwrap_or(default_tile),
         bottom_left: map
-            .get(&(
-                map_coordinates.0.saturating_sub(1),
-                map_coordinates.1.saturating_sub(1),
-            ))
+            .get(&MapCoordinates(w.saturating_sub(1), h.saturating_sub(1)))
             .unwrap_or(default_tile),
         bottom: map
-            .get(&(map_coordinates.0, map_coordinates.1.saturating_sub(1)))
+            .get(&MapCoordinates(w, h.saturating_sub(1)))
             .unwrap_or(default_tile),
         bottom_right: map
-            .get(&(map_coordinates.0 + 1, map_coordinates.1.saturating_sub(1)))
+            .get(&MapCoordinates(w.saturating_add(1), h.saturating_sub(1)))
             .unwrap_or(default_tile),
-    }
+    };
+    debug!("Done Getting Neighbours");
+    neighbours
 }

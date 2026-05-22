@@ -1,8 +1,5 @@
 mod draw;
-pub use draw::{
-    RealCoordinates, Settler, anchor_camera_to_settler, draw_map,
-    set_transform_for_real_coordinates,
-};
+pub use draw::{Settler, Unit, anchor_camera_to_settler, draw_map};
 mod generator;
 mod plugin;
 pub use plugin::{MapPlugin, MapResource};

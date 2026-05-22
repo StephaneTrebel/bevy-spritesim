@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::{
     plugins::{
         SpriteAtlas,
-        map::{RealCoordinates, Settler},
+        map::{Settler, Unit},
     },
     state::AppState,
 };
@@ -14,7 +14,8 @@ pub struct Village;
 pub struct KeyboardPlugin;
 impl Plugin for KeyboardPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PreUpdate, handle_input)
+        app
+            // .add_systems(PreUpdate, handle_input)
             .add_systems(OnEnter(AppState::ReadyToDraw), draw_village);
     }
 }
@@ -33,21 +34,22 @@ pub fn draw_village(mut commands: Commands, atlas: Res<SpriteAtlas>) {
 fn handle_input(
     mut commands: Commands,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    settler: Single<(Entity, &RealCoordinates), With<Settler>>,
+    unit: Single<(Entity, &Transform), With<Unit>>,
     mut village: Single<(&mut Visibility, &mut Transform), With<Village>>,
     mut next_state: ResMut<NextState<AppState>>,
 ) {
+    let (entity, transform) = *unit;
     // B for "build village"
     if keyboard_input.just_pressed(KeyCode::KeyQ) {
         // build village !
         info!("Building village...");
         *village.0 = Visibility::Visible;
         village.1.translation = Vec3 {
-            x: settler.1.x,
-            y: settler.1.y,
+            x: transform.translation.x,
+            y: transform.translation.y,
             z: 90.,
         };
-        commands.entity(settler.0.entity()).despawn();
+        commands.entity(entity.entity()).despawn();
 
         // Show "you win" Button
         next_state.set(AppState::WinConditionAchieved);
