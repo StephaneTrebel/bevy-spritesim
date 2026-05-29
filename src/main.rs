@@ -1,7 +1,10 @@
 use bevy::dev_tools::picking_debug::{DebugPickingMode, DebugPickingPlugin};
 use bevy::log::LogPlugin;
 use bevy::winit::WinitSettings;
-use bevy::{prelude::*, window::*};
+use bevy::{
+    prelude::*,
+    window::{PresentMode, WindowLevel, WindowResolution},
+};
 use plugins::camera::CameraPlugin;
 use plugins::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH, WINDOW_SCALE_FACTOR};
 
