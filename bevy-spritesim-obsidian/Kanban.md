@@ -1,28 +1,32 @@
 ---
+
 id: Kanban
 aliases: []
 tags: []
 kanban-plugin: board
+
 ---
 
 ## ToDo
 
 - [ ] [[Define Terrain Layer Hierarchy]]
-- [ ] [[Add terrain movement constraints]]
 - [ ] [[Decide what to do with the camera]]
 - [ ] [[Turn-by-turn system]]
 - [ ] [[Define a keyboard layout]]
 - [ ] [[WASM Build]]
+- [ ] [[Fix Sprite Tile Selection]]
+- [ ] [[Define Z-index rules]]
 
 
 ## InProgress
 
-- [ ] [[Refactor RealCoordinates]]
+- [ ] [[Add terrain movement constraints]]
 
 
 ## Done
 
 **Complete**
+- [x] [[Refactor RealCoordinates]]
 - [x] [[Move Settler]]
 - [x] [[Add a Winning screen]]
 	- Triggered when a village is built by the player
