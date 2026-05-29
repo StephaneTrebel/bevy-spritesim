@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "c80f09a36d0980a3",
+        "id": "b0470a6b0cd960e2",
         "type": "tabs",
         "children": [
           {
-            "id": "ad847192f941cd7f",
+            "id": "d7d23444f7006b60",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -215,11 +215,11 @@
       "obsidian-kanban:Create new board": false
     }
   },
-  "active": "ad847192f941cd7f",
+  "active": "d7d23444f7006b60",
   "lastOpenFiles": [
     "Kanban.md",
-    "Roadmap.md",
     "kanban_notes/Refactor RealCoordinates.md",
+    "Roadmap.md",
     "kanban_notes/Move Settler.md",
     "kanban_notes/Display Selector on tiles.md",
     "kanban_notes/Turn-by-turn system.md",

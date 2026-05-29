@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::plugins::{
-    H_OFFSET, MAP_WIDTH, SPRITE_DISPLAY_SIZE, SpriteAtlas, TerrainLayer, W_OFFSET,
+    SpriteAtlas, TerrainLayer,
     map::{Map, MapCoordinates, MapResource, Tile},
     select_on_click,
 };
@@ -32,12 +32,11 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
     let map = &map_resource.map;
     let tile_scale = Vec3::splat(TILE_SCALE);
     for (index, tile) in map.iter().enumerate() {
-        let w = (index as u16) % MAP_WIDTH;
-        let h = (index as u16) / MAP_WIDTH;
-        let x = (w as f32) * SPRITE_DISPLAY_SIZE - W_OFFSET;
-        let y = (h as f32) * SPRITE_DISPLAY_SIZE - H_OFFSET;
         debug!("Map index: {index}");
-        let map_coordinates = MapCoordinates(w, h);
+        let map_coordinates: MapCoordinates = index.into();
+        debug!("Map coordinates: {map_coordinates}");
+        let world_position: Vec2 = map_coordinates.into();
+        debug!("World Position: {world_position}");
 
         let terrain_variant = get_terrain_variant(tile, map, &map_coordinates);
         let z: f32 = match tile.terrain {
@@ -50,7 +49,7 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
             .spawn((
                 atlas.sprite(&tile.terrain.get_sprite_type(), terrain_variant, None),
                 Transform {
-                    translation: Vec3::new(x, y, z + (index as f32 / 10000.)),
+                    translation: world_position.extend(z + (index as f32 / 10000.)),
                     scale: tile_scale,
                     ..default()
                 },
@@ -65,7 +64,7 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
                 .spawn((
                     atlas.sprite(&zone.get_sprite_type(), zone_variant, None),
                     Transform {
-                        translation: Vec3::new(x, y, 10.),
+                        translation: world_position.extend(10.),
                         scale: tile_scale,
                         ..default()
                     },
@@ -79,7 +78,7 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
                 .spawn((
                     atlas.sprite(&feature.get_sprite_type(), terrain_variant, None),
                     Transform {
-                        translation: Vec3::new(x, y, 20.),
+                        translation: world_position.extend(20.),
                         scale: tile_scale,
                         ..default()
                     },
@@ -95,7 +94,11 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
         .spawn((
             atlas.sprite(&crate::plugins::SpriteType::Settler, 0, None),
             Transform {
-                translation: Vec3::new(0., 0., 20.),
+                translation: std::convert::Into::<Vec2>::into(MapCoordinates(
+                    MAP_WIDTH / 2,
+                    MAP_HEIGHT / 2,
+                ))
+                .extend(21.),
                 scale: tile_scale,
                 ..default()
             },

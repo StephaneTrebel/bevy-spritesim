@@ -4,7 +4,10 @@ use bevy::{
 };
 
 use crate::{
-    plugins::{SPRITE_DISPLAY_SIZE, SpriteAtlas, map::Unit},
+    plugins::{
+        SPRITE_DISPLAY_SIZE, SpriteAtlas,
+        map::{MapCoordinates, Unit},
+    },
     state::AppState,
 };
 
@@ -105,8 +108,8 @@ fn select_unit(
                 Some(MOVE_SELECTOR_COLOR_TINT),
             ),
             Transform::from_xyz(
-                transform.translation.x + x * SPRITE_DISPLAY_SIZE,
-                transform.translation.y + y * SPRITE_DISPLAY_SIZE,
+                transform.translation.x + x * (SPRITE_DISPLAY_SIZE as f32),
+                transform.translation.y + y * (SPRITE_DISPLAY_SIZE as f32),
                 90.,
             ),
             Pickable::IGNORE,
@@ -120,9 +123,12 @@ fn select_unit(
 }
 
 fn move_unit(
-    mut selected: Single<(Entity, &mut Transform), (With<MovingEntity>, With<Unit>)>,
+    mut selected: Single<
+        (Entity, &mut Transform),
+        (With<MovingEntity>, With<Unit>, Without<Selector>),
+    >,
+    mut selector: Single<(&mut Visibility, &mut Transform), With<Selector>>,
     mut commands: Commands,
-    // mut next_state: ResMut<NextState<AppState>>,
     buttons: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
@@ -144,26 +150,20 @@ fn move_unit(
             {
                 info!("Click at {:?}", world_position);
 
-                // TODO: Uncomment me !
-                // let new_x = (world_position.x + W_OFFSET) / SPRITE_DISPLAY_SIZE;
-                // let new_y = (world_position.y + H_OFFSET) / SPRITE_DISPLAY_SIZE;
-                // info!("Moving entity to {:?}", (new_x, new_y));
-
-                // Méthode cracrapourlinstant: on met directement à jour la
-                // position de l'unité dans la fenêtre :D
-                transform.translation.x = world_position.x;
-                transform.translation.y = world_position.y;
+                // Snap world_position to map_coordinates by converting through them
+                let map_coordinates: MapCoordinates = world_position.into();
+                let snapped_world_position: Vec2 = map_coordinates.into();
+                info!("Moving entity to {:?}", snapped_world_position);
+                transform.translation = transform.translation.with_xy(snapped_world_position);
 
                 commands.entity(entity).remove::<MovingEntity>();
             }
-
-            // next_state.set(AppState::UnitReadyToMove);
         }
         info!("Removing move_selector tiles");
         move_selectors
             .iter()
             .for_each(|move_selector| commands.entity(move_selector).despawn());
-        // *selector.0 = Visibility::Hidden;
+        *selector.0 = Visibility::Hidden;
     }
 }
 

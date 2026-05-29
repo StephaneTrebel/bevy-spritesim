@@ -1,7 +1,47 @@
-use crate::plugins::{FeatureLayer, MAP_HEIGHT, MAP_WIDTH, TerrainLayer, ZoneLayer};
+use bevy::math::Vec2;
 
-#[derive(Debug, Clone)]
+use crate::plugins::{
+    FeatureLayer, H_OFFSET, MAP_HEIGHT, MAP_WIDTH, SPRITE_DISPLAY_SIZE, TerrainLayer, W_OFFSET,
+    ZoneLayer,
+};
+
+/// Coordinates on the "business logic" map which is stored
+/// as a continuous list of Tiles
+#[derive(Debug, Clone, Copy)]
 pub struct MapCoordinates(pub u16, pub u16);
+
+impl std::fmt::Display for MapCoordinates {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({},{})", self.0, self.1)
+    }
+}
+
+/// Convert a tile index into the related `MapCoordinates`
+impl From<usize> for MapCoordinates {
+    fn from(index: usize) -> Self {
+        Self((index as u16) % MAP_WIDTH, (index as u16) / MAP_WIDTH)
+    }
+}
+
+/// Convert a `MapCoordinates` to a `Vec2` (world coordinates)
+impl From<MapCoordinates> for Vec2 {
+    fn from(MapCoordinates(w, h): MapCoordinates) -> Self {
+        Vec2 {
+            x: f32::from(w * SPRITE_DISPLAY_SIZE),
+            y: f32::from(h * SPRITE_DISPLAY_SIZE),
+        }
+    }
+}
+
+/// Convert a Vec2 (world coordinates) to a MapCoordinates
+impl From<Vec2> for MapCoordinates {
+    fn from(Vec2 { x, y }: Vec2) -> Self {
+        Self(
+            ((x + f32::from(SPRITE_DISPLAY_SIZE / 2)) as u16) / SPRITE_DISPLAY_SIZE,
+            ((y + f32::from(SPRITE_DISPLAY_SIZE / 2)) as u16) / SPRITE_DISPLAY_SIZE,
+        )
+    }
+}
 
 /// A «Tile» is a superposition of several things that will compose the Map.
 ///
@@ -10,7 +50,7 @@ pub struct MapCoordinates(pub u16, pub u16);
 /// - a Terrain (Plain, Desert, Ocean, etc.)
 /// - a Zone (Forest, Hill, Mountain, etc.)
 /// - a Feature (Food, Ore, Road, etc.)
-/// - a Unit (Settler, Soldier, Wagon, etc.) that is moving through it TODO
+/// - a Unit (Settler, Soldier, Wagon, etc.) that is moving through it
 #[derive(Debug, Clone, Copy)]
 pub struct Tile {
     // pub unit: Option<UnitLayer>
