@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::plugins::{
-    SpriteAtlas, TerrainLayer,
+    MAP_HEIGHT, MAP_WIDTH, SpriteAtlas, TerrainLayer,
     map::{Map, MapCoordinates, MapResource, Tile},
     select_on_click,
 };
@@ -90,6 +90,10 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
 
     // Spawn our first settler !
     // His name is "Michel"
+
+    // Spawn Michel at the Map center
+    // Since the camera is linked to his position, the camera will be on the Map
+    // center #BigBrainTime
     commands
         .spawn((
             atlas.sprite(&crate::plugins::SpriteType::Settler, 0, None),

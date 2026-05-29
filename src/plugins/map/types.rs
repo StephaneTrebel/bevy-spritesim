@@ -1,8 +1,7 @@
 use bevy::math::Vec2;
 
 use crate::plugins::{
-    FeatureLayer, H_OFFSET, MAP_HEIGHT, MAP_WIDTH, SPRITE_DISPLAY_SIZE, TerrainLayer, W_OFFSET,
-    ZoneLayer,
+    FeatureLayer, MAP_HEIGHT, MAP_WIDTH, SPRITE_DISPLAY_SIZE, TerrainLayer, ZoneLayer,
 };
 
 /// Coordinates on the "business logic" map which is stored

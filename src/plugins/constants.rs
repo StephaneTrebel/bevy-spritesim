@@ -8,7 +8,3 @@ pub const VARIANT_COUNT: u8 = 49; // Sprite variant count (all the different sha
 // Map dimension (in tiles)
 pub const MAP_HEIGHT: u16 = 200;
 pub const MAP_WIDTH: u16 = 200;
-
-// Map center inside camera frustrum
-pub const W_OFFSET: f32 = SPRITE_DISPLAY_SIZE * (MAP_WIDTH as f32) / 2.;
-pub const H_OFFSET: f32 = SPRITE_DISPLAY_SIZE * (MAP_HEIGHT as f32) / 2.;
