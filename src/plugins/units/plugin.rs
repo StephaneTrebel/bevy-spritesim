@@ -8,6 +8,9 @@ use crate::{
 };
 
 #[derive(Component)]
+pub struct Moveable;
+
+#[derive(Component)]
 pub struct Unit;
 
 #[derive(Component)]
@@ -50,6 +53,7 @@ pub fn spawn_michel(mut commands: Commands, atlas: Res<SpriteAtlas>) {
             Pickable::default(),
             Unit,
             Settler,
+            Moveable
         ))
         .observe(select_on_click);
 }

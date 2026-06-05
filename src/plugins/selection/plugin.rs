@@ -4,7 +4,7 @@ use bevy::{
 };
 
 use crate::{
-    plugins::{SPRITE_DISPLAY_SIZE, SpriteAtlas, Unit, map::MapCoordinates},
+    plugins::{Moveable, SPRITE_DISPLAY_SIZE, SpriteAtlas, Unit, map::MapCoordinates},
     state::AppState,
 };
 
@@ -80,7 +80,7 @@ fn select_tile(
 }
 
 fn select_unit(
-    settler: Single<(Entity, &Transform), (With<SelectedEntity>, With<Unit>)>,
+    settler: Single<(Entity, &Transform), (With<SelectedEntity>, With<Moveable>)>,
     mut commands: Commands,
     atlas: Res<SpriteAtlas>,
     // mut next_state: ResMut<NextState<AppState>>,
@@ -122,7 +122,7 @@ fn select_unit(
 fn move_unit(
     mut selected: Single<
         (Entity, &mut Transform),
-        (With<MovingEntity>, With<Unit>, Without<Selector>),
+        (With<MovingEntity>, With<Moveable>, Without<Selector>),
     >,
     mut selector: Single<(&mut Visibility, &mut Transform), With<Selector>>,
     mut commands: Commands,

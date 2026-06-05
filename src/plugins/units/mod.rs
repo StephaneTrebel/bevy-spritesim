@@ -1,2 +1,2 @@
 mod plugin;
-pub use plugin::{UnitPlugin, Unit, Settler};
+pub use plugin::{UnitPlugin, Unit, Settler, Moveable};
