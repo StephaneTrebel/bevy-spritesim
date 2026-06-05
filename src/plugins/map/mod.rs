@@ -1,5 +1,5 @@
 mod draw;
-pub use draw::{Settler, Unit, anchor_camera_to_settler, draw_map};
+pub use draw::draw_map;
 mod generator;
 mod plugin;
 pub use plugin::{MapPlugin, MapResource};

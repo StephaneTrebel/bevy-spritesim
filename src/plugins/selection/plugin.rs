@@ -4,10 +4,7 @@ use bevy::{
 };
 
 use crate::{
-    plugins::{
-        SPRITE_DISPLAY_SIZE, SpriteAtlas,
-        map::{MapCoordinates, Unit},
-    },
+    plugins::{SPRITE_DISPLAY_SIZE, SpriteAtlas, Unit, map::MapCoordinates},
     state::AppState,
 };
 

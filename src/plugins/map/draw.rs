@@ -1,30 +1,10 @@
 use bevy::prelude::*;
 
 use crate::plugins::{
-    MAP_HEIGHT, MAP_WIDTH, SpriteAtlas, TerrainLayer,
+    SpriteAtlas, TILE_SCALE, TerrainLayer,
     map::{Map, MapCoordinates, MapResource, Tile},
     select_on_click,
 };
-
-#[derive(Component)]
-pub struct Unit;
-
-#[derive(Component)]
-pub struct Settler;
-
-/// Tiny scale factor applied to every tile sprite so that adjacent quads
-/// overlap by a sub-pixel amount.  Without this, GPU rasterisation rounding
-/// at tile boundaries can leave single-pixel gaps (the classic "tile seam"
-/// artifact).  The value is small enough to be invisible but large enough
-/// to guarantee coverage at any zoom level.
-const TILE_SCALE: f32 = 1.001;
-
-pub fn anchor_camera_to_settler(
-    settler: Single<&Transform, (With<Settler>, Without<Camera2d>)>,
-    mut camera: Single<&mut Transform, With<Camera2d>>,
-) {
-    camera.translation = settler.translation;
-}
 
 pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: Res<MapResource>) {
     info!("Drawing map…");
@@ -87,30 +67,6 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
                 .observe(select_on_click);
         }
     }
-
-    // Spawn our first settler !
-    // His name is "Michel"
-
-    // Spawn Michel at the Map center
-    // Since the camera is linked to his position, the camera will be on the Map
-    // center #BigBrainTime
-    commands
-        .spawn((
-            atlas.sprite(&crate::plugins::SpriteType::Settler, 0, None),
-            Transform {
-                translation: std::convert::Into::<Vec2>::into(MapCoordinates(
-                    MAP_WIDTH / 2,
-                    MAP_HEIGHT / 2,
-                ))
-                .extend(21.),
-                scale: tile_scale,
-                ..default()
-            },
-            Pickable::default(),
-            Unit,
-            Settler,
-        ))
-        .observe(select_on_click);
 
     info!("Done drawing map…");
 }

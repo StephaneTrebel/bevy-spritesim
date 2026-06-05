@@ -1,10 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    plugins::{
-        SpriteAtlas,
-        map::{Settler, Unit},
-    },
+    plugins::{SpriteAtlas, units::Unit},
     state::AppState,
 };
 

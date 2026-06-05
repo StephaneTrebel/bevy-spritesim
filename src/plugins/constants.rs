@@ -8,3 +8,10 @@ pub const VARIANT_COUNT: u8 = 49; // Sprite variant count (all the different sha
 // Map dimension (in tiles)
 pub const MAP_HEIGHT: u16 = 200;
 pub const MAP_WIDTH: u16 = 200;
+
+/// Tiny scale factor applied to every tile sprite so that adjacent quads
+/// overlap by a sub-pixel amount.  Without this, GPU rasterisation rounding
+/// at tile boundaries can leave single-pixel gaps (the classic "tile seam"
+/// artifact).  The value is small enough to be invisible but large enough
+/// to guarantee coverage at any zoom level.
+pub const TILE_SCALE: f32 = 1.001;
