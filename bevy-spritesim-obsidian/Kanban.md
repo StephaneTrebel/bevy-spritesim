@@ -10,22 +10,24 @@ kanban-plugin: board
 ## ToDo
 
 - [ ] [[Define Terrain Layer Hierarchy]]
-- [ ] [[Decide what to do with the camera]]
 - [ ] [[Turn-by-turn system]]
 - [ ] [[Define a keyboard layout]]
 - [ ] [[WASM Build]]
-- [ ] [[Fix Sprite Tile Selection]]
 - [ ] [[Define Z-index rules]]
+- [ ] [[Handle Unit Speed]]
+- [ ] [[Create an Ocean Unit (boat)]]
 
 
 ## InProgress
 
-- [ ] [[Add terrain movement constraints]]
+- [ ] [[Decide what to do with the camera]]
 
 
 ## Done
 
 **Complete**
+- [x] [[Fix Sprite Tile Selection]]
+- [x] [[Add terrain movement constraints]]
 - [x] [[Refactor RealCoordinates]]
 - [x] [[Move Settler]]
 - [x] [[Add a Winning screen]]

@@ -1,16 +1,20 @@
 ---
-id: decide_what_to_do_with_the_camera
+id: handle_camera_zoom
 aliases: []
-tags:
-  - phaseX
-description: Define how the 2D camera should behave
-title: Decide what to do with the camera
+tags: []
+description: Zooming in and out with the Scroll Wheel.
+title: Handle Camera Zoom
 ---
 
 ## Camera initialization
 
-- Initial Zoom ?
+- Initial Zoom is fine
 
 ## Camera movement
- 
-- How should it move ? Freely ? Based on a selected tile ?
+
+- For the moment, the camera is anchored to Michel. No further changes at this point
+
+## Camera Zoom
+
+- Zooming in and out should be done with mouse scroll
+- Zooming in and out should be done with a discrete step that does not make weird lines appear (multiple of SPRITE\_SIZE ?)
