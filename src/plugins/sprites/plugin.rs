@@ -1,6 +1,7 @@
 use bevy::app::{App, Plugin};
 use bevy::platform::collections::HashMap;
 use bevy::{asset::LoadedFolder, image::ImageSampler, prelude::*};
+use bevy::sprite::{SpritePickingSettings, SpritePickingMode};
 
 use crate::plugins::VARIANT_COUNT;
 use crate::state::AppState;
@@ -296,6 +297,10 @@ impl Plugin for SpritePlugin {
                 Update,
                 check_sprite_folder_load.run_if(in_state(AppState::SpriteLoadInProgress)),
             )
-            .add_systems(OnEnter(AppState::CreateSpriteAtlas), create_sprite_atlas);
+            .add_systems(OnEnter(AppState::CreateSpriteAtlas), create_sprite_atlas)
+            .insert_resource(SpritePickingSettings {
+                picking_mode: SpritePickingMode::BoundingBox,
+                require_markers: false
+            });
     }
 }
