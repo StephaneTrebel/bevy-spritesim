@@ -155,13 +155,7 @@ fn move_unit(
                 let map_coordinates: MapCoordinates = world_position.into();
                 let snapped_world_position: Vec2 = map_coordinates.into();
 
-                // Check whether this move is allowed
-                let target_tile_terrain = map_resource
-                    .map
-                    .get(&map_coordinates)
-                    .expect("Coordinates should exist in map")
-                    .terrain;
-                if target_tile_terrain != TerrainLayer::Ocean {
+                if map_resource.map.is_movement_allowed(map_coordinates) {
                     info!("Moving entity to {:?}", snapped_world_position);
                     transform.translation = transform.translation.with_xy(snapped_world_position);
 

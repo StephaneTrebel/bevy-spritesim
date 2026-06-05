@@ -83,4 +83,12 @@ impl Map {
     pub(crate) fn iter(&self) -> std::slice::Iter<'_, Tile> {
         self.0.iter()
     }
+
+    /// Check whether a unit is allowed to move to a target coordinates.
+    pub(crate) fn is_movement_allowed(&self, map_coordinates: MapCoordinates) -> bool {
+        let tile = self
+            .get(&map_coordinates)
+            .expect("Coordinates should exist in map");
+        tile.terrain != TerrainLayer::Ocean && tile.zone != Some(ZoneLayer::Mountain)
+    }
 }
