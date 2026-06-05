@@ -4,7 +4,10 @@ use bevy::{
 };
 
 use crate::{
-    plugins::{Moveable, SPRITE_DISPLAY_SIZE, SpriteAtlas, Unit, map::MapCoordinates},
+    plugins::{
+        Moveable, SPRITE_DISPLAY_SIZE, SpriteAtlas, TerrainLayer, Unit,
+        map::{MapCoordinates, MapResource},
+    },
     state::AppState,
 };
 
@@ -130,6 +133,7 @@ fn move_unit(
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
     move_selectors: Query<Entity, With<MoveSelector>>,
+    map_resource: Res<MapResource>,
 ) {
     debug!("Moving entity !");
     let entity = selected.0;
@@ -150,10 +154,19 @@ fn move_unit(
                 // Snap world_position to map_coordinates by converting through them
                 let map_coordinates: MapCoordinates = world_position.into();
                 let snapped_world_position: Vec2 = map_coordinates.into();
-                info!("Moving entity to {:?}", snapped_world_position);
-                transform.translation = transform.translation.with_xy(snapped_world_position);
 
-                commands.entity(entity).remove::<MovingEntity>();
+                // Check whether this move is allowed
+                let target_tile_terrain = map_resource
+                    .map
+                    .get(&map_coordinates)
+                    .expect("Coordinates should exist in map")
+                    .terrain;
+                if target_tile_terrain != TerrainLayer::Ocean {
+                    info!("Moving entity to {:?}", snapped_world_position);
+                    transform.translation = transform.translation.with_xy(snapped_world_position);
+
+                    commands.entity(entity).remove::<MovingEntity>();
+                }
             }
         }
         info!("Removing move_selector tiles");
