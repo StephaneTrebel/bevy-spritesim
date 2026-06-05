@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     plugins::{
-        MAP_HEIGHT, MAP_WIDTH, SpriteAtlas, TILE_SCALE, map::MapCoordinates, select_on_click,
+        MAP_HEIGHT, MAP_WIDTH, SpriteAtlas, map::MapCoordinates, select_on_click,
     },
     state::AppState,
 };
@@ -47,7 +47,6 @@ pub fn spawn_michel(mut commands: Commands, atlas: Res<SpriteAtlas>) {
                     MAP_HEIGHT / 2,
                 ))
                 .extend(21.),
-                scale: Vec3::splat(TILE_SCALE),
                 ..default()
             },
             Pickable::default(),

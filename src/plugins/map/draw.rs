@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::plugins::{
-    SpriteAtlas, TILE_SCALE, TerrainLayer,
+    SpriteAtlas, TerrainLayer,
     map::{Map, MapCoordinates, MapResource, Tile},
     select_on_click,
 };
@@ -10,7 +10,6 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
     info!("Drawing map…");
 
     let map = &map_resource.map;
-    let tile_scale = Vec3::splat(TILE_SCALE);
     for (index, tile) in map.iter().enumerate() {
         debug!("Map index: {index}");
         let map_coordinates: MapCoordinates = index.into();
@@ -30,7 +29,6 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
                 atlas.sprite(&tile.terrain.get_sprite_type(), terrain_variant, None),
                 Transform {
                     translation: world_position.extend(z + (index as f32 / 10000.)),
-                    scale: tile_scale,
                     ..default()
                 },
                 Pickable::default(),
@@ -45,7 +43,6 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
                     atlas.sprite(&zone.get_sprite_type(), zone_variant, None),
                     Transform {
                         translation: world_position.extend(10.),
-                        scale: tile_scale,
                         ..default()
                     },
                     Pickable::default(),
@@ -59,7 +56,6 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
                     atlas.sprite(&feature.get_sprite_type(), terrain_variant, None),
                     Transform {
                         translation: world_position.extend(20.),
-                        scale: tile_scale,
                         ..default()
                     },
                     Pickable::default(),
