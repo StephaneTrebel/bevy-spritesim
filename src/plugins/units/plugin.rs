@@ -2,7 +2,9 @@ use bevy::prelude::*;
 
 use crate::{
     plugins::{
-        MAP_HEIGHT, MAP_WIDTH, SpriteAtlas, map::MapCoordinates, select_on_click,
+        MAP_HEIGHT, MAP_WIDTH, SpriteAtlas,
+        map::{MapCoordinates, MapResource},
+        select_on_click,
     },
     state::AppState,
 };
@@ -31,28 +33,30 @@ pub fn anchor_camera_to_settler(
     camera.translation = settler.translation;
 }
 
-pub fn spawn_michel(mut commands: Commands, atlas: Res<SpriteAtlas>) {
-    // Spawn our first settler !
-    // His name is "Michel"
+/// Spawn our first settler !
+/// His name is "Michel"
+pub fn spawn_michel(
+    mut commands: Commands,
+    atlas: Res<SpriteAtlas>,
+    map_resource: Res<MapResource>,
+) {
+    // Find a possible spawn point for Michel
+    let mut map_coordinates = MapCoordinates(MAP_WIDTH / 2, MAP_HEIGHT / 2);
+    while !map_resource.map.is_movement_allowed(map_coordinates) {
+        map_coordinates = MapCoordinates(map_coordinates.0 + 1, map_coordinates.1 + 1);
+    }
 
-    // Spawn Michel at the Map center
-    // Since the camera is linked to his position, the camera will be on the Map
-    // center #BigBrainTime
     commands
         .spawn((
             atlas.sprite(&crate::plugins::SpriteType::Settler, 0, None),
             Transform {
-                translation: std::convert::Into::<Vec2>::into(MapCoordinates(
-                    MAP_WIDTH / 2,
-                    MAP_HEIGHT / 2,
-                ))
-                .extend(21.),
+                translation: std::convert::Into::<Vec2>::into(map_coordinates).extend(21.),
                 ..default()
             },
             Pickable::default(),
             Unit,
             Settler,
-            Moveable
+            Moveable,
         ))
         .observe(select_on_click);
 }
