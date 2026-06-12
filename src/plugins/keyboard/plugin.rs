@@ -11,8 +11,7 @@ pub struct Village;
 pub struct KeyboardPlugin;
 impl Plugin for KeyboardPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(PreUpdate, handle_input)
+        app.add_systems(PreUpdate, handle_input)
             .add_systems(OnEnter(AppState::ReadyToDraw), draw_village);
     }
 }
@@ -35,10 +34,10 @@ fn handle_input(
     mut village: Single<(&mut Visibility, &mut Transform), With<Village>>,
     mut next_state: ResMut<NextState<AppState>>,
 ) {
-    info!("Key pressed !");
     let (entity, transform) = *unit;
     // B for "build village"
     if keyboard_input.just_pressed(KeyCode::KeyQ) {
+        info!("Key pressed !");
         // build village !
         info!("Building village...");
         *village.0 = Visibility::Visible;
