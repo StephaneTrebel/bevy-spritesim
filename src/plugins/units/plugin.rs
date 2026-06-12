@@ -1,8 +1,9 @@
 use bevy::prelude::*;
+use bevy_pancam::PanCam;
 
 use crate::{
     plugins::{
-        MAP_HEIGHT, MAP_WIDTH, SpriteAtlas,
+        MAP_HEIGHT, MAP_WIDTH, MovingEntity, SelectedEntity, SpriteAtlas,
         map::{MapCoordinates, MapResource},
         select_on_click,
     },
@@ -21,17 +22,12 @@ pub struct Settler;
 pub struct UnitPlugin;
 impl Plugin for UnitPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PreUpdate, anchor_camera_to_settler)
-            .add_systems(OnEnter(AppState::ReadyToDraw), spawn_michel);
+        app.add_systems(OnEnter(AppState::ReadyToDraw), spawn_michel);
     }
 }
 
-pub fn anchor_camera_to_settler(
-    settler: Single<&Transform, (With<Settler>, Without<Camera2d>)>,
-    mut camera: Single<&mut Transform, With<Camera2d>>,
-) {
-    camera.translation = settler.translation;
-}
+#[derive(Component)]
+struct AnchorCamera;
 
 /// Spawn our first settler !
 /// His name is "Michel"

@@ -5,7 +5,7 @@ use bevy::{
 
 use crate::{
     plugins::{
-        Moveable, SPRITE_DISPLAY_SIZE, SpriteAtlas, TerrainLayer, Unit,
+        Moveable, SPRITE_DISPLAY_SIZE, SpriteAtlas, Unit,
         map::{MapCoordinates, MapResource},
     },
     state::AppState,
@@ -27,10 +27,10 @@ struct SelectEntity;
 /// Component added to an entity that can actually do stuff when selected
 /// (like a unit that can be moved)
 #[derive(Component)]
-struct SelectedEntity;
+pub struct SelectedEntity;
 
 #[derive(Component)]
-struct MovingEntity;
+pub struct MovingEntity;
 
 const SELECTOR_BASE_COLOR_TINT: Color = Color::Srgba(TOMATO);
 const MOVE_SELECTOR_COLOR_TINT: Color = Color::Srgba(ROYAL_BLUE);

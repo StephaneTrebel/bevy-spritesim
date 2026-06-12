@@ -11,20 +11,14 @@
             "id": "b3ec0bac24be85d3",
             "type": "leaf",
             "state": {
-              "type": "kanban",
+              "type": "markdown",
               "state": {
-                "file": "Kanban.md",
-                "kanbanViewState": {
-                  "kanban-plugin": "board",
-                  "list-collapse": [
-                    false,
-                    false,
-                    true
-                  ]
-                }
+                "file": "kanban_notes/Decide what to do with the camera.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-trello",
-              "title": "Kanban"
+              "icon": "lucide-file",
+              "title": "Decide what to do with the camera"
             }
           }
         ]
@@ -222,8 +216,8 @@
   },
   "active": "b3ec0bac24be85d3",
   "lastOpenFiles": [
-    "kanban_notes/Fix Sprite Tile Selection.md",
     "Kanban.md",
+    "kanban_notes/Fix Sprite Tile Selection.md",
     "kanban_notes/Decide what to do with the camera.md",
     "kanban_notes/Add terrain movement constraints.md",
     "kanban_notes/Create an Ocean Unit (boat).md",
