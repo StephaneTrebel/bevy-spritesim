@@ -21,5 +21,5 @@ title: Handle Camera Zoom
 - Zooming in and out should be done with a discrete step that does not make weird lines appear (multiple of `SPRITE_SIZE` ?)
 
 ## ToDo
-- [ ] Scroll in and out (with clamping) with mouse scroll
+- [x] Scroll in and out (with clamping) with mouse scroll
 - [ ] Handle "anchor on selection"

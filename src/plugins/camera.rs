@@ -1,6 +1,6 @@
 use bevy::{input::mouse::MouseWheel, prelude::*};
 
-use crate::plugins::{MAP_HEIGHT, MAP_WIDTH, MAX_SCALE, MIN_SCALE, map::MapCoordinates};
+use crate::plugins::{MAP_HEIGHT, MAP_WIDTH, MAX_SCALE, MIN_SCALE, SelectedEntity, Unit, map::MapCoordinates};
 
 pub struct CameraPlugin;
 
@@ -8,6 +8,7 @@ impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_camera);
         app.add_systems(PreUpdate, handle_mouse_scroll);
+        app.add_systems(PreUpdate, anchor_camera_to_selected_unit);
     }
 }
 
@@ -24,6 +25,13 @@ fn setup_camera(mut commands: Commands) {
             ..default()
         },
     ));
+}
+
+pub fn anchor_camera_to_selected_unit(
+    unit: Single<&Transform, (With<SelectedEntity>, With<Unit>, Without<Camera2d>)>,
+    mut camera: Single<&mut Transform, With<Camera2d>>,
+) {
+    camera.translation = unit.translation;
 }
 
 fn handle_mouse_scroll(
