@@ -1,2 +1,2 @@
 mod plugin;
-pub use plugin::{select_on_click, SelectionPlugin, SelectedEntity, MovingEntity};
+pub use plugin::{SelectionPlugin, select_on_click};

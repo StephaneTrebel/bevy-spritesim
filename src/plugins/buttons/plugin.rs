@@ -43,8 +43,8 @@ fn show_winning_button(mut commands: Commands, assets: Res<AssetServer>) {
             children![(
                 Text::new("You won !"),
                 TextFont {
-                    font: assets.load("fonts/FiraSans-Bold.ttf"),
-                    font_size: 13.0,
+                    font: assets.load("fonts/FiraSans-Bold.ttf").into(),
+                    font_size: FontSize::Px(13.0),
                     ..default()
                 },
                 TextColor(Color::srgb(0.9, 0.9, 0.9)),
@@ -75,7 +75,7 @@ fn on_winning_button_click(
         let mut text = text_query.get_mut(children[0]).unwrap();
 
         if *interaction == Interaction::Pressed {
-            input_focus.set(entity);
+            input_focus.set(entity, FocusCause::Pressed);
             **text = "Bye".to_string();
             *color = PRESSED_BUTTON.into();
             *border_color = BorderColor::all(RED);

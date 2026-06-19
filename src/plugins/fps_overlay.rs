@@ -11,7 +11,7 @@ impl Plugin for CustomFpsOverlayPlugin {
         app.add_plugins(FpsOverlayPlugin {
             config: FpsOverlayConfig {
                 text_config: TextFont {
-                    font_size: 20.0,
+                    font_size: FontSize::Px(20.0),
                     font: default(),
                     font_smoothing: FontSmoothing::default(),
                     ..default()

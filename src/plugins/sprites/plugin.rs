@@ -62,7 +62,7 @@ fn create_texture_atlas(
 
     let texture_atlas_handle = textures.add(texture_atlas);
 
-    let texture_atlas_image = textures.get_mut(&texture_atlas_handle).unwrap();
+    let mut texture_atlas_image = textures.get_mut(&texture_atlas_handle).unwrap();
     texture_atlas_image.sampler = sampling.unwrap_or_default();
 
     (

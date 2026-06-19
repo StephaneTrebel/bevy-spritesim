@@ -46,7 +46,7 @@ fn generate_multiple_patches_for_a_zone(
                 // Compute noise offset (That will contribute to the "blob" shape
                 // the patch will have)
                 let offset = simplex_noise_2d_seeded(
-                    vec2(w as f32, h as f32) * frequency_scale,
+                    (vec2(w as f32, h as f32) * frequency_scale).into(),
                     pseudo_rng_instance.random_range(0..u32::MAX) as f32,
                 ) * amplitude_scale;
 
