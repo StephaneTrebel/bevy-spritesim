@@ -1,9 +1,8 @@
 use bevy::prelude::*;
-use bevy_pancam::PanCam;
 
 use crate::{
     plugins::{
-        MAP_HEIGHT, MAP_WIDTH, MovingEntity, SelectedEntity, SpriteAtlas,
+        MAP_HEIGHT, MAP_WIDTH, SpriteAtlas,
         map::{MapCoordinates, MapResource},
         select_on_click,
     },
