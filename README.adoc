@@ -5,3 +5,5 @@ This is a small tentative game written in https://www.rust-lang.org/[Rust] by us
 = Thanks
 
 - Thanks to https://lospec.com/palette-list/31[31 palette] for these sublime colors
+
+image:./2026-06-19_20-58_1.png[BevySpriteSim]
