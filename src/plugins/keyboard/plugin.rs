@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 
 use crate::{
-    plugins::{SpriteAtlas, units::Unit},
+    plugins::{
+        sprites::{SpriteAtlas, SpriteType},
+        units::Unit,
+    },
     state::AppState,
 };
 
@@ -19,7 +22,7 @@ impl Plugin for KeyboardPlugin {
 pub fn draw_village(mut commands: Commands, atlas: Res<SpriteAtlas>) {
     info!("Drawing village sprite");
     commands.spawn((
-        atlas.sprite(&crate::plugins::SpriteType::Village, 0, None),
+        atlas.sprite(&SpriteType::Village, 0, None),
         Transform::from_xyz(0., 0., 0.0),
         Visibility::Hidden,
         Pickable::IGNORE,

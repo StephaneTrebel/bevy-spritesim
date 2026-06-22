@@ -1,4 +1,4 @@
-use crate::plugins::SpriteType;
+use crate::plugins::sprites::SpriteType;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum TerrainLayer {
@@ -101,4 +101,3 @@ impl std::fmt::Display for FeatureLayer {
         )
     }
 }
-

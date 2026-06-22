@@ -2,9 +2,10 @@ use bevy::prelude::*;
 
 use crate::{
     plugins::{
-        MAP_HEIGHT, MAP_WIDTH, SpriteAtlas,
+        MAP_HEIGHT, MAP_WIDTH,
         map::{MapCoordinates, MapResource},
-        select_on_click,
+        selection::select_on_click,
+        sprites::{SpriteAtlas, SpriteType},
     },
     state::AppState,
 };
@@ -43,7 +44,7 @@ pub fn spawn_michel(
 
     commands
         .spawn((
-            atlas.sprite(&crate::plugins::SpriteType::Settler, 0, None),
+            atlas.sprite(&SpriteType::Settler, 0, None),
             Transform {
                 translation: std::convert::Into::<Vec2>::into(map_coordinates).extend(21.),
                 ..default()

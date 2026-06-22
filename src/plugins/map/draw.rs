@@ -3,9 +3,10 @@ use std::process::exit;
 use bevy::{color::palettes::css::RED, input_focus::InputFocus, prelude::*};
 
 use crate::plugins::{
-    PRESSED_BUTTON, SpriteAtlas, TerrainLayer,
+    PRESSED_BUTTON, TerrainLayer,
     map::{Map, MapCoordinates, MapResource, Tile},
-    select_on_click,
+    selection::select_on_click,
+    sprites::SpriteAtlas,
 };
 
 #[derive(Component)]

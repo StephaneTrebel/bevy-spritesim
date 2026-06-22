@@ -5,8 +5,10 @@ use bevy::{
 
 use crate::{
     plugins::{
-        Moveable, SPRITE_DISPLAY_SIZE, SpriteAtlas, Unit,
+        SPRITE_DISPLAY_SIZE,
         map::{MapCoordinates, MapResource},
+        sprites::{SpriteAtlas, SpriteType},
+        units::{Moveable, Unit},
     },
     state::AppState,
 };
@@ -44,11 +46,7 @@ fn draw_selector(
 ) {
     info!("Drawing selector");
     commands.spawn((
-        atlas.sprite(
-            &crate::plugins::SpriteType::Selector,
-            0,
-            Some(SELECTOR_BASE_COLOR_TINT),
-        ),
+        atlas.sprite(&SpriteType::Selector, 0, Some(SELECTOR_BASE_COLOR_TINT)),
         Transform::from_xyz(0., 0., 0.0),
         Visibility::Hidden,
         Pickable::IGNORE,
@@ -102,11 +100,7 @@ fn select_unit(
         (0., 1.),
     ] {
         commands.spawn((
-            atlas.sprite(
-                &crate::plugins::SpriteType::Selector,
-                0,
-                Some(MOVE_SELECTOR_COLOR_TINT),
-            ),
+            atlas.sprite(&SpriteType::Selector, 0, Some(MOVE_SELECTOR_COLOR_TINT)),
             Transform::from_xyz(
                 transform.translation.x + x * (SPRITE_DISPLAY_SIZE as f32),
                 transform.translation.y + y * (SPRITE_DISPLAY_SIZE as f32),

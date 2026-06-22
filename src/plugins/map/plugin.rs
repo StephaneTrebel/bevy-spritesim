@@ -8,7 +8,7 @@ use bevy::{
 };
 
 use crate::{
-    plugins::map::{Map, generator::generate_map},
+    plugins::map::{Map, draw_map, generator::generate_map},
     state::AppState,
 };
 
@@ -17,6 +17,7 @@ pub struct MapPlugin;
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::MapGenerationStart), setup_map);
+        app.add_systems(OnEnter(AppState::ReadyToDraw), draw_map);
     }
 }
 
