@@ -22,4 +22,7 @@ title: Handle Camera Zoom
 
 ## ToDo
 - [x] Scroll in and out (with clamping) with mouse scroll
-- [ ] Handle "anchor on selection"
+- [x] Handle "anchor on selection"
+## Lessons Learned
+
+- In the future we will handle "Panning" with the mouse (Drag&Drop) -> [[Handle Camera Panning through Drag&Drop]]

@@ -10,22 +10,23 @@ kanban-plugin: board
 ## ToDo
 
 - [ ] [[Define Terrain Layer Hierarchy]]
-- [ ] [[Turn-by-turn system]]
 - [ ] [[Define a keyboard layout]]
 - [ ] [[WASM Build]]
 - [ ] [[Define Z-index rules]]
 - [ ] [[Handle Unit Speed]]
 - [ ] [[Create an Ocean Unit (boat)]]
+- [ ] [[Handle Camera Panning through Drag&Drop]]
 
 
 ## InProgress
 
-- [ ] [[Decide what to do with the camera]]
+- [ ] [[Turn-by-turn system]]
 
 
 ## Done
 
 **Complete**
+- [x] [[Decide what to do with the camera]]
 - [x] [[Fix Sprite Tile Selection]]
 - [x] [[Add terrain movement constraints]]
 - [x] [[Refactor RealCoordinates]]
@@ -59,6 +60,6 @@ kanban-plugin: board
 
 %% kanban:settings
 ```
-{"kanban-plugin":"board","list-collapse":[false,false,true],"metadata-keys":[{"metadataKey":"description","label":"Description","shouldHideLabel":false,"containsMarkdown":false},{"metadataKey":"phase","label":"Phase","shouldHideLabel":false,"containsMarkdown":false}],"move-tags":true,"tag-action":"kanban","tag-colors":[{"tagKey":"#phase","color":"rgba(236, 250, 137, 1)","backgroundColor":""}]}
+{"kanban-plugin":"board","list-collapse":[false,false,false],"metadata-keys":[{"metadataKey":"description","label":"Description","shouldHideLabel":false,"containsMarkdown":false},{"metadataKey":"phase","label":"Phase","shouldHideLabel":false,"containsMarkdown":false}],"move-tags":true,"tag-action":"kanban","tag-colors":[{"tagKey":"#phase","color":"rgba(236, 250, 137, 1)","backgroundColor":""}]}
 ```
 %%

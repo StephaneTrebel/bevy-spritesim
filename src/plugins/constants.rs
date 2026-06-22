@@ -1,3 +1,5 @@
+use bevy::color::Color;
+
 pub const WINDOW_PHYSICAL_WIDTH: u32 = 1280; // In pixels
 pub const WINDOW_PHYSICAL_HEIGHT: u32 = 1280; // In pixels
 pub const WINDOW_SCALE_FACTOR: f32 = 2.; // How much tiles are streched out in the beginning
@@ -12,3 +14,5 @@ pub const MAP_WIDTH: u16 = 200;
 // Zoomies
 pub const MIN_SCALE: f32 = 0.5;
 pub const MAX_SCALE: f32 = 2.5;
+
+pub const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);

@@ -1,12 +1,22 @@
-use bevy::prelude::*;
+use std::process::exit;
+
+use bevy::{color::palettes::css::RED, input_focus::InputFocus, prelude::*};
 
 use crate::plugins::{
-    SpriteAtlas, TerrainLayer,
+    PRESSED_BUTTON, SpriteAtlas, TerrainLayer,
     map::{Map, MapCoordinates, MapResource, Tile},
     select_on_click,
 };
 
-pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: Res<MapResource>) {
+#[derive(Component)]
+struct EndTurnButton;
+
+pub fn draw_map(
+    mut commands: Commands,
+    assets: Res<AssetServer>,
+    atlas: Res<SpriteAtlas>,
+    map_resource: Res<MapResource>,
+) {
     info!("Drawing map…");
 
     let map = &map_resource.map;
@@ -64,7 +74,116 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
         }
     }
 
-    info!("Done drawing map…");
+    info!("Done drawing map !");
+
+    info!("Drawing Map UI…");
+
+    // Spawn turn counter
+    commands.spawn((
+        Node {
+            width: percent(100),
+            height: percent(100),
+            top: percent(-45),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        Pickable::IGNORE,
+        children![(
+            Node {
+                width: px(60),
+                height: px(30),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                border: UiRect::all(px(2)),
+                ..default()
+            },
+            BorderColor::all(Color::WHITE),
+            BackgroundColor(Color::BLACK),
+            children![(
+                Text::new("Turn: 0"),
+                TextFont {
+                    font: assets.load("fonts/FiraSans-Bold.ttf"),
+                    font_size: 13.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                TextShadow::default()
+            )]
+        )],
+    ));
+
+    // Spawn turn counter
+    commands.spawn((
+        Node {
+            width: percent(100),
+            height: percent(100),
+            top: percent(45),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        Pickable::IGNORE,
+        children![(
+            Button,
+            Pickable::default(),
+            EndTurnButton,
+            Node {
+                width: px(60),
+                height: px(30),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                border: UiRect::all(px(2)),
+                border_radius: BorderRadius::MAX,
+                ..default()
+            },
+            BorderColor::all(Color::WHITE),
+            BackgroundColor(Color::BLACK),
+            children![(
+                Text::new("End Turn"),
+                TextFont {
+                    font: assets.load("fonts/FiraSans-Bold.ttf"),
+                    font_size: 13.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                TextShadow::default()
+            )]
+        )],
+    ));
+
+    info!("Done drawing Map UI !");
+}
+
+fn on_end_turn_button_click(
+    mut input_focus: ResMut<InputFocus>,
+    mut interaction_query: Query<
+        (
+            Entity,
+            &Interaction,
+            &mut BackgroundColor,
+            &mut BorderColor,
+            &mut Button,
+            &Children,
+        ),
+        (With<EndTurnButton>, Changed<Interaction>),
+    >,
+    mut text_query: Query<&mut Text>,
+) {
+    for (entity, interaction, mut color, mut border_color, mut button, children) in
+        interaction_query
+    {
+        let mut text = text_query.get_mut(children[0]).unwrap();
+
+        if *interaction == Interaction::Pressed {
+            input_focus.set(entity);
+            **text = "Bye".to_string();
+            *color = PRESSED_BUTTON.into();
+            *border_color = BorderColor::all(RED);
+            button.set_changed();
+            exit(0);
+        }
+    }
 }
 
 /// Retrieve the adequate tileset indices to properly display a tile.

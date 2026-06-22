@@ -1,31 +1,33 @@
 use std::process::exit;
 
-use bevy::{color::palettes::basic::*, input_focus::InputFocus, prelude::*};
+use bevy::{color::palettes::basic::RED, input_focus::InputFocus, prelude::*};
 
-use crate::state::AppState;
+use crate::{plugins::PRESSED_BUTTON, state::AppState};
 
 pub struct ButtonsPlugin;
 impl Plugin for ButtonsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<InputFocus>()
             .add_systems(OnEnter(AppState::WinConditionAchieved), show_winning_button)
-            .add_systems(Update, on_button_click);
+            .add_systems(Update, on_winning_button_click);
     }
 }
 
-const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
+#[derive(Component)]
+struct WinningButton;
 
-fn button(assets: &AssetServer) -> impl Bundle {
-    (
+fn show_winning_button(mut commands: Commands, assets: Res<AssetServer>) {
+    commands.spawn((
         Node {
             width: percent(100),
             height: percent(100),
-            top: percent(-15) ,
+            top: percent(-15),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             ..default()
         },
         children![(
+            WinningButton,
             Button,
             Node {
                 width: px(150),
@@ -49,14 +51,10 @@ fn button(assets: &AssetServer) -> impl Bundle {
                 TextShadow::default()
             )]
         )],
-    )
+    ));
 }
 
-fn show_winning_button(mut commands: Commands, assets: Res<AssetServer>) {
-    commands.spawn(button(&assets));
-}
-
-fn on_button_click(
+fn on_winning_button_click(
     mut input_focus: ResMut<InputFocus>,
     mut interaction_query: Query<
         (
@@ -67,7 +65,7 @@ fn on_button_click(
             &mut Button,
             &Children,
         ),
-        Changed<Interaction>,
+        (With<WinningButton>, Changed<Interaction>),
     >,
     mut text_query: Query<&mut Text>,
 ) {
