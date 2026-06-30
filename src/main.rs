@@ -47,7 +47,7 @@ fn main() {
     );
 
     // Bevy third-party plugins
-    app.add_plugins((bevy_framepace::FramepacePlugin, DebugPickingPlugin))
+    app.add_plugins((DebugPickingPlugin))
         // Switch to show Debug overlay
         .insert_resource(DebugPickingMode::Disabled);
 
