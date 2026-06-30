@@ -11,20 +11,14 @@
             "id": "41856934245cb07d",
             "type": "leaf",
             "state": {
-              "type": "kanban",
+              "type": "markdown",
               "state": {
-                "file": "Kanban.md",
-                "kanbanViewState": {
-                  "kanban-plugin": "board",
-                  "list-collapse": [
-                    false,
-                    false,
-                    false
-                  ]
-                }
+                "file": "kanban_notes/Turn-by-turn system.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-trello",
-              "title": "Kanban"
+              "icon": "lucide-file",
+              "title": "Turn-by-turn system"
             }
           }
         ]
@@ -222,8 +216,8 @@
   },
   "active": "41856934245cb07d",
   "lastOpenFiles": [
-    "kanban_notes/Bevy 0.19 migration.md",
     "Kanban.md",
+    "kanban_notes/Bevy 0.19 migration.md",
     "kanban_notes/Turn-by-turn system.md",
     "kanban_notes/Decide what to do with the camera.md",
     "kanban_notes/Handle Camera Panning through Drag&Drop.md",
