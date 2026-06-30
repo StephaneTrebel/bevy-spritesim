@@ -14,7 +14,7 @@ use crate::plugins::{
 };
 
 #[derive(Component)]
-struct EndTurnButton;
+pub struct EndTurnButton;
 
 pub fn draw_map(
     mut commands: Commands,
@@ -80,7 +80,12 @@ pub fn draw_map(
     }
 
     info!("Done drawing map !");
+}
 
+pub fn draw_map_ui(
+    mut commands: Commands,
+    assets: Res<AssetServer>,
+) {
     info!("Drawing Map UI…");
 
     // Spawn turn counter
@@ -118,7 +123,7 @@ pub fn draw_map(
         )],
     ));
 
-    // Spawn turn counter
+    // Spawn end turn button
     commands.spawn((
         Node {
             width: percent(100),
@@ -131,7 +136,6 @@ pub fn draw_map(
         Pickable::IGNORE,
         children![(
             Button,
-            Pickable::default(),
             EndTurnButton,
             Node {
                 width: px(60),
@@ -160,7 +164,7 @@ pub fn draw_map(
     info!("Done drawing Map UI !");
 }
 
-fn on_end_turn_button_click(
+pub fn on_end_turn_button_click(
     mut input_focus: ResMut<InputFocus>,
     interaction_query: Query<
         (
@@ -182,11 +186,10 @@ fn on_end_turn_button_click(
 
         if *interaction == Interaction::Pressed {
             input_focus.set(entity, FocusCause::Pressed);
-            **text = "Bye".to_string();
+            **text = "TURN ENDED".to_string();
             *color = PRESSED_BUTTON.into();
             *border_color = BorderColor::all(RED);
             button.set_changed();
-            exit(0);
         }
     }
 }
