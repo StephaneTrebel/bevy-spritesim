@@ -25,5 +25,8 @@ pub use sprites::SpritePlugin;
 pub mod shared;
 pub use shared::*;
 
+pub mod turn;
+pub use turn::TurnPlugin;
+
 pub mod units;
 pub use units::UnitPlugin;

@@ -9,7 +9,7 @@ use plugins::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH, WINDOW_S
 
 use crate::plugins::{
     ButtonsPlugin, CameraPlugin, CustomFpsOverlayPlugin, KeyboardPlugin, MapPlugin,
-    SelectionPlugin, SpritePlugin, UnitPlugin,
+    SelectionPlugin, SpritePlugin, TurnPlugin, UnitPlugin,
 };
 use crate::state::AppState;
 
@@ -61,6 +61,7 @@ fn main() {
         SelectionPlugin,
         SpritePlugin,
         UnitPlugin,
+        TurnPlugin,
     ));
 
     // Game state (Menu, Map, etc.)

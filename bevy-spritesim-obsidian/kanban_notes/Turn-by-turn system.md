@@ -2,7 +2,7 @@
 id: define_the_turn-by-turn_system
 aliases: []
 tags: []
-description: Define how the Turn-by-turn system will be implemented
+description: Define how the Turn-by-turn system will be implemented and add basic implementation
 title: Define the Turn-by-turn system
 ---
 ## Content
@@ -27,8 +27,8 @@ title: Define the Turn-by-turn system
 
 ## ToDo
 
-- [ ] Add a UI element that shows the current turn
-- [ ] Add a UI element (button) that trigger the end of a turn
+- [x] Add a UI element that shows the current turn
+- [x] Add a UI element (button) that trigger the end of a turn
 
 ## Lessons Learned
 
