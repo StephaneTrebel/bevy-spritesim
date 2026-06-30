@@ -26,6 +26,7 @@ kanban-plugin: board
 ## Done
 
 **Complete**
+- [x] [[Bevy 0.19 migration]]
 - [x] [[Decide what to do with the camera]]
 - [x] [[Fix Sprite Tile Selection]]
 - [x] [[Add terrain movement constraints]]

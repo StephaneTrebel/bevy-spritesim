@@ -1,6 +1,10 @@
 use std::process::exit;
 
-use bevy::{color::palettes::css::RED, input_focus::InputFocus, prelude::*};
+use bevy::{
+    color::palettes::css::RED,
+    input_focus::{FocusCause, InputFocus},
+    prelude::*,
+};
 
 use crate::plugins::{
     PRESSED_BUTTON, TerrainLayer,
@@ -104,8 +108,8 @@ pub fn draw_map(
             children![(
                 Text::new("Turn: 0"),
                 TextFont {
-                    font: assets.load("fonts/FiraSans-Bold.ttf"),
-                    font_size: 13.0,
+                    font: FontSource::Handle(assets.load("fonts/FiraSans-Bold.ttf")),
+                    font_size: FontSize::Px(13.0),
                     ..default()
                 },
                 TextColor(Color::srgb(0.9, 0.9, 0.9)),
@@ -143,8 +147,8 @@ pub fn draw_map(
             children![(
                 Text::new("End Turn"),
                 TextFont {
-                    font: assets.load("fonts/FiraSans-Bold.ttf"),
-                    font_size: 13.0,
+                    font: FontSource::Handle(assets.load("fonts/FiraSans-Bold.ttf")),
+                    font_size: FontSize::Px(13.0),
                     ..default()
                 },
                 TextColor(Color::srgb(0.9, 0.9, 0.9)),
@@ -158,7 +162,7 @@ pub fn draw_map(
 
 fn on_end_turn_button_click(
     mut input_focus: ResMut<InputFocus>,
-    mut interaction_query: Query<
+    interaction_query: Query<
         (
             Entity,
             &Interaction,
@@ -177,7 +181,7 @@ fn on_end_turn_button_click(
         let mut text = text_query.get_mut(children[0]).unwrap();
 
         if *interaction == Interaction::Pressed {
-            input_focus.set(entity);
+            input_focus.set(entity, FocusCause::Pressed);
             **text = "Bye".to_string();
             *color = PRESSED_BUTTON.into();
             *border_color = BorderColor::all(RED);

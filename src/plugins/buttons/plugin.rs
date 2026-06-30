@@ -1,6 +1,10 @@
 use std::process::exit;
 
-use bevy::{color::palettes::basic::RED, input_focus::InputFocus, prelude::*};
+use bevy::{
+    color::palettes::basic::RED,
+    input_focus::{FocusCause, InputFocus},
+    prelude::*,
+};
 
 use crate::{plugins::PRESSED_BUTTON, state::AppState};
 
@@ -56,7 +60,7 @@ fn show_winning_button(mut commands: Commands, assets: Res<AssetServer>) {
 
 fn on_winning_button_click(
     mut input_focus: ResMut<InputFocus>,
-    mut interaction_query: Query<
+    interaction_query: Query<
         (
             Entity,
             &Interaction,
