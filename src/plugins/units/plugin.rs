@@ -15,7 +15,7 @@ pub struct Moveable;
 
 #[derive(Component)]
 pub struct Unit {
-    speed: u16
+    pub(crate) speed: u16
 }
 
 #[derive(Component)]

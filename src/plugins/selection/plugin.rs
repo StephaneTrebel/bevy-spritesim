@@ -1,3 +1,5 @@
+use std::mem::transmute;
+
 use bevy::{
     color::palettes::css::{ROYAL_BLUE, TOMATO},
     prelude::*,
@@ -64,6 +66,7 @@ fn select_tile(
     mut selector: Single<(&mut Visibility, &mut Transform), With<Selector>>,
     selected: Single<(Entity, &Transform), (With<SelectEntity>, With<Unit>, Without<Selector>)>,
     mut commands: Commands,
+    map_resource: Res<MapResource>,
 ) {
     let (entity, transform) = *selected;
     info!(
@@ -81,29 +84,25 @@ fn select_tile(
 }
 
 fn select_unit(
-    settler: Single<(Entity, &Transform), (With<SelectedEntity>, With<Moveable>)>,
+    settler: Single<(Entity, &Transform, &Unit), (With<SelectedEntity>, With<Moveable>)>,
     mut commands: Commands,
     atlas: Res<SpriteAtlas>,
+    map_resource: Res<MapResource>,
     // mut next_state: ResMut<NextState<AppState>>,
 ) {
-    let (entity, transform) = *settler;
+    let (entity, transform, unit) = *settler;
     info!("Selecting unit");
 
-    for (x, y) in [
-        (-1., -1.),
-        (-1., 0.),
-        (-1., 1.),
-        (1., 1.),
-        (1., 0.),
-        (1., -1.),
-        (0., -1.),
-        (0., 1.),
-    ] {
+    for (x, y) in reachable_distance(
+        map_resource,
+        &transform.translation.into(),
+        unit.speed,
+    ) {
         commands.spawn((
             atlas.sprite(&SpriteType::Selector, 0, Some(MOVE_SELECTOR_COLOR_TINT)),
             Transform::from_xyz(
-                transform.translation.x + x * (SPRITE_DISPLAY_SIZE as f32),
-                transform.translation.y + y * (SPRITE_DISPLAY_SIZE as f32),
+                transform.translation.x + (x as f32) * (SPRITE_DISPLAY_SIZE as f32),
+                transform.translation.y + (y as f32) * (SPRITE_DISPLAY_SIZE as f32),
                 90.,
             ),
             Pickable::IGNORE,
@@ -114,6 +113,30 @@ fn select_unit(
     commands.entity(entity).remove::<SelectedEntity>();
     commands.entity(entity).insert(MovingEntity);
     // next_state.set(AppState::UnitReadyToMove);
+}
+
+fn reachable_distance(
+    map_resource: Res<MapResource>,
+    &MapCoordinates(w, h): &MapCoordinates,
+    distance: u16,
+) -> Vec<(i32, i32)> {
+    let mut tmp: Vec<(i32, i32)> = vec![];
+    let speed_signed = i32::from(distance);
+
+    for i in -speed_signed..=speed_signed {
+        for j in -speed_signed..=speed_signed {
+            let new_w: u16 = (w as i32 + i) as u16;
+            let new_h: u16 = (h as i32 + j) as u16;
+            if (i.abs() + j.abs() <= speed_signed)
+                && map_resource
+                    .map
+                    .is_movement_allowed(MapCoordinates(new_w, new_h))
+            {
+                tmp.push((i, j));
+            }
+        }
+    }
+    tmp
 }
 
 fn move_unit(

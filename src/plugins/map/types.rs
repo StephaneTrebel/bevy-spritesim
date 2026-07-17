@@ -1,4 +1,4 @@
-use bevy::math::Vec2;
+use bevy::math::{Vec2, Vec3};
 
 use crate::plugins::{
     FeatureLayer, MAP_HEIGHT, MAP_WIDTH, SPRITE_DISPLAY_SIZE, TerrainLayer, ZoneLayer,
@@ -29,6 +29,16 @@ impl From<MapCoordinates> for Vec2 {
             x: f32::from(w * SPRITE_DISPLAY_SIZE),
             y: f32::from(h * SPRITE_DISPLAY_SIZE),
         }
+    }
+}
+
+/// Convert a Vec3 (world 3D coordinates) to a MapCoordinates
+impl From<Vec3> for MapCoordinates {
+    fn from(Vec3 { x, y, z }: Vec3) -> Self {
+        Self(
+            ((x + f32::from(SPRITE_DISPLAY_SIZE / 2)) as u16) / SPRITE_DISPLAY_SIZE,
+            ((y + f32::from(SPRITE_DISPLAY_SIZE / 2)) as u16) / SPRITE_DISPLAY_SIZE,
+        )
     }
 }
 
@@ -86,6 +96,9 @@ impl Map {
 
     /// Check whether a unit is allowed to move to a target coordinates.
     pub(crate) fn is_movement_allowed(&self, map_coordinates: MapCoordinates) -> bool {
+        if map_coordinates.0 > MAP_WIDTH - 1 || map_coordinates.1 > MAP_HEIGHT - 1 {
+            return false;
+        }
         let tile = self
             .get(&map_coordinates)
             .expect("Coordinates should exist in map");
