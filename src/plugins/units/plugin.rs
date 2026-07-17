@@ -14,7 +14,9 @@ use crate::{
 pub struct Moveable;
 
 #[derive(Component)]
-pub struct Unit;
+pub struct Unit {
+    speed: u16
+}
 
 #[derive(Component)]
 pub struct Settler;
@@ -50,7 +52,9 @@ pub fn spawn_michel(
                 ..default()
             },
             Pickable::default(),
-            Unit,
+            Unit {
+                speed: 2
+            },
             Settler,
             Moveable,
         ))
