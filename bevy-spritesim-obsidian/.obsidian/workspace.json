@@ -222,8 +222,9 @@
   },
   "active": "41856934245cb07d",
   "lastOpenFiles": [
-    "kanban_notes/Turn-by-turn system.md",
     "Kanban.md",
+    "kanban_notes/Turn-by-turn system.md",
+    "kanban_notes/Handle Unit Speed.md",
     "kanban_notes/Bevy 0.19 migration.md",
     "kanban_notes/Decide what to do with the camera.md",
     "kanban_notes/Handle Camera Panning through Drag&Drop.md",
@@ -233,7 +234,6 @@
     "kanban_notes/Display Selector on tiles.md",
     "kanban_notes/Fix Sprite Tile Selection.md",
     "kanban_notes/Create an Ocean Unit (boat).md",
-    "kanban_notes/Handle Unit Speed.md",
     "Handle unit speed.md",
     "kanban_notes/Refactor RealCoordinates.md",
     "Define a keyboard layout.md",

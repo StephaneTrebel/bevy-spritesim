@@ -30,9 +30,9 @@ title: Define the Turn-by-turn system
 - [x] Add a UI element that shows the current turn
 - [x] Add a UI element (button) that trigger the end of a turn
 
-## Lessons Learned
+## Lessons Learned/Next steps
 
-- Handle a unit "buffer/queue" for actions that takes several turns
+- Handle a unit "buffer/queue" for actions that takes several turns -> [[Handle Unit Speed]]
 - Once a unit has spents its turn, it cannot do anything else
 - Have a way to easily identify units that still can do something during a turn from units that cannot anymore
 - Multiplayer/AI players for the turn paradigm to make any sense ? :D

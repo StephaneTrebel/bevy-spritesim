@@ -13,19 +13,19 @@ kanban-plugin: board
 - [ ] [[Define a keyboard layout]]
 - [ ] [[WASM Build]]
 - [ ] [[Define Z-index rules]]
-- [ ] [[Handle Unit Speed]]
 - [ ] [[Create an Ocean Unit (boat)]]
 - [ ] [[Handle Camera Panning through Drag&Drop]]
 
 
 ## InProgress
 
-- [ ] [[Turn-by-turn system]]
+- [ ] [[Handle Unit Speed]]
 
 
 ## Done
 
 **Complete**
+- [x] [[Turn-by-turn system]]
 - [x] [[Bevy 0.19 migration]]
 - [x] [[Decide what to do with the camera]]
 - [x] [[Fix Sprite Tile Selection]]

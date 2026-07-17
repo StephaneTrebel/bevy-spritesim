@@ -1,7 +1,7 @@
 ---
 id: note_id
 aliases: []
-tags:
+tags: []
 description: to_be_defined
 title: to_be_defined
 ---
@@ -9,9 +9,11 @@ title: to_be_defined
 
 - Blablabla
 
-## Lessons Learned
+## ToDo
+
+- [ ] Item1
+- [ ] Item2
+
+## Lessons Learned/Next steps
 
 - Blablabla
-
-
-
