@@ -4,8 +4,16 @@ version = "0.1.0"
 edition = "2024"
 
 [lints.clippy]
-pedantic = "warn"
-all = "warn"
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+type_complexity = "allow"
+too_many_arguments = "allow"
+cast_possible_truncation = "allow"
+cast_precision_loss = "allow"
+cast_sign_loss = "allow"
+needless_pass_by_value = "allow"
+unwrap_used = "deny"
+# expect_used = "deny"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
