@@ -7,7 +7,6 @@ use bevy::{
 use crate::plugins::{
     TerrainLayer,
     map::{Map, MapCoordinates, MapResource, Tile},
-    selection::select_on_click,
     sprites::SpriteAtlas,
     turn::TurnResource,
 };
@@ -38,43 +37,37 @@ pub fn draw_map(
             TerrainLayer::Plain => 2.,
             TerrainLayer::Ocean => 3.,
         };
-        commands
-            .spawn((
-                atlas.sprite(&tile.terrain.get_sprite_type(), terrain_variant, None),
-                Transform {
-                    translation: world_position.extend(z + (index as f32 / 10000.)),
-                    ..default()
-                },
-                Pickable::default(),
-            ))
-            .observe(select_on_click);
+        commands.spawn((
+            atlas.sprite(&tile.terrain.get_sprite_type(), terrain_variant, None),
+            Transform {
+                translation: world_position.extend(z + (index as f32 / 10000.)),
+                ..default()
+            },
+            Pickable::default(),
+        ));
 
         if let Some(zone) = tile.zone {
             let zone_variant = get_zone_variant(tile, map, &map_coordinates);
 
-            commands
-                .spawn((
-                    atlas.sprite(&zone.get_sprite_type(), zone_variant, None),
-                    Transform {
-                        translation: world_position.extend(10.),
-                        ..default()
-                    },
-                    Pickable::default(),
-                ))
-                .observe(select_on_click);
+            commands.spawn((
+                atlas.sprite(&zone.get_sprite_type(), zone_variant, None),
+                Transform {
+                    translation: world_position.extend(10.),
+                    ..default()
+                },
+                Pickable::default(),
+            ));
         }
 
         if let Some(feature) = tile.feature {
-            commands
-                .spawn((
-                    atlas.sprite(&feature.get_sprite_type(), terrain_variant, None),
-                    Transform {
-                        translation: world_position.extend(20.),
-                        ..default()
-                    },
-                    Pickable::default(),
-                ))
-                .observe(select_on_click);
+            commands.spawn((
+                atlas.sprite(&feature.get_sprite_type(), terrain_variant, None),
+                Transform {
+                    translation: world_position.extend(20.),
+                    ..default()
+                },
+                Pickable::default(),
+            ));
         }
     }
 

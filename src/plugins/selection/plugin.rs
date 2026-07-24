@@ -31,6 +31,11 @@ struct SelectEntity;
 #[derive(Component)]
 pub struct SelectedEntity;
 
+/// Component added to an entity that has been clicked on
+/// (like a unit that can be moved, or a target destination for a unit movement)
+#[derive(Component)]
+pub struct ClickedEntity;
+
 #[derive(Component)]
 pub struct MovingEntity;
 
@@ -56,103 +61,14 @@ fn draw_selector(
     info!("Done Drawing selector");
 }
 
-pub fn select_on_click(click: On<Pointer<Click>>, mut commands: Commands) {
-    commands.entity(click.entity).insert(SelectEntity);
-}
-
-fn select_tile(
-    mut selector: Single<(&mut Visibility, &mut Transform), With<Selector>>,
-    selected: Single<(Entity, &Transform), (With<SelectEntity>, With<Unit>, Without<Selector>)>,
-    mut commands: Commands,
-    map_resource: Res<MapResource>,
-) {
-    let (entity, transform) = *selected;
-    info!(
-        "Entity ({},{}) selected !",
-        transform.translation.x, transform.translation.y
-    );
-    *selector.0 = Visibility::Visible;
-    selector.1.translation = Vec3 {
-        x: transform.translation.x,
-        y: transform.translation.y,
-        z: 100.,
-    };
-    commands.entity(entity).remove::<SelectEntity>();
-    commands.entity(entity).insert(SelectedEntity);
-}
-
-fn select_unit(
-    settler: Single<(Entity, &Transform, &Unit), (With<SelectedEntity>, With<Moveable>)>,
-    mut commands: Commands,
-    atlas: Res<SpriteAtlas>,
-    map_resource: Res<MapResource>,
-    // mut next_state: ResMut<NextState<AppState>>,
-) {
-    let (entity, transform, unit) = *settler;
-    info!("Selecting unit");
-
-    for (x, y) in reachable_distance(map_resource, &transform.translation.into(), unit.speed) {
-        commands.spawn((
-            atlas.sprite(&SpriteType::Selector, 0, Some(MOVE_SELECTOR_COLOR_TINT)),
-            Transform::from_xyz(
-                transform.translation.x + (x as f32) * (SPRITE_DISPLAY_SIZE as f32),
-                transform.translation.y + (y as f32) * (SPRITE_DISPLAY_SIZE as f32),
-                90.,
-            ),
-            Pickable::IGNORE,
-            MoveSelector,
-        ));
-    }
-
-    commands.entity(entity).remove::<SelectedEntity>();
-    commands.entity(entity).insert(MovingEntity);
-    // next_state.set(AppState::UnitReadyToMove);
-}
-
-fn reachable_distance(
-    map_resource: Res<MapResource>,
-    &MapCoordinates(w, h): &MapCoordinates,
-    distance: u16,
-) -> Vec<(i32, i32)> {
-    let mut tmp: Vec<(i32, i32)> = vec![];
-    let speed_signed = i32::from(distance);
-
-    for i in -speed_signed..=speed_signed {
-        for j in -speed_signed..=speed_signed {
-            let new_w: u16 = (w as i32 + i) as u16;
-            let new_h: u16 = (h as i32 + j) as u16;
-            if (i.abs() + j.abs() <= speed_signed)
-                && map_resource
-                    .map
-                    .is_movement_allowed(MapCoordinates(new_w, new_h))
-            {
-                tmp.push((i, j));
-            }
-        }
-    }
-    tmp
-}
-
-fn move_unit(
-    mut selected: Single<
-        (Entity, &mut Transform),
-        (With<MovingEntity>, With<Moveable>, Without<Selector>),
-    >,
-    mut selector: Single<(&mut Visibility, &mut Transform), With<Selector>>,
+fn handle_click_on_entity(
     mut commands: Commands,
     buttons: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
-    move_selectors: Query<
-        (Entity, &Transform),
-        (With<MoveSelector>, Without<Selector>, Without<MovingEntity>),
-    >,
-    map_resource: Res<MapResource>,
+    currently_clicked_entity: Option<Single<Entity, With<ClickedEntity>>>,
+    entities: Query<(Entity, &Transform), Without<ClickedEntity>>,
 ) {
-    debug!("Moving entity !");
-    let entity = selected.0;
-    let transform = &mut selected.1;
-
     if buttons.just_pressed(MouseButton::Left) {
         info!("Button pressed !");
         let window = windows.single().expect("No windows ? :(");
@@ -168,27 +84,164 @@ fn move_unit(
                 // Snap world_position to map_coordinates by converting through them
                 let map_coordinates: MapCoordinates = world_position.into();
                 let snapped_world_position: Vec2 = map_coordinates.into();
+                info!("snapped_world_position {snapped_world_position}");
 
-                // Only where there is a MoveSelector entity
-                // (they only appear where movement is valid)
-                if move_selectors
+                let entity = entities
                     .iter()
-                    .find(|(_, transform)| transform.translation.xy() == snapped_world_position)
-                    .is_some()
-                {
-                    info!("Moving entity to {:?}", snapped_world_position);
-                    transform.translation = transform.translation.with_xy(snapped_world_position);
-
-                    commands.entity(entity).remove::<MovingEntity>();
-        info!("Removing move_selector tiles");
-        move_selectors
-            .iter()
-            .for_each(|(entity, _)| commands.entity(entity).despawn());
-        *selector.0 = Visibility::Hidden;
+                    .find(|(_, t)| t.translation.xy() == snapped_world_position);
+                if let Some((entity, _)) = entity {
+                    info!("Entity clicked on {entity:?}");
+                    if let Some(entity) = currently_clicked_entity {
+                        commands.entity(entity.entity()).remove::<ClickedEntity>();
+                    }
+                    commands.entity(entity).insert(ClickedEntity);
+                } else {
+                    info!("No entity there.");
                 }
             }
         }
     }
+}
+
+fn select_on_click(
+    mut commands: Commands,
+    unit: Single<
+        (Entity, &Transform),
+        (
+            With<Unit>,
+            With<ClickedEntity>,
+            Without<SelectedEntity>,
+            Without<MovingEntity>,
+        ),
+    >,
+) {
+    debug!("Selecting entity !");
+    commands.entity(unit.0).insert(SelectEntity);
+}
+
+fn display_selection_selector(
+    mut selector_entity: Single<(&mut Visibility, &mut Transform), With<Selector>>,
+    selected_unit: Single<
+        (Entity, &Transform),
+        (With<SelectEntity>, With<Unit>, Without<Selector>),
+    >,
+    mut commands: Commands,
+) {
+    let (entity, transform) = *selected_unit;
+    info!(
+        "Entity ({},{}) selected !",
+        transform.translation.x, transform.translation.y
+    );
+    *selector_entity.0 = Visibility::Visible;
+    selector_entity.1.translation = Vec3 {
+        x: transform.translation.x,
+        y: transform.translation.y,
+        z: 100.,
+    };
+    commands.entity(entity).remove::<SelectEntity>();
+    commands.entity(entity).insert(SelectedEntity);
+}
+
+fn display_move_selectors(
+    settler: Single<(Entity, &Transform, &Unit), (With<SelectedEntity>, With<Moveable>)>,
+    mut commands: Commands,
+    atlas: Res<SpriteAtlas>,
+    map_resource: Res<MapResource>,
+    // mut next_state: ResMut<NextState<AppState>>,
+) {
+    let (entity, transform, unit) = *settler;
+    info!("Selecting unit");
+
+    for (x, y) in reachable_distance(map_resource, transform.translation.into(), unit.speed) {
+        commands.spawn((
+            atlas.sprite(&SpriteType::Selector, 0, Some(MOVE_SELECTOR_COLOR_TINT)),
+            Transform::from_xyz(
+                transform.translation.x + (x as f32) * (f32::from(SPRITE_DISPLAY_SIZE)),
+                transform.translation.y + (y as f32) * (f32::from(SPRITE_DISPLAY_SIZE)),
+                90.,
+            ),
+            Pickable::default(),
+            MoveSelector,
+        ));
+    }
+
+    commands.entity(entity).remove::<SelectedEntity>();
+    commands.entity(entity).insert(MovingEntity);
+}
+
+fn reachable_distance(
+    map_resource: Res<MapResource>,
+    MapCoordinates(w, h): MapCoordinates,
+    distance: u16,
+) -> Vec<(i32, i32)> {
+    let mut tmp: Vec<(i32, i32)> = vec![];
+    let speed_signed = i32::from(distance);
+
+    for i in -speed_signed..=speed_signed {
+        for j in -speed_signed..=speed_signed {
+            let new_w: u16 = (i32::from(w) + i) as u16;
+            let new_h: u16 = (i32::from(h) + j) as u16;
+            if (i.abs() + j.abs() <= speed_signed)
+                && map_resource
+                    .map
+                    .is_movement_allowed(MapCoordinates(new_w, new_h))
+            {
+                tmp.push((i, j));
+            }
+        }
+    }
+    tmp
+}
+
+fn move_unit(
+    mut commands: Commands,
+    mut selected_unit: Single<
+        (Entity, &mut Transform),
+        (
+            With<Unit>,
+            Without<Selector>,
+            With<MovingEntity>,
+        ),
+    >,
+    mut selector: Single<
+        (&mut Visibility, &mut Transform),
+        (Without<ClickedEntity>, With<Selector>),
+    >,
+    clicked_move_selector: Single<
+        (Entity, &Transform),
+        (
+            With<ClickedEntity>,
+            With<MoveSelector>,
+            Without<MovingEntity>,
+            Without<Selector>,
+        ),
+    >,
+    move_selectors: Query<
+        (Entity, &Transform),
+        (
+            Without<ClickedEntity>,
+            With<MoveSelector>,
+            Without<MovingEntity>,
+            Without<Selector>,
+        ),
+    >,
+) {
+    debug!("Moving entity !");
+    let entity = selected_unit.0;
+    let transform = &mut selected_unit.1;
+
+    let snapped_world_position = clicked_move_selector.1.translation.xy();
+
+    info!("Moving entity to {:?}", snapped_world_position);
+    transform.translation = transform.translation.with_xy(snapped_world_position);
+
+    commands.entity(entity).remove::<MovingEntity>();
+    info!("Removing move_selector tiles");
+    commands.entity(clicked_move_selector.0).despawn();
+    move_selectors
+        .iter()
+        .for_each(|(entity, _)| commands.entity(entity).despawn());
+    *selector.0 = Visibility::Hidden;
 }
 
 pub struct SelectionPlugin;
@@ -196,8 +249,17 @@ pub struct SelectionPlugin;
 impl Plugin for SelectionPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::ReadyToDraw), draw_selector)
-            .add_systems(PreUpdate, select_tile)
-            .add_systems(PreUpdate, select_unit)
-            .add_systems(PreUpdate, move_unit);
+            .add_systems(
+                PreUpdate,
+                (
+                    handle_click_on_entity,
+                    (
+                        move_unit,
+                        display_selection_selector,
+                        display_move_selectors,
+                    ),
+                    select_on_click,
+                ),
+            );
     }
 }

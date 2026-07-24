@@ -4,7 +4,6 @@ use crate::{
     plugins::{
         MAP_HEIGHT, MAP_WIDTH,
         map::{MapCoordinates, MapResource},
-        selection::select_on_click,
         sprites::{SpriteAtlas, SpriteType},
     },
     state::AppState,
@@ -57,6 +56,5 @@ pub fn spawn_michel(
             },
             Settler,
             Moveable,
-        ))
-        .observe(select_on_click);
+        ));
 }
