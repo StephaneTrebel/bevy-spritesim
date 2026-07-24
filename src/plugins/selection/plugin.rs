@@ -1,5 +1,3 @@
-use std::mem::transmute;
-
 use bevy::{
     color::palettes::css::{ROYAL_BLUE, TOMATO},
     prelude::*,
@@ -93,11 +91,7 @@ fn select_unit(
     let (entity, transform, unit) = *settler;
     info!("Selecting unit");
 
-    for (x, y) in reachable_distance(
-        map_resource,
-        &transform.translation.into(),
-        unit.speed,
-    ) {
+    for (x, y) in reachable_distance(map_resource, &transform.translation.into(), unit.speed) {
         commands.spawn((
             atlas.sprite(&SpriteType::Selector, 0, Some(MOVE_SELECTOR_COLOR_TINT)),
             Transform::from_xyz(
@@ -149,7 +143,10 @@ fn move_unit(
     buttons: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
-    move_selectors: Query<Entity, With<MoveSelector>>,
+    move_selectors: Query<
+        (Entity, &Transform),
+        (With<MoveSelector>, Without<Selector>, Without<MovingEntity>),
+    >,
     map_resource: Res<MapResource>,
 ) {
     debug!("Moving entity !");
@@ -172,19 +169,25 @@ fn move_unit(
                 let map_coordinates: MapCoordinates = world_position.into();
                 let snapped_world_position: Vec2 = map_coordinates.into();
 
-                if map_resource.map.is_movement_allowed(map_coordinates) {
+                // Only where there is a MoveSelector entity
+                // (they only appear where movement is valid)
+                if move_selectors
+                    .iter()
+                    .find(|(_, transform)| transform.translation.xy() == snapped_world_position)
+                    .is_some()
+                {
                     info!("Moving entity to {:?}", snapped_world_position);
                     transform.translation = transform.translation.with_xy(snapped_world_position);
 
                     commands.entity(entity).remove::<MovingEntity>();
-                }
-            }
-        }
         info!("Removing move_selector tiles");
         move_selectors
             .iter()
-            .for_each(|move_selector| commands.entity(move_selector).despawn());
+            .for_each(|(entity, _)| commands.entity(entity).despawn());
         *selector.0 = Visibility::Hidden;
+                }
+            }
+        }
     }
 }
 

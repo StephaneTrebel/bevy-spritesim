@@ -20,7 +20,7 @@ title: Handle Unit Speed
 - [x] Add a "Speed" property to Unit entities
 - [x] Michel will have a Speed of 2 tiles
 - [ ] A Unit can only move at most its Speed in one turn
-- [ ] Adjust Move selector to account for a Unit speed (for Michel, it will have to cover a Manhattan Distance of 2 tiles)
+- [x] Adjust Move selector to account for a Unit speed (for Michel, it will have to cover a Manhattan Distance of 2 tiles)
 
 ## Lessons Learned
 

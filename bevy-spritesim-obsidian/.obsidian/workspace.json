@@ -4,27 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "c124b30a1ac98c34",
+        "id": "edd0b73b84b85fd5",
         "type": "tabs",
         "children": [
           {
-            "id": "41856934245cb07d",
+            "id": "d91f47bc41f5b787",
             "type": "leaf",
             "state": {
-              "type": "kanban",
+              "type": "markdown",
               "state": {
-                "file": "Kanban.md",
-                "kanbanViewState": {
-                  "kanban-plugin": "board",
-                  "list-collapse": [
-                    false,
-                    false,
-                    false
-                  ]
-                }
+                "file": "kanban_notes/Handle Unit Speed.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-trello",
-              "title": "Kanban"
+              "icon": "lucide-file",
+              "title": "Handle Unit Speed"
             }
           }
         ]
@@ -220,9 +214,10 @@
       "obsidian-kanban:Create new board": false
     }
   },
-  "active": "41856934245cb07d",
+  "active": "d91f47bc41f5b787",
   "lastOpenFiles": [
     "Kanban.md",
+    "kanban_notes/Define Terrain Layer Hierarchy.md",
     "kanban_notes/Turn-by-turn system.md",
     "kanban_notes/Handle Unit Speed.md",
     "kanban_notes/Bevy 0.19 migration.md",
@@ -247,7 +242,6 @@
     "kanban_notes/Add a playable unit.md",
     "kanban_notes/Add a Village sprite.md",
     "kanban_notes/Add a Winning screen.md",
-    "kanban_notes/Define Terrain Layer Hierarchy.md",
     "kanban_notes",
     "Templates",
     "Excalidraw"
