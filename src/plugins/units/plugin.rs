@@ -14,7 +14,7 @@ pub struct Moveable;
 
 #[derive(Component)]
 pub struct Unit {
-    pub(crate) speed: u16,
+    pub(crate) movement_speed: u16,
 }
 
 #[derive(Component)]
@@ -48,7 +48,7 @@ pub fn spawn_michel(
         },
         Pickable::default(),
         Name::new("Michel"),
-        Unit { speed: 2 },
+        Unit { movement_speed: 2 },
         Settler,
         Moveable,
     ));

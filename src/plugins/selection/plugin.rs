@@ -168,7 +168,7 @@ fn display_move_selectors(
     let transform = unit_single.1;
     let unit = unit_single.2;
 
-    for (x, y) in reachable_distance(map_resource, transform.translation.into(), unit.speed) {
+    for (x, y) in reachable_distance(map_resource, transform.translation.into(), unit.movement_speed) {
         let transformed_x = transform.translation.x + (x as f32) * (f32::from(SPRITE_DISPLAY_SIZE));
         let transformed_y = transform.translation.y + (y as f32) * (f32::from(SPRITE_DISPLAY_SIZE));
         commands.spawn((
