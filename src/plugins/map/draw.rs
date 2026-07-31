@@ -7,12 +7,16 @@ use bevy::{
 use crate::plugins::{
     TerrainLayer,
     map::{Map, MapCoordinates, MapResource, Tile},
-    sprites::SpriteAtlas,
+    sprites::{SpriteAtlas, SpriteType},
     turn::TurnResource,
 };
 
 #[derive(Component, Default, Clone)]
 pub struct EndTurnButton;
+
+fn create_tile_name(sprite_type: SpriteType, map_coordinates: MapCoordinates) -> String {
+    format!("{sprite_type}[{map_coordinates}]")
+}
 
 pub fn draw_map(
     mut commands: Commands,
@@ -30,15 +34,17 @@ pub fn draw_map(
         let world_position: Vec2 = map_coordinates.into();
         debug!("World Position: {world_position}");
 
-        let terrain_variant = get_terrain_variant(tile, map, &map_coordinates);
+        let terrain_variant = get_terrain_variant(*tile, map, map_coordinates);
         let z: f32 = match tile.terrain {
             TerrainLayer::Debug => 0.,
             TerrainLayer::Desert => 1.,
             TerrainLayer::Plain => 2.,
             TerrainLayer::Ocean => 3.,
         };
+        let sprite_type = tile.terrain.get_sprite_type();
         commands.spawn((
-            atlas.sprite(&tile.terrain.get_sprite_type(), terrain_variant, None),
+            Name::new(create_tile_name(sprite_type, map_coordinates)),
+            atlas.sprite(&sprite_type, terrain_variant, None),
             Transform {
                 translation: world_position.extend(z + (index as f32 / 10000.)),
                 ..default()
@@ -47,10 +53,12 @@ pub fn draw_map(
         ));
 
         if let Some(zone) = tile.zone {
-            let zone_variant = get_zone_variant(tile, map, &map_coordinates);
+            let zone_variant = get_zone_variant(*tile, map, map_coordinates);
 
+            let sprite_type = zone.get_sprite_type();
             commands.spawn((
-                atlas.sprite(&zone.get_sprite_type(), zone_variant, None),
+                Name::new(create_tile_name(sprite_type, map_coordinates)),
+                atlas.sprite(&sprite_type, zone_variant, None),
                 Transform {
                     translation: world_position.extend(10.),
                     ..default()
@@ -60,8 +68,10 @@ pub fn draw_map(
         }
 
         if let Some(feature) = tile.feature {
+            let sprite_type = feature.get_sprite_type();
             commands.spawn((
-                atlas.sprite(&feature.get_sprite_type(), terrain_variant, None),
+                Name::new(create_tile_name(sprite_type, map_coordinates)),
+                atlas.sprite(&sprite_type, terrain_variant, None),
                 Transform {
                     translation: world_position.extend(20.),
                     ..default()
@@ -198,7 +208,7 @@ pub fn on_end_turn_button_click(
 /// Additionnaly if a «partial» tile (like a corner) is used, we have to add
 /// an underlying tile to serve as background so for instance a beach is composed of
 /// a plain (its shore) and the ocean (its beach) over it.
-pub fn get_terrain_variant(tile: &Tile, map: &Map, map_coordinates: &MapCoordinates) -> u8 {
+pub fn get_terrain_variant(tile: Tile, map: &Map, map_coordinates: MapCoordinates) -> u8 {
     let terrain = tile.terrain;
     let Neighbours {
         bottom,
@@ -307,7 +317,7 @@ pub fn get_terrain_variant(tile: &Tile, map: &Map, map_coordinates: &MapCoordina
     }
 }
 
-pub fn get_zone_variant(tile: &Tile, map: &Map, map_coordinates: &MapCoordinates) -> u8 {
+pub fn get_zone_variant(tile: Tile, map: &Map, map_coordinates: MapCoordinates) -> u8 {
     let zone = tile.zone;
 
     let Neighbours {
@@ -428,7 +438,7 @@ struct Neighbours<'a> {
     top_right: &'a Tile,
 }
 
-fn get_neighbours<'a>(map: &'a Map, &MapCoordinates(w, h): &MapCoordinates) -> Neighbours<'a> {
+fn get_neighbours(map: &Map, MapCoordinates(w, h): MapCoordinates) -> Neighbours<'_> {
     let default_tile = &Tile {
         feature: None,
         zone: None,

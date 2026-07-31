@@ -67,7 +67,7 @@ fn handle_click_on_entity(
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
     currently_clicked_entity: Option<Single<Entity, With<ClickedEntity>>>,
-    entities: Query<(Entity, &Transform), Without<ClickedEntity>>,
+    entities: Query<(Entity, &Transform, NameOrEntity), Without<ClickedEntity>>,
 ) {
     if buttons.just_pressed(MouseButton::Left) {
         info!("Button pressed !");
@@ -92,9 +92,9 @@ fn handle_click_on_entity(
                     .sort_by::<(Entity, &Transform)>(|e1, e2| {
                         e1.1.translation.z.total_cmp(&e2.1.translation.z)
                     })
-                    .find(|(_, t)| t.translation.xy() == snapped_world_position);
-                if let Some((entity, _)) = entity {
-                    info!("Entity clicked on {entity:?}");
+                    .find(|(_, t, _)| t.translation.xy() == snapped_world_position);
+                if let Some((entity, _, name)) = entity {
+                    info!("Entity clicked on {name}");
                     if let Some(entity) = currently_clicked_entity {
                         commands.entity(entity.entity()).remove::<ClickedEntity>();
                     }
@@ -109,8 +109,8 @@ fn handle_click_on_entity(
 
 fn select_on_click(
     mut commands: Commands,
-    unit: Single<
-        (Entity, &Transform),
+    unit_single: Single<
+        (Entity, NameOrEntity, &Transform),
         (
             With<Unit>,
             With<ClickedEntity>,
@@ -119,30 +119,31 @@ fn select_on_click(
         ),
     >,
 ) {
-    debug!("Selecting entity !");
-    commands.entity(unit.0).insert(SelectEntity);
+    let mut command_entity = commands.entity(unit_single.0);
+    command_entity.insert(SelectEntity);
+    info!("Selecting entity {}", unit_single.1);
 }
 
 fn display_selection_selector(
     mut selector_entity: Single<(&mut Visibility, &mut Transform), With<Selector>>,
     selected_unit: Single<
-        (Entity, &Transform),
+        (Entity, &Transform, NameOrEntity),
         (With<SelectEntity>, With<Unit>, Without<Selector>),
     >,
     mut commands: Commands,
 ) {
-    let (entity, transform) = *selected_unit;
-    let mut command_entity = commands.entity(entity);
+    let mut command_entity = commands.entity(selected_unit.0);
     info!(
-        "Entity ({}) selected at ({},{})",
+        "Entity ({}/{}) selected at ({},{})",
         command_entity.id(),
-        transform.translation.x,
-        transform.translation.y
+        selected_unit.2,
+        selected_unit.1.translation.x,
+        selected_unit.1.translation.y
     );
     *selector_entity.0 = Visibility::Visible;
     selector_entity.1.translation = Vec3 {
-        x: transform.translation.x,
-        y: transform.translation.y,
+        x: selected_unit.1.translation.x,
+        y: selected_unit.1.translation.y,
         z: 100.,
     };
     command_entity.remove::<SelectEntity>();
