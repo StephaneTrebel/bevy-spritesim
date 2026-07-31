@@ -1,6 +1,5 @@
 use bevy::{
     color::palettes::css::{ROYAL_BLUE, TOMATO},
-    gizmos::transform_gizmo,
     prelude::*,
 };
 
@@ -21,7 +20,9 @@ struct Selector;
 /// Component dedicated to the "move selector" tile overlay
 /// (that surrounds a selected unit)
 #[derive(Component)]
-struct MoveSelector;
+struct MoveSelector {
+    spent_points: u16,
+}
 
 /// Component added to an entity when "selected" (clicked on with the mouse)
 #[derive(Component)]
@@ -168,9 +169,15 @@ fn display_move_selectors(
     let transform = unit_single.1;
     let unit = unit_single.2;
 
-    for (x, y) in reachable_distance(map_resource, transform.translation.into(), unit.movement_speed) {
-        let transformed_x = transform.translation.x + (x as f32) * (f32::from(SPRITE_DISPLAY_SIZE));
-        let transformed_y = transform.translation.y + (y as f32) * (f32::from(SPRITE_DISPLAY_SIZE));
+    for (x, y) in reachable_distance(
+        map_resource,
+        transform.translation.into(),
+        unit.movement_points,
+    ) {
+        let transformed_x =
+            transform.translation.x + f32::from(x) * (f32::from(SPRITE_DISPLAY_SIZE));
+        let transformed_y =
+            transform.translation.y + f32::from(y) * (f32::from(SPRITE_DISPLAY_SIZE));
         commands.spawn((
             Name::new(format!(
                 "MoveSelector[(({x},{y}),({transformed_x},{transformed_y}))]"
@@ -178,7 +185,9 @@ fn display_move_selectors(
             atlas.sprite(&SpriteType::Selector, 0, Some(MOVE_SELECTOR_COLOR_TINT)),
             Transform::from_xyz(transformed_x, transformed_y, 90.),
             Pickable::default(),
-            MoveSelector,
+            MoveSelector {
+                spent_points: (x.abs() + y.abs()) as u16,
+            },
         ));
     }
 
@@ -192,15 +201,20 @@ fn reachable_distance(
     map_resource: Res<MapResource>,
     MapCoordinates(w, h): MapCoordinates,
     distance: u16,
-) -> Vec<(i32, i32)> {
-    let mut tmp: Vec<(i32, i32)> = vec![];
-    let speed_signed = i32::from(distance);
+) -> Vec<(i16, i16)> {
+    let mut tmp: Vec<(i16, i16)> = vec![];
+    let distance_signed: i16 = distance
+        .try_into()
+        .expect("Distance must be castable to i16");
 
-    for i in -speed_signed..=speed_signed {
-        for j in -speed_signed..=speed_signed {
-            let new_w: u16 = (i32::from(w) + i) as u16;
-            let new_h: u16 = (i32::from(h) + j) as u16;
-            if (i.abs() + j.abs() <= speed_signed)
+    let iw: i16 = w.try_into().expect("W coordinate must be castable to i16");
+    let ih: i16 = h.try_into().expect("H coordinate must be castable to i16");
+
+    for i in -distance_signed..=distance_signed {
+        for j in -distance_signed..=distance_signed {
+            let new_w: u16 = (iw + i) as u16;
+            let new_h: u16 = (ih + j) as u16;
+            if (i.abs() + j.abs() <= distance_signed)
                 && map_resource
                     .map
                     .is_movement_allowed(MapCoordinates(new_w, new_h))
@@ -215,18 +229,17 @@ fn reachable_distance(
 fn move_unit(
     mut commands: Commands,
     mut selected_unit: Single<
-        (Entity, &mut Transform),
-        (With<Unit>, Without<Selector>, With<MovingEntity>),
+        (Entity, &mut Transform, &mut Unit),
+        (Without<Selector>, With<MovingEntity>),
     >,
     mut selector: Single<
         (&mut Visibility, &mut Transform),
         (Without<ClickedEntity>, With<Selector>),
     >,
     clicked_move_selector: Single<
-        (Entity, &Transform),
+        (Entity, &Transform, &MoveSelector),
         (
             With<ClickedEntity>,
-            With<MoveSelector>,
             Without<MovingEntity>,
             Without<Selector>,
         ),
@@ -243,12 +256,18 @@ fn move_unit(
 ) {
     debug!("Moving entity !");
     let entity = selected_unit.0;
-    let transform = &mut selected_unit.1;
+    // let transform = &mut selected_unit.1;
+    // let unit = &mut selected_unit.2;
+
+    let borrow_mut = &mut selected_unit;
 
     let snapped_world_position = clicked_move_selector.1.translation.xy();
 
     info!("Moving entity to {:?}", snapped_world_position);
-    transform.translation = transform.translation.with_xy(snapped_world_position);
+    borrow_mut.1.translation = borrow_mut.1.translation.with_xy(snapped_world_position);
+
+    info!("Spending {} movement points on entity", 2);
+    borrow_mut.2.movement_points -= clicked_move_selector.2.spent_points;
 
     commands.entity(entity).remove::<MovingEntity>();
     info!("Removing move_selector tiles");

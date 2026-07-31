@@ -22,7 +22,7 @@ title: Handle Unit MovementPoints
 - [x] Adjust Move selector to account for a Unit movementPoints (for Michel, it will have to cover a Manhattan Distance of 2 tiles)
 - [x] Michel will have a MovementPoints of 2 tiles
 - [x] A unit can be moved in several increments during one turn, as long as it does not expend all its Mouvement Points
-- [ ] A Unit can only move at most its MovementPoints in one turn
+- [x] A Unit can only move at most its MovementPoints in one turn
 
 ## Lessons Learned
 

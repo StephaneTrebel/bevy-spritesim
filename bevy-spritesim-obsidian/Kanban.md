@@ -19,12 +19,12 @@ kanban-plugin: board
 
 ## InProgress
 
-- [ ] [[Handle Unit Speed]]
 
 
 ## Done
 
 **Complete**
+- [x] [[Handle Unit Speed]]
 - [x] [[Turn-by-turn system]]
 - [x] [[Bevy 0.19 migration]]
 - [x] [[Decide what to do with the camera]]
