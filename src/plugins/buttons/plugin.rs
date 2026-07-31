@@ -22,6 +22,7 @@ struct WinningButton;
 
 fn show_winning_button(mut commands: Commands, assets: Res<AssetServer>) {
     commands.spawn((
+        Name::new("Winning Button node"),
         Node {
             width: percent(100),
             height: percent(100),
@@ -31,6 +32,7 @@ fn show_winning_button(mut commands: Commands, assets: Res<AssetServer>) {
             ..default()
         },
         children![(
+            Name::new("Winning Button button"),
             WinningButton,
             Button,
             Node {

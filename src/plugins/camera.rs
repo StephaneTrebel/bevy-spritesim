@@ -18,6 +18,7 @@ impl Plugin for CameraPlugin {
 fn setup_camera(mut commands: Commands) {
     // Configure Camera that can be panned and zoomed with the mouse
     commands.spawn((
+        Name::new("Camera"),
         Camera2d,
         Transform {
             translation: std::convert::Into::<Vec2>::into(MapCoordinates(

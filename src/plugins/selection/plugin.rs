@@ -1,5 +1,6 @@
 use bevy::{
     color::palettes::css::{ROYAL_BLUE, TOMATO},
+    gizmos::transform_gizmo,
     prelude::*,
 };
 
@@ -51,6 +52,7 @@ fn draw_selector(
 ) {
     info!("Drawing selector");
     commands.spawn((
+        Name::new("Selector"),
         atlas.sprite(&SpriteType::Selector, 0, Some(SELECTOR_BASE_COLOR_TINT)),
         Transform::from_xyz(0., 0., 0.0),
         Visibility::Hidden,
@@ -67,7 +69,10 @@ fn handle_click_on_entity(
     windows: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
     currently_clicked_entity: Option<Single<Entity, With<ClickedEntity>>>,
-    entities: Query<(Entity, &Transform, NameOrEntity), Without<ClickedEntity>>,
+    entities: Query<
+        (Entity, &Transform, NameOrEntity),
+        (Without<ClickedEntity>, Without<Camera2d>),
+    >,
 ) {
     if buttons.just_pressed(MouseButton::Left) {
         info!("Button pressed !");
@@ -90,7 +95,7 @@ fn handle_click_on_entity(
                 let entity = entities
                     .iter()
                     .sort_by::<(Entity, &Transform)>(|e1, e2| {
-                        e1.1.translation.z.total_cmp(&e2.1.translation.z)
+                        e2.1.translation.z.total_cmp(&e1.1.translation.z)
                     })
                     .find(|(_, t, _)| t.translation.xy() == snapped_world_position);
                 if let Some((entity, _, name)) = entity {
@@ -151,28 +156,34 @@ fn display_selection_selector(
 }
 
 fn display_move_selectors(
-    unit: Single<(Entity, &Transform, &Unit), (With<SelectedEntity>, With<Moveable>)>,
+    unit_single: Single<
+        (Entity, &Transform, &Unit, NameOrEntity),
+        (With<SelectedEntity>, With<Moveable>),
+    >,
     mut commands: Commands,
     atlas: Res<SpriteAtlas>,
     map_resource: Res<MapResource>,
 ) {
-    let (entity, transform, unit) = *unit;
+    let entity = unit_single.0;
+    let transform = unit_single.1;
+    let unit = unit_single.2;
 
     for (x, y) in reachable_distance(map_resource, transform.translation.into(), unit.speed) {
+        let transformed_x = transform.translation.x + (x as f32) * (f32::from(SPRITE_DISPLAY_SIZE));
+        let transformed_y = transform.translation.y + (y as f32) * (f32::from(SPRITE_DISPLAY_SIZE));
         commands.spawn((
+            Name::new(format!(
+                "MoveSelector[(({x},{y}),({transformed_x},{transformed_y}))]"
+            )),
             atlas.sprite(&SpriteType::Selector, 0, Some(MOVE_SELECTOR_COLOR_TINT)),
-            Transform::from_xyz(
-                transform.translation.x + (x as f32) * (f32::from(SPRITE_DISPLAY_SIZE)),
-                transform.translation.y + (y as f32) * (f32::from(SPRITE_DISPLAY_SIZE)),
-                90.,
-            ),
+            Transform::from_xyz(transformed_x, transformed_y, 90.),
             Pickable::default(),
             MoveSelector,
         ));
     }
 
     let mut command_entity = commands.entity(entity);
-    info!("Selecting unit with entity id {}", command_entity.id());
+    info!("Selecting unit {}/{}", command_entity.id(), unit_single.3);
     command_entity.remove::<SelectedEntity>();
     command_entity.insert(MovingEntity);
 }

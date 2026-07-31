@@ -93,6 +93,7 @@ pub struct EndTurnButtonText;
 fn spawn_turn_counter() -> impl Scene {
     // Spawn turn counter
     bsn! {
+        Name::new("Turn counter Scene")
         Node {
             width: px(100),
             height: px(30),
@@ -104,6 +105,7 @@ fn spawn_turn_counter() -> impl Scene {
         BorderColor::all(Color::WHITE)
         BackgroundColor(Color::BLACK)
         Children [(
+            Name::new("Turn counter Text")
             Text::new(format!("Turn: 0"))
             TurnCountText
             TextFont {
@@ -117,6 +119,7 @@ fn spawn_turn_counter() -> impl Scene {
 fn spawn_end_turn_button() -> impl Scene {
     // Spawn turn counter
     bsn! {
+        Name::new("End turn button Scene")
         Button
         EndTurnButton
         Node {
@@ -131,6 +134,7 @@ fn spawn_end_turn_button() -> impl Scene {
         BorderColor::all(Color::WHITE)
         BackgroundColor(Color::BLACK)
         Children [(
+            Name::new("End turn button text")
             Text::new("End Turn")
             EndTurnButtonText
             TextFont {
@@ -143,6 +147,7 @@ fn spawn_end_turn_button() -> impl Scene {
 
 fn spawn_ui_layout() -> impl Scene {
     bsn! {
+        Name::new("UI Layout")
         Node {
             width: percent(100),
             height: percent(100),
