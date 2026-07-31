@@ -86,8 +86,12 @@ fn handle_click_on_entity(
                 let snapped_world_position: Vec2 = map_coordinates.into();
                 info!("snapped_world_position {snapped_world_position}");
 
+                // @TODO Sort by Z !
                 let entity = entities
                     .iter()
+                    .sort_by::<(Entity, &Transform)>(|e1, e2| {
+                        e1.1.translation.z.total_cmp(&e2.1.translation.z)
+                    })
                     .find(|(_, t)| t.translation.xy() == snapped_world_position);
                 if let Some((entity, _)) = entity {
                     info!("Entity clicked on {entity:?}");
@@ -128,9 +132,12 @@ fn display_selection_selector(
     mut commands: Commands,
 ) {
     let (entity, transform) = *selected_unit;
+    let mut command_entity = commands.entity(entity);
     info!(
-        "Entity ({},{}) selected !",
-        transform.translation.x, transform.translation.y
+        "Entity ({}) selected at ({},{})",
+        command_entity.id(),
+        transform.translation.x,
+        transform.translation.y
     );
     *selector_entity.0 = Visibility::Visible;
     selector_entity.1.translation = Vec3 {
@@ -138,19 +145,17 @@ fn display_selection_selector(
         y: transform.translation.y,
         z: 100.,
     };
-    commands.entity(entity).remove::<SelectEntity>();
-    commands.entity(entity).insert(SelectedEntity);
+    command_entity.remove::<SelectEntity>();
+    command_entity.insert(SelectedEntity);
 }
 
 fn display_move_selectors(
-    settler: Single<(Entity, &Transform, &Unit), (With<SelectedEntity>, With<Moveable>)>,
+    unit: Single<(Entity, &Transform, &Unit), (With<SelectedEntity>, With<Moveable>)>,
     mut commands: Commands,
     atlas: Res<SpriteAtlas>,
     map_resource: Res<MapResource>,
-    // mut next_state: ResMut<NextState<AppState>>,
 ) {
-    let (entity, transform, unit) = *settler;
-    info!("Selecting unit");
+    let (entity, transform, unit) = *unit;
 
     for (x, y) in reachable_distance(map_resource, transform.translation.into(), unit.speed) {
         commands.spawn((
@@ -165,8 +170,10 @@ fn display_move_selectors(
         ));
     }
 
-    commands.entity(entity).remove::<SelectedEntity>();
-    commands.entity(entity).insert(MovingEntity);
+    let mut command_entity = commands.entity(entity);
+    info!("Selecting unit with entity id {}", command_entity.id());
+    command_entity.remove::<SelectedEntity>();
+    command_entity.insert(MovingEntity);
 }
 
 fn reachable_distance(
@@ -197,11 +204,7 @@ fn move_unit(
     mut commands: Commands,
     mut selected_unit: Single<
         (Entity, &mut Transform),
-        (
-            With<Unit>,
-            Without<Selector>,
-            With<MovingEntity>,
-        ),
+        (With<Unit>, Without<Selector>, With<MovingEntity>),
     >,
     mut selector: Single<
         (&mut Visibility, &mut Transform),
@@ -252,13 +255,13 @@ impl Plugin for SelectionPlugin {
             .add_systems(
                 PreUpdate,
                 (
+                    select_on_click,
                     handle_click_on_entity,
                     (
                         move_unit,
                         display_selection_selector,
                         display_move_selectors,
                     ),
-                    select_on_click,
                 ),
             );
     }

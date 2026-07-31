@@ -41,7 +41,9 @@
               "type": "file-explorer",
               "state": {
                 "sortOrder": "alphabetical",
-                "autoReveal": false
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
               },
               "icon": "lucide-folder-closed",
               "title": "Explorateur de fichiers"
@@ -214,7 +216,7 @@
       "obsidian-kanban:Create new board": false
     }
   },
-  "active": "d91f47bc41f5b787",
+  "active": "7917f3a284f58184",
   "lastOpenFiles": [
     "Kanban.md",
     "kanban_notes/Define Terrain Layer Hierarchy.md",
