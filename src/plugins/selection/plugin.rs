@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::plugins::map::MapCoordinates;
+use crate::plugins::{map::MapCoordinates, units::UnitSelector};
 
 /// Component added to an entity that has been clicked on
 /// (like a unit that can be moved, or a target destination for a unit movement)
@@ -15,7 +15,7 @@ fn handle_click_on_entity(
     currently_clicked_entity: Option<Single<Entity, With<ClickedEntity>>>,
     entities: Query<
         (Entity, &Transform, NameOrEntity),
-        (Without<ClickedEntity>, Without<Camera2d>),
+        (Without<ClickedEntity>, Without<Camera2d>, Without<UnitSelector>),
     >,
 ) {
     if buttons.just_pressed(MouseButton::Left) {

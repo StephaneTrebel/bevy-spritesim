@@ -25,12 +25,12 @@ kanban-plugin: board
 
 ## InProgress
 
-- [ ] [[BUG - Ending a turn must replenish all MovementPoints]]
 
 
 ## Done
 
 **Complete**
+- [x] [[BUG - Ending a turn must replenish all MovementPoints]]
 - [x] [[Handle Unit Speed]]
 - [x] [[Turn-by-turn system]]
 - [x] [[Bevy 0.19 migration]]

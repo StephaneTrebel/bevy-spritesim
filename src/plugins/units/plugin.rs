@@ -30,7 +30,7 @@ fn draw_selector(
         Transform::from_xyz(0., 0., 0.0),
         Visibility::Hidden,
         Pickable::IGNORE,
-        Selector,
+        UnitSelector,
     ));
     next_state.set(AppState::MainGame);
     info!("Done Drawing selector");
@@ -69,18 +69,18 @@ fn move_unit(
     mut commands: Commands,
     mut selected_unit: Single<
         (Entity, &mut Transform, &mut Unit),
-        (Without<Selector>, With<MovingEntity>),
+        (Without<UnitSelector>, With<MovingEntity>),
     >,
     mut selector: Single<
         (&mut Visibility, &mut Transform),
-        (Without<ClickedEntity>, With<Selector>),
+        (Without<ClickedEntity>, With<UnitSelector>),
     >,
     clicked_move_selector: Single<
         (Entity, &Transform, &MoveSelector),
         (
             With<ClickedEntity>,
             Without<MovingEntity>,
-            Without<Selector>,
+            Without<UnitSelector>,
         ),
     >,
     move_selectors: Query<
@@ -89,7 +89,7 @@ fn move_unit(
             Without<ClickedEntity>,
             With<MoveSelector>,
             Without<MovingEntity>,
-            Without<Selector>,
+            Without<UnitSelector>,
         ),
     >,
 ) {
@@ -135,10 +135,10 @@ fn select_unit_on_click(
 }
 
 fn display_unit_selection_selector(
-    mut selector_entity: Single<(&mut Visibility, &mut Transform), With<Selector>>,
+    mut selector_entity: Single<(&mut Visibility, &mut Transform), With<UnitSelector>>,
     selected_unit: Single<
         (Entity, &Transform, NameOrEntity),
-        (With<SelectEntity>, With<Unit>, Without<Selector>),
+        (With<SelectEntity>, With<Unit>, Without<UnitSelector>),
     >,
     mut commands: Commands,
 ) {
@@ -203,7 +203,7 @@ fn display_unit_move_selectors(
 
 /// Component dedicated to the "selector" tile overlay
 #[derive(Component)]
-struct Selector;
+pub struct UnitSelector;
 
 /// Component added to an entity when "selected" (clicked on with the mouse)
 #[derive(Component)]

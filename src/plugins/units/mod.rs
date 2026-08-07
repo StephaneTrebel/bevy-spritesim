@@ -1,2 +1,2 @@
 mod plugin;
-pub use plugin::{SelectedEntity, Unit, UnitPlugin};
+pub use plugin::{SelectedEntity, UnitSelector, Unit, UnitPlugin};
