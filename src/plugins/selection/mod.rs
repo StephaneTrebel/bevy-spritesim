@@ -1,2 +1,2 @@
 mod plugin;
-pub use plugin::{SelectedEntity, SelectionPlugin};
+pub use plugin::{ClickedEntity, SelectionPlugin};

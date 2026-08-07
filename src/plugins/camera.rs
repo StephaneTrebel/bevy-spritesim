@@ -1,8 +1,9 @@
 use bevy::{input::mouse::MouseWheel, prelude::*};
 
 use crate::plugins::{
-    MAP_HEIGHT, MAP_WIDTH, MAX_SCALE, MIN_SCALE, map::MapCoordinates, selection::SelectedEntity,
-    units::Unit,
+    MAP_HEIGHT, MAP_WIDTH, MAX_SCALE, MIN_SCALE,
+    map::MapCoordinates,
+    units::{SelectedEntity, Unit},
 };
 
 pub struct CameraPlugin;
