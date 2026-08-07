@@ -28,5 +28,8 @@ pub use shared::*;
 pub mod turn;
 pub use turn::TurnPlugin;
 
+pub mod ui;
+pub use ui::UiPlugin;
+
 pub mod units;
 pub use units::UnitPlugin;
