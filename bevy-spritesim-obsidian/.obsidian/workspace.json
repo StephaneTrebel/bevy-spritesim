@@ -41,8 +41,7 @@
               "title": "BUG - Ending a turn must replenish all MovementPoints"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -76,7 +75,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "menu",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -237,11 +236,12 @@
       "obsidian-kanban:Create new board": false
     }
   },
-  "active": "b67561f799ab284f",
+  "active": "9961d2be3fe3b65f",
   "lastOpenFiles": [
+    "kanban_notes/starting menu.md",
     "Kanban.md",
-    "kanban_notes/Multiplayer.md",
     "kanban_notes/BUG - Ending a turn must replenish all MovementPoints.md",
+    "kanban_notes/Multiplayer.md",
     "kanban_notes/Handle Unit Speed.md",
     "kanban_notes/Turn-by-turn system.md",
     "kanban_notes/Have a way to easily identify units that still can do something during a turn from units that cannot anymore.md",
@@ -264,7 +264,6 @@
     "kanban_notes/Define Z-index rules.md",
     "Define Z-index rules.md",
     "kanban_notes/1780084332-USPT.md",
-    "kanban_notes/Move Settler.md",
     "kanban_notes",
     "Templates",
     "Excalidraw"

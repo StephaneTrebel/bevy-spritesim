@@ -9,6 +9,7 @@ use crate::plugins::{
     map::{Map, MapCoordinates, MapResource, Tile},
     sprites::{SpriteAtlas, SpriteType},
     turn::TurnResource,
+    units::Unit,
 };
 
 #[derive(Component, Default, Clone)]
@@ -172,7 +173,7 @@ pub fn draw_map_ui(mut commands: Commands) {
 pub fn on_end_turn_button_click(
     mut input_focus: ResMut<InputFocus>,
     mut turn_resource: ResMut<TurnResource>,
-    interaction_query: Query<
+    interaction_query: Single<
         (
             Entity,
             &Interaction,
@@ -184,22 +185,28 @@ pub fn on_end_turn_button_click(
     >,
     mut end_button_text_query: Single<&mut Text, (With<EndTurnButtonText>, Without<TurnCountText>)>,
     mut turn_count_text_query: Single<&mut Text, (With<TurnCountText>, Without<EndTurnButtonText>)>,
+    units_query: Query<&mut Unit>,
 ) {
-    for (entity, interaction, mut color, mut border_color, mut button) in interaction_query {
-        if *interaction == Interaction::Pressed {
-            // Mark the button as clicked
-            input_focus.set(entity, FocusCause::Pressed);
-            ***end_button_text_query = "TURN ENDED".to_string();
-            *color = TEAL.into();
-            *border_color = BorderColor::all(RED);
-            button.set_changed();
+    let (entity, interaction, mut color, mut border_color, mut button) =
+        interaction_query.into_inner();
+    if *interaction == Interaction::Pressed {
+        // Mark the button as clicked
+        input_focus.set(entity, FocusCause::Pressed);
+        ***end_button_text_query = "TURN ENDED".to_string();
+        *color = TEAL.into();
+        *border_color = BorderColor::all(RED);
+        button.set_changed();
 
-            // Increment count turn
-            turn_resource.turn_count += 1;
-            info!("TURN COUNT {}", turn_resource.turn_count);
+        // Increment count turn
+        turn_resource.turn_count += 1;
+        info!("TURN COUNT {}", turn_resource.turn_count);
 
-            // Update turn count UI element
-            **turn_count_text_query = format!("Turn: {}", turn_resource.turn_count).into();
+        // Update turn count UI element
+        **turn_count_text_query = format!("Turn: {}", turn_resource.turn_count).into();
+
+        // Replenish MovementPoints for all units
+        for mut unit in units_query {
+            unit.movement_points = unit.movement_speed;
         }
     }
 }

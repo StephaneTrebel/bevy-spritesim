@@ -9,6 +9,7 @@ kanban-plugin: board
 
 ## ToDo
 
+- [ ] [[starting menu]]
 - [ ] [[Animate_unit_movement]]
 - [ ] [[Define Terrain Layer Hierarchy]]
 - [ ] [[Create an Ocean Unit (boat)]]
