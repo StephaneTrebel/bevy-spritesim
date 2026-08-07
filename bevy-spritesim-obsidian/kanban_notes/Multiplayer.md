@@ -3,7 +3,7 @@ description: to_be_defined
 ---
 ## Content
 
-- Blablabla
+- AI players for the turn paradigm to make any sense
 
 ## ToDo
 

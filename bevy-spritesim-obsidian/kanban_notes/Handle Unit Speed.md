@@ -26,5 +26,5 @@ title: Handle Unit MovementPoints
 
 ## Lessons Learned
 
-- Add variable MovementPoints alterations for some tiles (Marshes, Hills, etc.)
-- Enqueue several movements at once (during several turns) that will be automatically performed at every turn end
+- Add variable `MovementPoints` alterations for some tiles (Marshes, Hills, etc.) -> [[Add variable MovementPoints alterations for some tiles (Marshes, Hills, etc.)]]
+- Enqueue several movements at once (during several turns) that will be automatically performed at every turn end -> [[Enqueue several movements at once (during several turns) that will be automatically performed at every turn end]]

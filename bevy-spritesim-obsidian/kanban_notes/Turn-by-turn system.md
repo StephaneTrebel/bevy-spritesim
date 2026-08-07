@@ -32,7 +32,8 @@ title: Define the Turn-by-turn system
 
 ## Lessons Learned/Next steps
 
-- Handle a unit "buffer/queue" for actions that takes several turns -> [[Handle Unit Speed]]
-- Once a unit has spents its turn, it cannot do anything else
-- Have a way to easily identify units that still can do something during a turn from units that cannot anymore
-- Multiplayer/AI players for the turn paradigm to make any sense ? :D
+- Handle a unit "speed" to make turns usable -> [[Handle Unit Speed]]
+- Handle a unit "buffer/queue" for actions that takes several turns -> [[Enqueue several movements at once (during several turns) that will be automatically performed at every turn end]]
+- Once a unit has spents its turn, it cannot do anything else -> [[Handle Unit Speed]]
+- Have a way to easily identify units that still can do something during a turn from units that cannot anymore -> [[Have a way to easily identify units that still can do something during a turn from units that cannot anymore]]
+- Multiplayer/AI players for the turn paradigm to make any sense ? :D -> [[Multiplayer]]

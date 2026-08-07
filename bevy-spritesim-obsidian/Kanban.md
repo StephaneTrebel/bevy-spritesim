@@ -9,16 +9,22 @@ kanban-plugin: board
 
 ## ToDo
 
+- [ ] [[Animate_unit_movement]]
 - [ ] [[Define Terrain Layer Hierarchy]]
-- [ ] [[Define a keyboard layout]]
-- [ ] [[WASM Build]]
-- [ ] [[Define Z-index rules]]
 - [ ] [[Create an Ocean Unit (boat)]]
 - [ ] [[Handle Camera Panning through Drag&Drop]]
+- [ ] [[Add variable MovementPoints alterations for some tiles (Marshes, Hills, etc.)]]
+- [ ] [[Enqueue several movements at once (during several turns) that will be automatically performed at every turn end]]
+- [ ] [[Define Z-index rules]]
+- [ ] [[WASM Build]]
+- [ ] [[Define a keyboard layout]]
+- [ ] [[Have a way to easily identify units that still can do something during a turn from units that cannot anymore]]
+- [ ] [[Multiplayer]]
 
 
 ## InProgress
 
+- [ ] [[BUG - Ending a turn must replenish all MovementPoints]]
 
 
 ## Done
@@ -61,6 +67,6 @@ kanban-plugin: board
 
 %% kanban:settings
 ```
-{"kanban-plugin":"board","list-collapse":[false,false,true],"metadata-keys":[{"metadataKey":"description","label":"Description","shouldHideLabel":false,"containsMarkdown":false}],"move-tags":true,"tag-action":"kanban","tag-colors":[{"tagKey":"#phase","color":"rgba(236, 250, 137, 1)","backgroundColor":""}]}
+{"kanban-plugin":"board","list-collapse":[false,false,false],"metadata-keys":[{"metadataKey":"description","label":"Description","shouldHideLabel":false,"containsMarkdown":false}],"move-tags":true,"tag-action":"kanban","tag-colors":[{"tagKey":"#phase","color":"rgba(236, 250, 137, 1)","backgroundColor":""}]}
 ```
 %%
