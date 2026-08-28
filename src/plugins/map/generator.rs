@@ -222,42 +222,42 @@ pub fn generate_map() -> Map {
     // Place specials
     for w in 0..=MAP_WIDTH {
         for h in 0..=MAP_HEIGHT {
-            let tile = map.get(&MapCoordinates(w, h)).unwrap();
+            let tile = map.get(&MapCoordinates(w, h)).expect("Should not be None");
             let terrain = tile.terrain;
             let zone = tile.zone;
             let probability = pseudo_rng_instance.random_bool(0.01);
             // Corn goes on feature-less plains
             if terrain == TerrainLayer::Plain && zone.is_none() && probability {
-                println!("[{}] Putting Corn at {:?}", terrain, &MapCoordinates(w, h));
+                debug!("[{}] Putting Corn at {:?}", terrain, &MapCoordinates(w, h));
                 upsert_tile_in_map(
                     &mut map,
                     &MapCoordinates(w, h),
                     None,
                     None,
                     Some(&FeatureLayer::Corn),
-                )
+                );
             }
             // Lumber goes on forests
             else if zone.is_some_and(|k| k == ZoneLayer::Forest) && probability {
-                println!("[{}] Putting Lumber at {:?}", terrain, &(w, h));
+                debug!("[{}] Putting Lumber at {:?}", terrain, &(w, h));
                 upsert_tile_in_map(
                     &mut map,
                     &MapCoordinates(w, h),
                     None,
                     None,
                     Some(&FeatureLayer::Lumber),
-                )
+                );
             }
             // Fish goes on oceans
             else if terrain == TerrainLayer::Ocean && probability {
-                println!("[{}] Putting Fish at {:?}", terrain, &(w, h));
+                debug!("[{}] Putting Fish at {:?}", terrain, &(w, h));
                 upsert_tile_in_map(
                     &mut map,
                     &MapCoordinates(w, h),
                     None,
                     None,
                     Some(&FeatureLayer::Fish),
-                )
+                );
             }
         }
     }

@@ -21,7 +21,6 @@ pub struct Moveable;
 fn draw_selector(
     mut commands: Commands,
     atlas: Res<SpriteAtlas>,
-    mut next_state: ResMut<NextState<AppState>>,
 ) {
     info!("Drawing selector");
     commands.spawn((
@@ -32,7 +31,6 @@ fn draw_selector(
         Pickable::IGNORE,
         UnitSelector,
     ));
-    next_state.set(AppState::MainGame);
     info!("Done Drawing selector");
 }
 

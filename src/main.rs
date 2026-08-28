@@ -67,7 +67,13 @@ fn main() {
 
     // Game state (Menu, Map, etc.)
     app.init_state::<AppState>();
+    app.add_systems(OnEnter(AppState::Startup), startup_system);
 
     // Let's-a go !
     app.run();
+}
+
+fn startup_system(mut next_state: ResMut<NextState<AppState>>) {
+    info!("Startup...");
+    next_state.set(AppState::SpriteLoadStart);
 }

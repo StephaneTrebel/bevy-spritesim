@@ -9,10 +9,8 @@ kanban-plugin: board
 
 ## ToDo
 
-- [ ] [[starting menu]]
 - [ ] [[Animate_unit_movement]]
 - [ ] [[Define Terrain Layer Hierarchy]]
-- [ ] [[Create an Ocean Unit (boat)]]
 - [ ] [[Handle Camera Panning through Drag&Drop]]
 - [ ] [[Add variable MovementPoints alterations for some tiles (Marshes, Hills, etc.)]]
 - [ ] [[Enqueue several movements at once (during several turns) that will be automatically performed at every turn end]]
@@ -20,11 +18,14 @@ kanban-plugin: board
 - [ ] [[WASM Build]]
 - [ ] [[Define a keyboard layout]]
 - [ ] [[Have a way to easily identify units that still can do something during a turn from units that cannot anymore]]
+- [ ] [[Create an Ocean Unit (boat)]]
 - [ ] [[Multiplayer]]
+- [ ] [[add_cutscenes]]
 
 
 ## InProgress
 
+- [ ] [[main_menu]]
 
 
 ## Done
