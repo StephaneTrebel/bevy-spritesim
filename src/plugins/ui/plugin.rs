@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::{
     color::palettes::css::{RED, TEAL},
     input_focus::{FocusCause, InputFocus},
@@ -28,7 +30,7 @@ fn spawn_turn_counter() -> impl Scene {
         BackgroundColor(Color::BLACK)
         Children [(
             Name::new("Turn counter Text")
-            Text::new(format!("Turn: 0"))
+            Text::new("Turn: 0".to_string())
             TurnCountText
             TextFont {
                 font_size: FontSize::Px(13.0),
@@ -43,6 +45,12 @@ pub struct EndTurnButton;
 
 #[derive(Component, Default, Clone)]
 pub struct EndTurnButtonText;
+
+#[derive(Component, Default, Clone)]
+pub struct EndTurnButtonClicked {
+    duration: Duration,
+    timer: Timer,
+}
 
 fn spawn_end_turn_button() -> impl Scene {
     // Spawn turn counter
@@ -98,6 +106,7 @@ pub fn draw_map_ui(mut commands: Commands) {
 }
 
 pub fn on_end_turn_button_click(
+    mut commands: Commands,
     mut input_focus: ResMut<InputFocus>,
     mut turn_resource: ResMut<TurnResource>,
     interaction_query: Single<
@@ -123,6 +132,11 @@ pub fn on_end_turn_button_click(
         *color = TEAL.into();
         *border_color = BorderColor::all(RED);
         button.set_changed();
+        let duration = Duration::from_millis(200);
+        commands.entity(entity).insert(EndTurnButtonClicked {
+            duration,
+            timer: Timer::new(duration, TimerMode::Once),
+        });
 
         // Increment count turn
         turn_resource.turn_count += 1;
@@ -138,11 +152,48 @@ pub fn on_end_turn_button_click(
     }
 }
 
+pub fn elapse_end_button_clicked(
+    mut commands: Commands,
+    end_button_clicked_query: Single<
+        (
+            Entity,
+            &mut BackgroundColor,
+            &mut BorderColor,
+            &mut Button,
+            &mut EndTurnButtonClicked,
+        ),
+        (With<EndTurnButton>),
+    >,
+    mut end_button_clicked_text_query: Single<
+        &mut Text,
+        (With<EndTurnButtonText>, Without<TurnCountText>),
+    >,
+    time: Res<Time>,
+) {
+    let (entity, mut color, mut border_color, mut button, mut end_turn_button_clicked) =
+        end_button_clicked_query.into_inner();
+    info!("elapse_end_button_clicked");
+    if end_turn_button_clicked
+        .timer
+        .tick(time.delta())
+        .is_finished()
+    {
+        info!("FINISHED");
+        // Revert clicked button state
+        ***end_button_clicked_text_query = "End Turn".to_string();
+        *color = Color::BLACK.into();
+        *border_color = BorderColor::all(Color::WHITE);
+        button.set_changed();
+        commands.entity(entity).remove::<EndTurnButtonClicked>();
+    }
+}
+
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::ReadyToDraw), draw_map_ui);
         app.add_systems(PreUpdate, on_end_turn_button_click);
+        app.add_systems(PreUpdate, elapse_end_button_clicked);
     }
 }
