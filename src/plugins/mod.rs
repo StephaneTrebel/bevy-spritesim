@@ -13,6 +13,9 @@ pub use fps_overlay::CustomFpsOverlayPlugin;
 pub mod keyboard;
 pub use keyboard::KeyboardPlugin;
 
+pub mod main_menu;
+pub use main_menu::MainMenuPlugin;
+
 pub mod map;
 pub use map::MapPlugin;
 

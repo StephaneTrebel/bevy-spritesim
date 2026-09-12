@@ -1,16 +1,24 @@
 use bevy::prelude::*;
 
-use crate::plugins::{
-    TerrainLayer,
-    map::{Map, MapCoordinates, MapResource, Tile},
-    sprites::{SpriteAtlas, SpriteType},
+use crate::{
+    plugins::{
+        TerrainLayer,
+        map::{Map, MapCoordinates, MapResource, Tile},
+        sprites::{SpriteAtlas, SpriteType},
+    },
+    state::AppState,
 };
 
 fn create_tile_name(sprite_type: SpriteType, map_coordinates: MapCoordinates) -> String {
     format!("{sprite_type}[{map_coordinates}]")
 }
 
-pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: Res<MapResource>) {
+pub fn draw_map(
+    mut commands: Commands,
+    atlas: Res<SpriteAtlas>,
+    map_resource: Res<MapResource>,
+    mut next_state: ResMut<NextState<AppState>>,
+) {
     info!("Drawing map…");
 
     let map = &map_resource.map;
@@ -69,6 +77,9 @@ pub fn draw_map(mut commands: Commands, atlas: Res<SpriteAtlas>, map_resource: R
     }
 
     info!("Done drawing map !");
+
+    info!("Displaying main menu over map...");
+    next_state.set(AppState::InGame);
 }
 
 /// Retrieve the adequate tileset indices to properly display a tile.

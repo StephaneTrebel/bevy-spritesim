@@ -162,7 +162,7 @@ pub fn elapse_end_button_clicked(
             &mut Button,
             &mut EndTurnButtonClicked,
         ),
-        (With<EndTurnButton>),
+        With<EndTurnButton>,
     >,
     mut end_button_clicked_text_query: Single<
         &mut Text,

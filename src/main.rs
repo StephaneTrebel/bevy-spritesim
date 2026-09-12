@@ -7,8 +7,9 @@ use bevy::{
 };
 use plugins::constants::{WINDOW_PHYSICAL_HEIGHT, WINDOW_PHYSICAL_WIDTH, WINDOW_SCALE_FACTOR};
 
+use crate::plugins::main_menu::IsMainMenuShown;
 use crate::plugins::{
-    ButtonsPlugin, CameraPlugin, CustomFpsOverlayPlugin, KeyboardPlugin, MapPlugin,
+    ButtonsPlugin, CameraPlugin, CustomFpsOverlayPlugin, KeyboardPlugin, MainMenuPlugin, MapPlugin,
     SelectionPlugin, SpritePlugin, TurnPlugin, UiPlugin, UnitPlugin,
 };
 use crate::state::AppState;
@@ -57,6 +58,7 @@ fn main() {
         CameraPlugin,
         CustomFpsOverlayPlugin,
         KeyboardPlugin,
+        MainMenuPlugin,
         MapPlugin,
         SelectionPlugin,
         SpritePlugin,
@@ -67,6 +69,7 @@ fn main() {
 
     // Game state (Menu, Map, etc.)
     app.init_state::<AppState>();
+    app.add_sub_state::<IsMainMenuShown>();
     app.add_systems(OnEnter(AppState::Startup), startup_system);
 
     // Let's-a go !

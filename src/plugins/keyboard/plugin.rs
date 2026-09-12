@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     plugins::{
+        main_menu::IsMainMenuShown,
         sprites::{SpriteAtlas, SpriteType},
         units::Unit,
     },
@@ -14,7 +15,7 @@ pub struct Village;
 pub struct KeyboardPlugin;
 impl Plugin for KeyboardPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PreUpdate, handle_input)
+        app.add_systems(PreUpdate, handle_input.run_if(in_state(AppState::InGame)))
             .add_systems(OnEnter(AppState::ReadyToDraw), draw_village);
     }
 }
@@ -36,6 +37,8 @@ fn handle_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     unit: Single<(Entity, &Transform), (With<Unit>, Without<Village>)>,
     mut village: Single<(&mut Visibility, &mut Transform), With<Village>>,
+    main_menu_current_state: Res<State<IsMainMenuShown>>,
+    mut main_menu_next_state: ResMut<NextState<IsMainMenuShown>>,
     mut next_state: ResMut<NextState<AppState>>,
 ) {
     let (entity, transform) = *unit;
@@ -54,5 +57,8 @@ fn handle_input(
 
         // Show "you win" Button
         next_state.set(AppState::WinConditionAchieved);
+    } else if keyboard_input.just_pressed(KeyCode::Escape) {
+        // Toggling Main Menu
+        main_menu_next_state.set(main_menu_current_state.next());
     }
 }

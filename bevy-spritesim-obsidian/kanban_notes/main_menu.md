@@ -17,7 +17,7 @@ description: main menu for basic system actions
 
 ## ToDo
 
-- [ ] Create the Main Menu (with its own plugin ?)
+- [ ] Create the Main Menu (with its own plugin)
 - [ ] Activate the Main Menu at startup
 - [ ] Show/Hide the Main Menu with Escape
 

@@ -15,8 +15,8 @@ pub enum AppState {
     MapGenerationStart,
     ReadyToDraw,
 
-    // Main Menu
-    MainMenu,
+    // Game running
+    InGame,
 
     // Winning Conditions
     WinConditionAchieved,

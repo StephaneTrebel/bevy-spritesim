@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "87a4200369a983af",
+        "id": "8edcd325c427ce78",
         "type": "tabs",
         "children": [
           {
-            "id": "7ae46968e0fa4ab0",
+            "id": "2b9d73557da8cb95",
             "type": "leaf",
             "state": {
               "type": "kanban",
@@ -28,7 +28,7 @@
             }
           },
           {
-            "id": "8894a5337f00f21c",
+            "id": "6ef925d6eda78f53",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -41,8 +41,7 @@
               "title": "main_menu"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -237,10 +236,13 @@
       "obsidian-kanban:Create new board": false
     }
   },
-  "active": "8894a5337f00f21c",
+  "active": "2b9d73557da8cb95",
   "lastOpenFiles": [
+    "kanban_notes/add_settings_menu.md",
     "Kanban.md",
+    "kanban_notes/save_and_load_state.md",
     "kanban_notes/main_menu.md",
+    "kanban_notes/add_an_input_abstraction.md",
     "kanban_notes/main menu.md",
     "kanban_notes/add_cutscenes.md",
     "kanban_notes/BUG - Ending a turn must replenish all MovementPoints.md",
@@ -262,9 +264,6 @@
     "kanban_notes/Display Selector on tiles.md",
     "kanban_notes/Fix Sprite Tile Selection.md",
     "kanban_notes/Create an Ocean Unit (boat).md",
-    "Handle unit speed.md",
-    "kanban_notes/Refactor RealCoordinates.md",
-    "Define a keyboard layout.md",
     "kanban_notes",
     "Templates",
     "Excalidraw"

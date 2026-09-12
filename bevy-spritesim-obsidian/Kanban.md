@@ -21,6 +21,9 @@ kanban-plugin: board
 - [ ] [[Create an Ocean Unit (boat)]]
 - [ ] [[Multiplayer]]
 - [ ] [[add_cutscenes]]
+- [ ] [[add_an_input_abstraction]]
+- [ ] [[save_and_load_state]]
+- [ ] [[add_settings_menu]]
 
 
 ## InProgress
