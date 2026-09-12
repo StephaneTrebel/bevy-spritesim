@@ -18,7 +18,8 @@ unwrap_used = "deny"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.19.0", default-features = false, features = ["2d", "ui", "dynamic_linking", "debug", "bevy_dev_tools", "trace", "sprite_picking"] }
+bevy = { version = "0.19.1", default-features = false, features = ["2d", "ui", "dynamic_linking", "debug", "bevy_dev_tools", "trace", "sprite_picking"] }
+bevy_state = "0.19.1"
 noisy_bevy = "0.14.0"
 rand = "0.9.2"
 
