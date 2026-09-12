@@ -11,6 +11,21 @@ pub struct ExitButton;
 #[derive(Component, Default, Clone)]
 pub struct ExitButtonText;
 
+fn spawn_main_title() -> impl Scene {
+    bsn! {
+        Name::new("Main menu Scene")
+        Node {
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            margin: UiRect { left: px(10), right: px(10), top:px(10), bottom: px(100)}
+        }
+        Children [(
+            Name::new("Main Menu Sprite")
+            ImageNode { image: "main_menu.png" }
+        )]
+    }
+}
+
 fn spawn_toggle_escape_textbox() -> impl Scene {
     bsn! {
         Name::new("Toggle Escape textbox Scene")
@@ -87,6 +102,7 @@ fn spawn_main_menu_layout() -> impl Scene {
         }
         Pickable::IGNORE
         Children [
+           spawn_main_title(),
            spawn_toggle_escape_textbox(),
            spawn_exit_button()
         ]
