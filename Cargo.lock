@@ -351,16 +351,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy-spritesim"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_state",
- "noisy_bevy",
- "rand 0.9.4",
-]
-
-[[package]]
 name = "bevy_a11y"
 version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3067,6 +3057,16 @@ name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
+
+[[package]]
+name = "les-aventures-de-michel"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_state",
+ "noisy_bevy",
+ "rand 0.9.4",
+]
 
 [[package]]
 name = "libc"
