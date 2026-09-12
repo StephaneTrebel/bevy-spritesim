@@ -11,6 +11,28 @@ pub struct ExitButton;
 #[derive(Component, Default, Clone)]
 pub struct ExitButtonText;
 
+fn spawn_toggle_escape_textbox() -> impl Scene {
+    bsn! {
+        Name::new("Toggle Escape textbox Scene")
+        Node {
+            width: px(250),
+            height: px(30),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            margin: UiRect::all(px(10)),
+        }
+        BackgroundColor(Color::srgba(0.0,0.0,0.0,0.8))
+        Children [(
+            Name::new("Toggle Escape textbox Text")
+            Text::new("Press escape to show/hide menu")
+            TextFont {
+                font_size: FontSize::Px(13.0),
+            }
+            TextColor(Color::srgb(0.9, 0.9, 0.9))
+        )]
+    }
+}
+
 fn spawn_exit_button() -> impl Scene {
     bsn! {
         Name::new("Exit button Scene")
@@ -60,10 +82,12 @@ fn spawn_main_menu_layout() -> impl Scene {
             height: percent(100),
             padding: UiRect::all(px(25)),
             align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center
+            justify_content: JustifyContent::Center,
+            flex_direction: FlexDirection::Column
         }
         Pickable::IGNORE
         Children [
+           spawn_toggle_escape_textbox(),
            spawn_exit_button()
         ]
     }
